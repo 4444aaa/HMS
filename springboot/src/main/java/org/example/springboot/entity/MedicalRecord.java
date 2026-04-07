@@ -9,6 +9,7 @@ import lombok.Data;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @TableName("medical_record")
@@ -62,4 +63,8 @@ public class MedicalRecord {
     @TableField(exist = false)
     @Schema(description = "预约信息")
     private Appointment appointment;
+
+    @TableField(exist = false)
+    @Schema(description = "病症明细")
+    private List<MedicalRecordDetail> details;
 }

@@ -340,6 +340,31 @@ INSERT INTO `patient` VALUES (2, 6, 'P002', '钱患者', '110101199202022345', '
 INSERT INTO `patient` VALUES (3, 57, 'PF14FE559', 'test', '320821200106063939', '2001-06-06', '女', '13456789987', 'test', 'test', 'test', '2025-06-07 15:26:47', '2025-06-07 15:48:21');
 
 -- ----------------------------
+-- Table structure for medical_record_detail
+-- ----------------------------
+DROP TABLE IF EXISTS `medical_record_detail`;
+CREATE TABLE `medical_record_detail`  (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '就诊明细ID',
+  `record_id` bigint(20) NOT NULL COMMENT '就诊记录ID',
+  `symptom_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '病症名称',
+  `treatment_plan` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '对应治疗方案',
+  `sort_no` int(11) NULL DEFAULT 1 COMMENT '排序号',
+  `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_mrd_record_id`(`record_id` ASC) USING BTREE,
+  CONSTRAINT `fk_mrd_record` FOREIGN KEY (`record_id`) REFERENCES `medical_record` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
+) ENGINE = InnoDB AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '就诊记录病症明细表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of medical_record_detail
+-- ----------------------------
+INSERT INTO `medical_record_detail` VALUES (1, 1, '上呼吸道感染', '对症抗感染治疗，注意休息与补液', 1, '2025-06-08 10:35:00', '2025-06-08 10:35:00');
+INSERT INTO `medical_record_detail` VALUES (2, 2, '慢性胃炎', '抑酸护胃，清淡饮食', 1, '2025-06-08 11:05:00', '2025-06-08 11:05:00');
+INSERT INTO `medical_record_detail` VALUES (3, 1, '发热', '退热及观察体温变化', 2, '2025-06-15 09:35:00', '2025-06-15 09:35:00');
+INSERT INTO `medical_record_detail` VALUES (4, 2, '胃黏膜刺激', '复诊评估，继续护胃治疗', 2, '2025-06-15 10:05:00', '2025-06-15 10:05:00');
+
+-- ----------------------------
 -- Table structure for prescription
 -- ----------------------------
 DROP TABLE IF EXISTS `prescription`;
@@ -379,6 +404,7 @@ DROP TABLE IF EXISTS `prescription_detail`;
 CREATE TABLE `prescription_detail`  (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '明细ID',
   `prescription_id` bigint(20) NOT NULL COMMENT '处方ID',
+  `medical_record_detail_id` bigint(20) NULL DEFAULT NULL COMMENT '就诊病症明细ID',
   `medicine_id` bigint(20) NOT NULL COMMENT '药品ID',
   `dosage` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '用量',
   `frequency` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '频次(一日三次/每日一次)',
@@ -390,20 +416,22 @@ CREATE TABLE `prescription_detail`  (
   `update_time` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `idx_prescription_id`(`prescription_id` ASC) USING BTREE,
-  INDEX `idx_medicine_id`(`medicine_id` ASC) USING BTREE
+  INDEX `idx_medicine_id`(`medicine_id` ASC) USING BTREE,
+  INDEX `idx_pd_mrd_id`(`medical_record_detail_id` ASC) USING BTREE,
+  CONSTRAINT `fk_pd_mrd` FOREIGN KEY (`medical_record_detail_id`) REFERENCES `medical_record_detail` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
 ) ENGINE = InnoDB AUTO_INCREMENT = 9 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '处方明细表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of prescription_detail
 -- ----------------------------
-INSERT INTO `prescription_detail` VALUES (1, 1, 4, '每次一袋', '一日三次', 5, 15, '口服', '饭后温水冲服', '2025-06-08 10:35:00', '2025-06-08 10:35:00');
-INSERT INTO `prescription_detail` VALUES (2, 1, 8, '每次一片', '一日一次', 5, 5, '口服', '早餐后服用', '2025-06-08 10:35:00', '2025-06-08 10:35:00');
-INSERT INTO `prescription_detail` VALUES (3, 2, 9, '每次一粒', '一日两次', 7, 14, '口服', '饭后服用', '2025-06-08 11:05:00', '2025-06-08 11:05:00');
-INSERT INTO `prescription_detail` VALUES (4, 2, 19, '每次一粒', '一日四次', 7, 28, '口服', '饭后服用', '2025-06-08 11:05:00', '2025-06-08 11:05:00');
-INSERT INTO `prescription_detail` VALUES (5, 3, 16, '每次一袋', '一日三次', 5, 15, '口服', '饭后温水冲服', '2025-06-15 09:35:00', '2025-06-15 09:35:00');
-INSERT INTO `prescription_detail` VALUES (6, 4, 36, '每次一粒', '一日一次', 14, 14, '口服', '早餐后服用', '2025-06-15 10:05:00', '2025-06-15 10:05:00');
-INSERT INTO `prescription_detail` VALUES (7, 5, 21, '每次两片', '一日三次', 5, 30, '口服', '饭后服用', '2025-06-20 09:35:00', '2025-06-20 09:35:00');
-INSERT INTO `prescription_detail` VALUES (8, 6, 5, '2', '一日三次', 7, 1, '口服', NULL, '2025-06-07 15:08:40', '2025-06-07 15:08:40');
+INSERT INTO `prescription_detail` VALUES (1, 1, 1, 4, '每次一袋', '一日三次', 5, 15, '口服', '饭后温水冲服', '2025-06-08 10:35:00', '2025-06-08 10:35:00');
+INSERT INTO `prescription_detail` VALUES (2, 1, 1, 8, '每次一片', '一日一次', 5, 5, '口服', '早餐后服用', '2025-06-08 10:35:00', '2025-06-08 10:35:00');
+INSERT INTO `prescription_detail` VALUES (3, 2, 2, 9, '每次一粒', '一日两次', 7, 14, '口服', '饭后服用', '2025-06-08 11:05:00', '2025-06-08 11:05:00');
+INSERT INTO `prescription_detail` VALUES (4, 2, 2, 19, '每次一粒', '一日四次', 7, 28, '口服', '饭后服用', '2025-06-08 11:05:00', '2025-06-08 11:05:00');
+INSERT INTO `prescription_detail` VALUES (5, 3, 3, 16, '每次一袋', '一日三次', 5, 15, '口服', '饭后温水冲服', '2025-06-15 09:35:00', '2025-06-15 09:35:00');
+INSERT INTO `prescription_detail` VALUES (6, 4, 4, 36, '每次一粒', '一日一次', 14, 14, '口服', '早餐后服用', '2025-06-15 10:05:00', '2025-06-15 10:05:00');
+INSERT INTO `prescription_detail` VALUES (7, 5, 3, 21, '每次两片', '一日三次', 5, 30, '口服', '饭后服用', '2025-06-20 09:35:00', '2025-06-20 09:35:00');
+INSERT INTO `prescription_detail` VALUES (8, 6, NULL, 5, '2', '一日三次', 7, 1, '口服', NULL, '2025-06-07 15:08:40', '2025-06-07 15:08:40');
 
 -- ----------------------------
 -- Table structure for schedule

@@ -85,6 +85,14 @@
                 <el-descriptions-item label="就诊日期">{{ record.recordDate }}</el-descriptions-item>
                 <el-descriptions-item label="诊断结果" :span="2">{{ record.diagnosis || '暂无诊断' }}</el-descriptions-item>
                 <el-descriptions-item label="治疗方案" :span="2">{{ record.treatment || '暂无治疗方案' }}</el-descriptions-item>
+                <el-descriptions-item label="病症明细" :span="2">
+                  <div v-if="record.details && record.details.length > 0">
+                    <div v-for="d in record.details" :key="d.id">
+                      {{ d.symptomName }}：{{ d.treatmentPlan || '无治疗方案' }}
+                    </div>
+                  </div>
+                  <span v-else>暂无病症明细</span>
+                </el-descriptions-item>
                 <el-descriptions-item label="随访日期" v-if="record.followUp">{{ record.followUp }}</el-descriptions-item>
               </el-descriptions>
               
@@ -115,6 +123,11 @@
                       
                       <div class="medicine-list" v-if="prescription.details && prescription.details.length > 0">
                         <el-table :data="prescription.details" border style="width: 100%">
+                          <el-table-column label="病症" min-width="140">
+                            <template #default="scope">
+                              {{ scope.row.medicalRecordDetail?.symptomName || '-' }}
+                            </template>
+                          </el-table-column>
                           <el-table-column prop="medicine.medicineName" label="药品名称" />
                           <el-table-column prop="dosage" label="用量" />
                           <el-table-column prop="frequency" label="频次" />
@@ -209,6 +222,19 @@
             <div class="notes-box">{{ currentRecord.notes }}</div>
           </el-descriptions-item>
         </el-descriptions>
+
+        <div class="section-divider">
+          <span>病症明细</span>
+        </div>
+        <div v-if="currentRecord.details && currentRecord.details.length > 0">
+          <el-table :data="currentRecord.details" border style="width: 100%" :row-class-name="tableRowClassName">
+            <el-table-column prop="symptomName" label="病症名称" width="180" />
+            <el-table-column prop="treatmentPlan" label="对应治疗方案" min-width="260" />
+          </el-table>
+        </div>
+        <div v-else class="no-prescription">
+          <el-empty description="暂无病症明细" :image-size="80" />
+        </div>
         
         <div class="section-divider">
           <span>处方信息</span>
@@ -290,6 +316,11 @@
         
         <div v-if="currentPrescription.details && currentPrescription.details.length > 0" class="medicine-detail">
           <el-table :data="currentPrescription.details" border style="width: 100%" :row-class-name="tableRowClassName">
+            <el-table-column label="病症" min-width="140">
+              <template #default="scope">
+                {{ scope.row.medicalRecordDetail?.symptomName || '-' }}
+              </template>
+            </el-table-column>
             <el-table-column prop="medicine.medicineName" label="药品名称" />
             <el-table-column prop="medicine.specification" label="规格" />
             <el-table-column prop="dosage" label="用量" />
@@ -406,6 +437,7 @@ const fetchMyMedicalRecords = async () => {
         
         // 为每个就诊记录加载处方信息
         for (const record of medicalRecords.value) {
+          await loadRecordDetail(record)
           await loadPrescriptions(record)
         }
       }
@@ -415,6 +447,18 @@ const fetchMyMedicalRecords = async () => {
     ElMessage.error('获取就诊记录失败')
   } finally {
     loading.value = false
+  }
+}
+
+const loadRecordDetail = async (record) => {
+  try {
+    await request.get(`/medical-record/${record.id}`, {}, {
+      onSuccess: (res) => {
+        record.details = res?.details || []
+      }
+    })
+  } catch (error) {
+    console.error('获取就诊明细失败:', error)
   }
 }
 

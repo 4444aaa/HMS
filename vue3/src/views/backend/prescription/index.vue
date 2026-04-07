@@ -223,6 +223,11 @@
           <div v-if="prescriptionForm.details && prescriptionForm.details.length > 0">
             <el-table :data="prescriptionForm.details" border style="width: 100%; margin-bottom: 20px;">
               <el-table-column label="药品名称" prop="medicine.medicineName" width="180" />
+              <el-table-column label="所属病症" width="160">
+                <template #default="scope">
+                  {{ scope.row.medicalRecordDetail?.symptomName || '-' }}
+                </template>
+              </el-table-column>
               <el-table-column label="规格" prop="medicine.specification" width="120" />
               <el-table-column label="用量" prop="dosage" width="100" />
               <el-table-column label="频次" prop="frequency" width="100" />
@@ -243,6 +248,18 @@
           
           <div v-if="dialogType !== 'view'" class="add-medicine-form">
             <el-row :gutter="20">
+              <el-col :span="8">
+                <el-form-item label="病症明细">
+                  <el-select v-model="currentMedicine.medicalRecordDetailId" placeholder="请选择病症明细" filterable>
+                    <el-option
+                      v-for="d in recordDetailOptions"
+                      :key="d.id"
+                      :label="`${d.symptomName}${d.treatmentPlan ? ' - ' + d.treatmentPlan : ''}`"
+                      :value="d.id"
+                    />
+                  </el-select>
+                </el-form-item>
+              </el-col>
               <el-col :span="8">
                 <el-form-item label="药品" prop="currentMedicine.medicineId">
                   <el-select v-model="currentMedicine.medicineId" placeholder="请选择药品" filterable>
@@ -340,6 +357,7 @@ const patientOptions = ref([])
 const doctorOptions = ref([])
 const recordOptions = ref([])
 const medicineOptions = ref([])
+const recordDetailOptions = ref([])
 
 // 新增/编辑对话框
 const dialogVisible = ref(false)
@@ -360,6 +378,7 @@ const prescriptionForm = reactive({
 
 // 当前正在添加的药品
 const currentMedicine = reactive({
+  medicalRecordDetailId: null,
   medicineId: null,
   dosage: '',
   frequency: '',
@@ -530,6 +549,10 @@ const handleUpdateStatus = async (id, status) => {
 // 添加药品到处方
 const addMedicine = () => {
   // 验证药品信息
+  if (!currentMedicine.medicalRecordDetailId) {
+    ElMessage.warning('请选择病症明细')
+    return
+  }
   if (!currentMedicine.medicineId) {
     ElMessage.warning('请选择药品')
     return
@@ -551,7 +574,10 @@ const addMedicine = () => {
   const medicine = medicineOptions.value.find(m => m.id === currentMedicine.medicineId)
   
   // 创建药品明细对象
+  const detailRef = recordDetailOptions.value.find(d => d.id === currentMedicine.medicalRecordDetailId)
   const detail = {
+    medicalRecordDetailId: currentMedicine.medicalRecordDetailId,
+    medicalRecordDetail: detailRef,
     medicineId: currentMedicine.medicineId,
     dosage: currentMedicine.dosage,
     frequency: currentMedicine.frequency,
@@ -568,6 +594,7 @@ const addMedicine = () => {
   prescriptionForm.details.push(detail)
   
   // 重置当前药品表单
+  currentMedicine.medicalRecordDetailId = null
   currentMedicine.medicineId = null
   currentMedicine.dosage = ''
   currentMedicine.frequency = ''
@@ -617,6 +644,7 @@ const resetForm = () => {
   
   // 重置当前药品表单
   currentMedicine.medicineId = null
+  currentMedicine.medicalRecordDetailId = null
   currentMedicine.dosage = ''
   currentMedicine.frequency = ''
   currentMedicine.days = 7
@@ -646,8 +674,21 @@ watch([() => prescriptionForm.patientId, () => prescriptionForm.doctorId], async
     }
   } else {
     recordOptions.value = []
+    recordDetailOptions.value = []
   }
 }, { immediate: false })
+
+watch(() => prescriptionForm.recordId, async (newRecordId) => {
+  if (!newRecordId) {
+    recordDetailOptions.value = []
+    return
+  }
+  await request.get(`/medical-record/${newRecordId}`, {}, {
+    onSuccess: (res) => {
+      recordDetailOptions.value = res.details || []
+    }
+  })
+})
 
 // 格式化日期
 const formatDate = (date) => {

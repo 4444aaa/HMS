@@ -216,6 +216,7 @@ const createForm = reactive({
   items: []
 })
 const supplierMedicineIdSet = ref(new Set())
+const sourcePlanItems = ref([])
 
 const fetchOrders = async () => {
   loading.value = true
@@ -303,6 +304,7 @@ const onPlanChange = async (planId) => {
   if (!planId) return
   createForm.supplierId = null
   supplierMedicineIdSet.value = new Set()
+  sourcePlanItems.value = []
   await request.get(`/purchasePlan/${planId}/suppliers`, {}, {
     showDefaultMsg: false,
     onSuccess: (res) => {
@@ -321,7 +323,8 @@ const onPlanChange = async (planId) => {
         unitPrice: Number(it.medicine?.price || 0),
         remark: ''
       }))
-      createForm.items = filterItemsBySupplier(items)
+      sourcePlanItems.value = items
+      createForm.items = filterItemsBySupplier(sourcePlanItems.value)
     }
   })
 }
@@ -336,7 +339,7 @@ const onSupplierChange = async (supplierId) => {
     onSuccess: (res) => {
       const ids = (res || []).filter(m => m.supplierId === supplierId).map(m => m.id)
       supplierMedicineIdSet.value = new Set(ids)
-      createForm.items = filterItemsBySupplier(createForm.items || [])
+      createForm.items = filterItemsBySupplier(sourcePlanItems.value || [])
     }
   })
 }
@@ -352,6 +355,7 @@ const resetCreate = () => {
   createForm.supplierId = null
   createForm.remark = ''
   createForm.items = []
+  sourcePlanItems.value = []
 }
 
 const createOrder = async () => {

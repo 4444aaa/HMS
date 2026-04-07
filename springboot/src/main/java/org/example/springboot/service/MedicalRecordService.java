@@ -10,6 +10,7 @@ import org.example.springboot.entity.MedicalRecord;
 import org.example.springboot.entity.Patient;
 import org.example.springboot.entity.Prescription;
 import org.example.springboot.entity.Department;
+import org.example.springboot.entity.MedicalRecordDetail;
 import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.AppointmentMapper;
 import org.example.springboot.mapper.DoctorMapper;
@@ -17,6 +18,7 @@ import org.example.springboot.mapper.MedicalRecordMapper;
 import org.example.springboot.mapper.PatientMapper;
 import org.example.springboot.mapper.PrescriptionMapper;
 import org.example.springboot.mapper.DepartmentMapper;
+import org.example.springboot.mapper.MedicalRecordDetailMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,6 +49,8 @@ public class MedicalRecordService {
     
     @Resource
     private DepartmentMapper departmentMapper;
+    @Resource
+    private MedicalRecordDetailMapper medicalRecordDetailMapper;
     
     /**
      * 创建就诊记录
@@ -94,6 +98,7 @@ public class MedicalRecordService {
         if (medicalRecordMapper.insert(medicalRecord) <= 0) {
             throw new ServiceException("就诊记录创建失败");
         }
+        saveMedicalRecordDetails(medicalRecord.getId(), medicalRecord.getDetails());
         
         return medicalRecord;
     }
@@ -115,6 +120,9 @@ public class MedicalRecordService {
         if (medicalRecordMapper.updateById(medicalRecord) <= 0) {
             throw new ServiceException("就诊记录更新失败");
         }
+        medicalRecordDetailMapper.delete(new LambdaQueryWrapper<MedicalRecordDetail>()
+                .eq(MedicalRecordDetail::getRecordId, id));
+        saveMedicalRecordDetails(id, medicalRecord.getDetails());
     }
     
     /**
@@ -146,6 +154,12 @@ public class MedicalRecordService {
             Appointment appointment = appointmentMapper.selectById(medicalRecord.getAppointmentId());
             medicalRecord.setAppointment(appointment);
         }
+        List<MedicalRecordDetail> details = medicalRecordDetailMapper.selectList(
+                new LambdaQueryWrapper<MedicalRecordDetail>()
+                        .eq(MedicalRecordDetail::getRecordId, id)
+                        .orderByAsc(MedicalRecordDetail::getSortNo, MedicalRecordDetail::getId)
+        );
+        medicalRecord.setDetails(details);
         
         return medicalRecord;
     }
@@ -277,6 +291,9 @@ public class MedicalRecordService {
         if (count > 0) {
             throw new ServiceException("该就诊记录已关联处方，不能删除");
         }
+        medicalRecordDetailMapper.delete(
+                new LambdaQueryWrapper<MedicalRecordDetail>().eq(MedicalRecordDetail::getRecordId, id)
+        );
         
         if (medicalRecordMapper.deleteById(id) <= 0) {
             throw new ServiceException("就诊记录删除失败");
@@ -309,6 +326,28 @@ public class MedicalRecordService {
                 }
                 record.setDoctor(doctor);
             }
+        }
+    }
+
+    private void saveMedicalRecordDetails(Long recordId, List<MedicalRecordDetail> details) {
+        if (details == null || details.isEmpty()) {
+            return;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        int sortNo = 1;
+        for (MedicalRecordDetail detail : details) {
+            if (detail == null || StringUtils.isBlank(detail.getSymptomName())) {
+                continue;
+            }
+            MedicalRecordDetail entity = new MedicalRecordDetail();
+            entity.setRecordId(recordId);
+            entity.setSymptomName(detail.getSymptomName());
+            entity.setTreatmentPlan(detail.getTreatmentPlan());
+            entity.setSortNo(detail.getSortNo() == null ? sortNo : detail.getSortNo());
+            entity.setCreateTime(now);
+            entity.setUpdateTime(now);
+            medicalRecordDetailMapper.insert(entity);
+            sortNo++;
         }
     }
 } 

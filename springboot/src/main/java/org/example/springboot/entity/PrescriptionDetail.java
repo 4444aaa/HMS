@@ -19,6 +19,9 @@ public class PrescriptionDetail {
     
     @Schema(description = "处方ID")
     private Long prescriptionId;
+
+    @Schema(description = "就诊病症明细ID")
+    private Long medicalRecordDetailId;
     
     @Schema(description = "药品ID")
     private Long medicineId;
@@ -51,4 +54,8 @@ public class PrescriptionDetail {
     @TableField(exist = false)
     @Schema(description = "药品信息")
     private Medicine medicine;
+
+    @TableField(exist = false)
+    @Schema(description = "病症明细")
+    private MedicalRecordDetail medicalRecordDetail;
 } 

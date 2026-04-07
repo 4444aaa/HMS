@@ -66,6 +66,74 @@ CREATE TABLE IF NOT EXISTS appointment (
     FOREIGN KEY (schedule_id) REFERENCES schedule(id) ON DELETE CASCADE
 ) COMMENT '预约挂号表'; 
 
+-- 就诊记录表
+CREATE TABLE IF NOT EXISTS medical_record (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '记录ID',
+    record_no VARCHAR(20) UNIQUE NOT NULL COMMENT '记录编号',
+    patient_id BIGINT NOT NULL COMMENT '患者ID',
+    doctor_id BIGINT NOT NULL COMMENT '医生ID',
+    appointment_id BIGINT COMMENT '预约ID',
+    diagnosis TEXT COMMENT '诊断结果',
+    treatment TEXT COMMENT '治疗方案',
+    record_date DATE NOT NULL COMMENT '就诊日期',
+    notes TEXT COMMENT '医生备注',
+    follow_up DATE COMMENT '随访日期',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    FOREIGN KEY (patient_id) REFERENCES patient(id) ON DELETE CASCADE,
+    FOREIGN KEY (doctor_id) REFERENCES doctor(id) ON DELETE CASCADE,
+    FOREIGN KEY (appointment_id) REFERENCES appointment(id) ON DELETE SET NULL
+) COMMENT '就诊记录表';
+
+-- 就诊记录明细表（病症及对应治疗方案）
+CREATE TABLE IF NOT EXISTS medical_record_detail (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '就诊明细ID',
+    record_id BIGINT NOT NULL COMMENT '就诊记录ID',
+    symptom_name VARCHAR(200) NOT NULL COMMENT '病症名称',
+    treatment_plan TEXT COMMENT '对应治疗方案',
+    sort_no INT DEFAULT 1 COMMENT '排序号',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    FOREIGN KEY (record_id) REFERENCES medical_record(id) ON DELETE CASCADE
+) COMMENT '就诊记录病症明细表';
+
+-- 处方表
+CREATE TABLE IF NOT EXISTS prescription (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '处方ID',
+    prescription_no VARCHAR(20) UNIQUE NOT NULL COMMENT '处方编号',
+    patient_id BIGINT NOT NULL COMMENT '患者ID',
+    doctor_id BIGINT NOT NULL COMMENT '医生ID',
+    record_id BIGINT NOT NULL COMMENT '就诊记录ID',
+    prescription_date DATE NOT NULL COMMENT '处方日期',
+    diagnosis VARCHAR(200) COMMENT '诊断',
+    notes TEXT COMMENT '备注',
+    status TINYINT DEFAULT 0 COMMENT '状态(0:未取药,1:已取药)',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    FOREIGN KEY (patient_id) REFERENCES patient(id) ON DELETE CASCADE,
+    FOREIGN KEY (doctor_id) REFERENCES doctor(id) ON DELETE CASCADE,
+    FOREIGN KEY (record_id) REFERENCES medical_record(id) ON DELETE CASCADE
+) COMMENT '处方表';
+
+-- 处方明细表（可关联到就诊明细）
+CREATE TABLE IF NOT EXISTS prescription_detail (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '明细ID',
+    prescription_id BIGINT NOT NULL COMMENT '处方ID',
+    medical_record_detail_id BIGINT COMMENT '就诊病症明细ID',
+    medicine_id BIGINT NOT NULL COMMENT '药品ID',
+    dosage VARCHAR(50) COMMENT '用量',
+    frequency VARCHAR(50) COMMENT '频次',
+    days INT COMMENT '用药天数',
+    quantity INT COMMENT '数量',
+    `usage` VARCHAR(100) COMMENT '用法',
+    notes VARCHAR(200) COMMENT '备注',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    FOREIGN KEY (prescription_id) REFERENCES prescription(id) ON DELETE CASCADE,
+    FOREIGN KEY (medicine_id) REFERENCES medicine(id) ON DELETE RESTRICT,
+    FOREIGN KEY (medical_record_detail_id) REFERENCES medical_record_detail(id) ON DELETE SET NULL
+) COMMENT '处方明细表';
+
 -- ===========================
 -- 药房采购（采购计划->采购单->验收单->入库单）
 -- ===========================

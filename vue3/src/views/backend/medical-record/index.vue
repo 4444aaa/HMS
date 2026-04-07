@@ -67,6 +67,11 @@
             <span v-else>暂无诊断</span>
           </template>
         </el-table-column>
+        <el-table-column label="病症明细" width="120">
+          <template #default="scope">
+            {{ scope.row.details?.length || 0 }} 条
+          </template>
+        </el-table-column>
         <el-table-column prop="followUp" label="随访日期" width="120" />
         <el-table-column prop="createTime" label="创建时间" sortable />
         <el-table-column label="操作" width="250" fixed="right">
@@ -186,6 +191,38 @@
             placeholder="请输入治疗方案"
           />
         </el-form-item>
+
+        <el-divider>病症明细（每条可配置治疗方案）</el-divider>
+        <div class="detail-toolbar" v-if="dialogType !== 'view'">
+          <el-button type="primary" plain @click="addDetail">添加病症明细</el-button>
+        </div>
+        <el-table :data="recordForm.details" border style="width: 100%; margin-bottom: 12px;">
+          <el-table-column label="病症名称" min-width="180">
+            <template #default="scope">
+              <el-input
+                v-if="dialogType !== 'view'"
+                v-model="scope.row.symptomName"
+                placeholder="请输入病症名称"
+              />
+              <span v-else>{{ scope.row.symptomName || '-' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="治疗方案" min-width="260">
+            <template #default="scope">
+              <el-input
+                v-if="dialogType !== 'view'"
+                v-model="scope.row.treatmentPlan"
+                placeholder="请输入对应治疗方案"
+              />
+              <span v-else>{{ scope.row.treatmentPlan || '-' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="100" v-if="dialogType !== 'view'">
+            <template #default="scope">
+              <el-button type="danger" size="small" @click="removeDetail(scope.$index)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
         
         <el-row :gutter="20">
           <el-col :span="12">
@@ -332,6 +369,7 @@ const recordForm = reactive({
   recordNo: '',
   diagnosis: '',
   treatment: '',
+  details: [],
   recordDate: '',
   notes: '',
   followUp: null
@@ -447,25 +485,22 @@ const handleAdd = () => {
 // 编辑就诊记录
 const handleEdit = (row) => {
   dialogType.value = 'edit'
-  Object.keys(recordForm).forEach(key => {
-    recordForm[key] = row[key]
-  })
-  dialogVisible.value = true
+  openRecordDetail(row.id)
 }
 
 // 查看就诊记录
 const handleView = (row) => {
   dialogType.value = 'view'
-  Object.keys(recordForm).forEach(key => {
-    recordForm[key] = row[key]
-  })
-  dialogVisible.value = true
+  openRecordDetail(row.id)
 }
 
 // 处理处方
 const handlePrescription = async (row) => {
-  // 保存当前就诊记录
-  Object.assign(currentRecord, row)
+  await request.get(`/medical-record/${row.id}`, {}, {
+    onSuccess: (res) => {
+      Object.assign(currentRecord, res || {})
+    }
+  })
   
   // 显示处方对话框
   prescriptionDialogVisible.value = true
@@ -563,7 +598,11 @@ const submitForm = () => {
     if (valid) {
       if (dialogType.value === 'add') {
         // 新增就诊记录
-        await request.post('/medical-record', recordForm, {
+        const payload = {
+          ...recordForm,
+          details: (recordForm.details || []).filter(d => d?.symptomName)
+        }
+        await request.post('/medical-record', payload, {
           successMsg: '新增就诊记录成功',
           onSuccess: () => {
             dialogVisible.value = false
@@ -572,7 +611,11 @@ const submitForm = () => {
         })
       } else {
         // 编辑就诊记录
-        await request.put(`/medical-record/${recordForm.id}`, recordForm, {
+        const payload = {
+          ...recordForm,
+          details: (recordForm.details || []).filter(d => d?.symptomName)
+        }
+        await request.put(`/medical-record/${recordForm.id}`, payload, {
           successMsg: '编辑就诊记录成功',
           onSuccess: () => {
             dialogVisible.value = false
@@ -590,11 +633,33 @@ const resetForm = () => {
     recordFormRef.value.resetFields()
   }
   Object.keys(recordForm).forEach(key => {
-    recordForm[key] = key === 'id' ? null : null
+    recordForm[key] = key === 'details' ? [] : null
   })
   
   // 清空预约选项
   appointmentOptions.value = []
+}
+
+const openRecordDetail = async (id) => {
+  await request.get(`/medical-record/${id}`, {}, {
+    onSuccess: (res) => {
+      Object.keys(recordForm).forEach(key => {
+        recordForm[key] = key === 'details' ? (res.details || []) : res[key]
+      })
+      dialogVisible.value = true
+    }
+  })
+}
+
+const addDetail = () => {
+  recordForm.details.push({
+    symptomName: '',
+    treatmentPlan: ''
+  })
+}
+
+const removeDetail = (index) => {
+  recordForm.details.splice(index, 1)
 }
 
 // 监听患者选择变化，加载该患者的预约
@@ -687,6 +752,10 @@ const handleCurrentChange = (val) => {
 }
 
 .record-info {
+  margin-bottom: 10px;
+}
+
+.detail-toolbar {
   margin-bottom: 10px;
 }
 </style> 

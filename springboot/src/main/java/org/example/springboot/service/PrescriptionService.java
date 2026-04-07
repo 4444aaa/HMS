@@ -34,6 +34,8 @@ public class PrescriptionService {
     
     @Resource
     private MedicineMapper medicineMapper;
+    @Resource
+    private MedicalRecordDetailMapper medicalRecordDetailMapper;
     
     /**
      * 创建处方
@@ -44,6 +46,12 @@ public class PrescriptionService {
         MedicalRecord medicalRecord = medicalRecordMapper.selectById(prescription.getRecordId());
         if (medicalRecord == null) {
             throw new ServiceException("就诊记录不存在");
+        }
+        if (!medicalRecord.getPatientId().equals(prescription.getPatientId())) {
+            throw new ServiceException("处方患者与就诊记录患者不一致");
+        }
+        if (!medicalRecord.getDoctorId().equals(prescription.getDoctorId())) {
+            throw new ServiceException("处方医生与就诊记录医生不一致");
         }
         
         // 检查患者是否存在
@@ -87,6 +95,15 @@ public class PrescriptionService {
                 Medicine medicine = medicineMapper.selectById(detail.getMedicineId());
                 if (medicine == null) {
                     throw new ServiceException("药品不存在: ID=" + detail.getMedicineId());
+                }
+                if (detail.getMedicalRecordDetailId() != null) {
+                    MedicalRecordDetail medicalRecordDetail = medicalRecordDetailMapper.selectById(detail.getMedicalRecordDetailId());
+                    if (medicalRecordDetail == null) {
+                        throw new ServiceException("病症明细不存在: ID=" + detail.getMedicalRecordDetailId());
+                    }
+                    if (!prescription.getRecordId().equals(medicalRecordDetail.getRecordId())) {
+                        throw new ServiceException("处方明细病症不属于当前就诊记录");
+                    }
                 }
                 
                 detail.setPrescriptionId(prescription.getId());
@@ -152,6 +169,9 @@ public class PrescriptionService {
         for (PrescriptionDetail detail : details) {
             Medicine medicine = medicineMapper.selectById(detail.getMedicineId());
             detail.setMedicine(medicine);
+            if (detail.getMedicalRecordDetailId() != null) {
+                detail.setMedicalRecordDetail(medicalRecordDetailMapper.selectById(detail.getMedicalRecordDetailId()));
+            }
         }
         
         prescription.setDetails(details);
@@ -267,6 +287,9 @@ public class PrescriptionService {
             for (PrescriptionDetail detail : details) {
                 Medicine medicine = medicineMapper.selectById(detail.getMedicineId());
                 detail.setMedicine(medicine);
+                if (detail.getMedicalRecordDetailId() != null) {
+                    detail.setMedicalRecordDetail(medicalRecordDetailMapper.selectById(detail.getMedicalRecordDetailId()));
+                }
             }
             
             prescription.setDetails(details);
@@ -290,6 +313,15 @@ public class PrescriptionService {
         Medicine medicine = medicineMapper.selectById(detail.getMedicineId());
         if (medicine == null) {
             throw new ServiceException("药品不存在");
+        }
+        if (detail.getMedicalRecordDetailId() != null) {
+            MedicalRecordDetail medicalRecordDetail = medicalRecordDetailMapper.selectById(detail.getMedicalRecordDetailId());
+            if (medicalRecordDetail == null) {
+                throw new ServiceException("病症明细不存在");
+            }
+            if (!prescription.getRecordId().equals(medicalRecordDetail.getRecordId())) {
+                throw new ServiceException("病症明细不属于该处方就诊记录");
+            }
         }
         
         // 设置创建时间和更新时间
@@ -373,6 +405,9 @@ public class PrescriptionService {
             for (PrescriptionDetail detail : details) {
                 Medicine medicine = medicineMapper.selectById(detail.getMedicineId());
                 detail.setMedicine(medicine);
+                if (detail.getMedicalRecordDetailId() != null) {
+                    detail.setMedicalRecordDetail(medicalRecordDetailMapper.selectById(detail.getMedicalRecordDetailId()));
+                }
             }
             
             prescription.setDetails(details);
