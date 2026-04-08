@@ -99,6 +99,52 @@ public class PurchasePlanService {
         }
     }
 
+    @Transactional
+    public PurchasePlan updatePlan(PurchasePlan plan) {
+        if (plan == null || plan.getId() == null) {
+            throw new ServiceException("采购计划不存在");
+        }
+        PurchasePlan existing = purchasePlanMapper.selectById(plan.getId());
+        if (existing == null) {
+            throw new ServiceException("采购计划不存在");
+        }
+        if (existing.getStatus() == null || existing.getStatus() != 0) {
+            throw new ServiceException("采购计划已提交，不能编辑");
+        }
+        if (plan.getItems() == null || plan.getItems().isEmpty()) {
+            throw new ServiceException("采购计划明细不能为空");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        PurchasePlan update = new PurchasePlan();
+        update.setId(existing.getId());
+        update.setTitle(plan.getTitle());
+        update.setRemark(plan.getRemark());
+        update.setUpdateTime(now);
+        if (purchasePlanMapper.updateById(update) <= 0) {
+            throw new ServiceException("采购计划更新失败");
+        }
+
+        purchasePlanItemMapper.delete(new LambdaQueryWrapper<PurchasePlanItem>().eq(PurchasePlanItem::getPlanId, existing.getId()));
+        for (PurchasePlanItem item : plan.getItems()) {
+            if (item.getMedicineId() == null) {
+                throw new ServiceException("明细药品不能为空");
+            }
+            if (item.getPlanQty() == null || item.getPlanQty() <= 0) {
+                throw new ServiceException("计划数量必须大于0");
+            }
+            item.setId(null);
+            item.setPlanId(existing.getId());
+            item.setPurchasedQty(0);
+            item.setCreateTime(now);
+            item.setUpdateTime(now);
+            if (purchasePlanItemMapper.insert(item) <= 0) {
+                throw new ServiceException("采购计划明细更新失败");
+            }
+        }
+        return getPlanById(existing.getId());
+    }
+
     public PurchasePlan getPlanById(Long planId) {
         PurchasePlan plan = purchasePlanMapper.selectById(planId);
         if (plan == null) {

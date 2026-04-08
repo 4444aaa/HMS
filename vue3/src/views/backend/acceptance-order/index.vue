@@ -41,9 +41,15 @@
         <el-table-column prop="createTime" label="创建时间" width="180">
           <template #default="scope">{{ formatDate(scope.row.createTime) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="200">
+        <el-table-column label="操作" width="260">
           <template #default="scope">
             <el-button size="small" type="primary" @click="openDetail(scope.row)">详情</el-button>
+            <el-button
+              size="small"
+              type="warning"
+              v-if="scope.row.status === 0"
+              @click="openEdit(scope.row)"
+            >编辑</el-button>
             <el-button
               size="small"
               type="success"
@@ -75,7 +81,7 @@
     </el-card>
 
     <!-- 创建验收单 -->
-    <el-dialog v-model="createVisible" title="新增验收单" width="980px" @closed="resetCreate">
+    <el-dialog v-model="createVisible" :title="isEdit ? '编辑验收单' : '新增验收单'" width="980px" @closed="resetCreate">
       <el-form :model="createForm" label-width="90px">
         <el-form-item label="采购单">
           <el-select v-model="createForm.purchaseOrderId" placeholder="请选择已发送采购单" filterable style="width: 360px" @change="onOrderChange">
@@ -136,7 +142,7 @@
 
       <template #footer>
         <el-button @click="createVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="createAcceptance">创建</el-button>
+        <el-button type="primary" :loading="saving" @click="saveAcceptance">{{ isEdit ? '保存' : '创建' }}</el-button>
       </template>
     </el-dialog>
 
@@ -194,6 +200,8 @@ const searchForm = reactive({
 })
 
 const createVisible = ref(false)
+const isEdit = ref(false)
+const editingAcceptanceId = ref(null)
 const detailVisible = ref(false)
 const detail = reactive({})
 
@@ -245,6 +253,8 @@ const handleCurrentChange = (val) => {
 }
 
 const openCreate = async () => {
+  isEdit.value = false
+  editingAcceptanceId.value = null
   createVisible.value = true
   await request.get('/purchaseOrder/page', {
     status: 1,
@@ -254,6 +264,40 @@ const openCreate = async () => {
     showDefaultMsg: false,
     onSuccess: (res) => {
       orderOptions.value = res.records || []
+    }
+  })
+}
+
+const openEdit = async (row) => {
+  isEdit.value = true
+  editingAcceptanceId.value = row.id
+  createVisible.value = true
+  await request.get('/purchaseOrder/page', {
+    status: 1,
+    currentPage: 1,
+    size: 999
+  }, {
+    showDefaultMsg: false,
+    onSuccess: (res) => {
+      orderOptions.value = res.records || []
+    }
+  })
+  await request.get(`/purchaseAcceptance/${row.id}`, {}, {
+    showDefaultMsg: false,
+    onSuccess: (res) => {
+      createForm.purchaseOrderId = res?.purchaseOrderId || null
+      createForm.remark = res?.remark || ''
+      createForm.items = (res?.items || []).map(it => ({
+        purchaseOrderItemId: it.purchaseOrderItemId,
+        medicineId: it.medicineId,
+        medicine: it.medicine,
+        orderedQty: it.orderedQty || 0,
+        receivedQty: it.receivedQty || 0,
+        qualifiedQty: it.qualifiedQty || 0,
+        batchNo: it.batchNo || '',
+        productionDate: it.productionDate || '',
+        expiryDate: it.expiryDate || ''
+      }))
     }
   })
 }
@@ -280,12 +324,14 @@ const onOrderChange = async (orderId) => {
 }
 
 const resetCreate = () => {
+  isEdit.value = false
+  editingAcceptanceId.value = null
   createForm.purchaseOrderId = null
   createForm.remark = ''
   createForm.items = []
 }
 
-const createAcceptance = async () => {
+const saveAcceptance = async () => {
   if (!createForm.purchaseOrderId) return
   const items = (createForm.items || []).map(i => ({
     purchaseOrderItemId: i.purchaseOrderItemId,
@@ -297,17 +343,28 @@ const createAcceptance = async () => {
   }))
   saving.value = true
   try {
-    await request.post('/purchaseAcceptance', {
+    const payload = {
       purchaseOrderId: createForm.purchaseOrderId,
       remark: createForm.remark,
       items
-    }, {
-      successMsg: '创建验收单成功',
-      onSuccess: () => {
-        createVisible.value = false
-        fetchAcceptances()
-      }
-    })
+    }
+    if (isEdit.value && editingAcceptanceId.value) {
+      await request.put(`/purchaseAcceptance/${editingAcceptanceId.value}`, payload, {
+        successMsg: '编辑验收单成功',
+        onSuccess: () => {
+          createVisible.value = false
+          fetchAcceptances()
+        }
+      })
+    } else {
+      await request.post('/purchaseAcceptance', payload, {
+        successMsg: '创建验收单成功',
+        onSuccess: () => {
+          createVisible.value = false
+          fetchAcceptances()
+        }
+      })
+    }
   } finally {
     saving.value = false
   }

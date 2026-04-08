@@ -153,6 +153,84 @@ public class StockInOrderService {
         }
     }
 
+    @Transactional
+    public StockInOrder updateStockInOrder(StockInOrder stockIn) {
+        if (stockIn == null || stockIn.getId() == null) {
+            throw new ServiceException("入库单不存在");
+        }
+        StockInOrder existing = stockInOrderMapper.selectById(stockIn.getId());
+        if (existing == null) {
+            throw new ServiceException("入库单不存在");
+        }
+        if (existing.getStatus() == null || existing.getStatus() != 0) {
+            throw new ServiceException("入库单已过账，不能编辑");
+        }
+        if (stockIn.getAcceptanceId() == null) {
+            throw new ServiceException("来源验收单不能为空");
+        }
+        if (stockIn.getItems() == null || stockIn.getItems().isEmpty()) {
+            throw new ServiceException("入库明细不能为空");
+        }
+
+        PurchaseAcceptance acceptance = purchaseAcceptanceMapper.selectById(stockIn.getAcceptanceId());
+        if (acceptance == null || acceptance.getStatus() == null || acceptance.getStatus() != 1) {
+            throw new ServiceException("仅已完成的验收单允许编辑入库单");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        PurchaseAcceptance currentAcceptance = purchaseAcceptanceMapper.selectById(existing.getAcceptanceId());
+        if (currentAcceptance == null || currentAcceptance.getStatus() == null || currentAcceptance.getStatus() != 1) {
+            throw new ServiceException("当前入库单来源验收单状态异常，不能编辑");
+        }
+
+        stockInOrderItemMapper.delete(new LambdaQueryWrapper<StockInOrderItem>().eq(StockInOrderItem::getStockInId, existing.getId()));
+
+        BigDecimal total = BigDecimal.ZERO;
+        for (StockInOrderItem item : stockIn.getItems()) {
+            if (item.getAcceptanceItemId() == null) {
+                throw new ServiceException("入库明细来源验收明细不能为空");
+            }
+            if (item.getStockInQty() == null || item.getStockInQty() <= 0) {
+                throw new ServiceException("入库数量必须大于0");
+            }
+            PurchaseAcceptanceItem accItem = purchaseAcceptanceItemMapper.selectById(item.getAcceptanceItemId());
+            if (accItem == null || !stockIn.getAcceptanceId().equals(accItem.getAcceptanceId())) {
+                throw new ServiceException("来源验收明细不存在或不匹配");
+            }
+            int qualified = accItem.getQualifiedQty() == null ? 0 : accItem.getQualifiedQty();
+            int already = getAlreadyStockedInQty(accItem.getId());
+            int available = qualified - already;
+            if (item.getStockInQty() > available) {
+                throw new ServiceException("入库数量超过验收合格可入库数量");
+            }
+
+            item.setId(null);
+            item.setStockInId(existing.getId());
+            item.setMedicineId(accItem.getMedicineId());
+            BigDecimal unitCost = item.getUnitCost() == null ? BigDecimal.ZERO : item.getUnitCost();
+            BigDecimal amount = unitCost.multiply(BigDecimal.valueOf(item.getStockInQty()));
+            item.setUnitCost(unitCost);
+            item.setAmount(amount);
+            item.setCreateTime(now);
+            item.setUpdateTime(now);
+            if (stockInOrderItemMapper.insert(item) <= 0) {
+                throw new ServiceException("入库明细更新失败");
+            }
+            total = total.add(amount);
+        }
+
+        StockInOrder update = new StockInOrder();
+        update.setId(existing.getId());
+        update.setAcceptanceId(stockIn.getAcceptanceId());
+        update.setRemark(stockIn.getRemark());
+        update.setUpdateTime(now);
+        if (stockInOrderMapper.updateById(update) <= 0) {
+            throw new ServiceException("入库单更新失败");
+        }
+
+        return getStockInOrderById(existing.getId());
+    }
+
     public StockInOrder getStockInOrderById(Long stockInId) {
         StockInOrder stockIn = stockInOrderMapper.selectById(stockInId);
         if (stockIn == null) {

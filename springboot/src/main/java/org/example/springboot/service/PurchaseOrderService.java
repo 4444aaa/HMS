@@ -156,6 +156,115 @@ public class PurchaseOrderService {
         }
     }
 
+    @Transactional
+    public PurchaseOrder updateOrder(PurchaseOrder order) {
+        if (order == null || order.getId() == null) {
+            throw new ServiceException("采购单不存在");
+        }
+        PurchaseOrder existing = purchaseOrderMapper.selectById(order.getId());
+        if (existing == null) {
+            throw new ServiceException("采购单不存在");
+        }
+        if (existing.getStatus() == null || existing.getStatus() != 0) {
+            throw new ServiceException("采购单已发送，不能编辑");
+        }
+        if (order.getPlanId() == null || order.getSupplierId() == null) {
+            throw new ServiceException("采购计划和供应商不能为空");
+        }
+        if (order.getItems() == null || order.getItems().isEmpty()) {
+            throw new ServiceException("采购单明细不能为空");
+        }
+
+        PurchasePlan plan = purchasePlanMapper.selectById(order.getPlanId());
+        if (plan == null || plan.getStatus() == null || plan.getStatus() != 1) {
+            throw new ServiceException("仅已提交的采购计划允许编辑采购单");
+        }
+        Supplier supplier = supplierMapper.selectById(order.getSupplierId());
+        if (supplier == null || (supplier.getStatus() != null && supplier.getStatus() == 0)) {
+            throw new ServiceException("供应商不存在或已停用");
+        }
+
+        List<PurchaseOrderItem> oldItems = purchaseOrderItemMapper.selectList(
+                new LambdaQueryWrapper<PurchaseOrderItem>().eq(PurchaseOrderItem::getOrderId, existing.getId())
+        );
+        for (PurchaseOrderItem oldItem : oldItems) {
+            PurchasePlanItem planItem = purchasePlanItemMapper.selectById(oldItem.getPlanItemId());
+            if (planItem != null) {
+                int purchased = planItem.getPurchasedQty() == null ? 0 : planItem.getPurchasedQty();
+                int qty = oldItem.getOrderQty() == null ? 0 : oldItem.getOrderQty();
+                PurchasePlanItem updatePlanItem = new PurchasePlanItem();
+                updatePlanItem.setId(planItem.getId());
+                updatePlanItem.setPurchasedQty(Math.max(0, purchased - qty));
+                updatePlanItem.setUpdateTime(LocalDateTime.now());
+                purchasePlanItemMapper.updateById(updatePlanItem);
+            }
+        }
+        purchaseOrderItemMapper.delete(new LambdaQueryWrapper<PurchaseOrderItem>().eq(PurchaseOrderItem::getOrderId, existing.getId()));
+
+        LocalDateTime now = LocalDateTime.now();
+        BigDecimal total = BigDecimal.ZERO;
+        for (PurchaseOrderItem item : order.getItems()) {
+            if (item.getPlanItemId() == null) {
+                throw new ServiceException("明细来源计划项不能为空");
+            }
+            if (item.getOrderQty() == null || item.getOrderQty() <= 0) {
+                throw new ServiceException("下单数量必须大于0");
+            }
+            PurchasePlanItem planItem = purchasePlanItemMapper.selectById(item.getPlanItemId());
+            if (planItem == null || !order.getPlanId().equals(planItem.getPlanId())) {
+                throw new ServiceException("来源计划明细不存在或不匹配");
+            }
+            int purchased = planItem.getPurchasedQty() == null ? 0 : planItem.getPurchasedQty();
+            int remaining = planItem.getPlanQty() - purchased;
+            if (item.getOrderQty() > remaining) {
+                throw new ServiceException("下单数量超过计划剩余量");
+            }
+
+            item.setId(null);
+            item.setOrderId(existing.getId());
+            item.setMedicineId(planItem.getMedicineId());
+            Medicine medicine = medicineMapper.selectById(item.getMedicineId());
+            if (medicine == null) {
+                throw new ServiceException("药品不存在");
+            }
+            if (medicine.getSupplierId() == null || !order.getSupplierId().equals(medicine.getSupplierId())) {
+                throw new ServiceException("该药品不属于当前供应商供货范围");
+            }
+
+            BigDecimal unitPrice = item.getUnitPrice();
+            if (unitPrice == null || unitPrice.compareTo(BigDecimal.ZERO) <= 0) {
+                unitPrice = medicine.getPrice() == null ? BigDecimal.ZERO : medicine.getPrice();
+            }
+            BigDecimal amount = unitPrice.multiply(BigDecimal.valueOf(item.getOrderQty()));
+            item.setUnitPrice(unitPrice);
+            item.setAmount(amount);
+            item.setCreateTime(now);
+            item.setUpdateTime(now);
+            if (purchaseOrderItemMapper.insert(item) <= 0) {
+                throw new ServiceException("采购单明细更新失败");
+            }
+
+            PurchasePlanItem updatePlanItem = new PurchasePlanItem();
+            updatePlanItem.setId(planItem.getId());
+            updatePlanItem.setPurchasedQty(purchased + item.getOrderQty());
+            updatePlanItem.setUpdateTime(now);
+            purchasePlanItemMapper.updateById(updatePlanItem);
+            total = total.add(amount);
+        }
+
+        PurchaseOrder update = new PurchaseOrder();
+        update.setId(existing.getId());
+        update.setPlanId(order.getPlanId());
+        update.setSupplierId(order.getSupplierId());
+        update.setRemark(order.getRemark());
+        update.setTotalAmount(total);
+        update.setUpdateTime(now);
+        if (purchaseOrderMapper.updateById(update) <= 0) {
+            throw new ServiceException("采购单更新失败");
+        }
+        return getOrderById(existing.getId());
+    }
+
     public PurchaseOrder getOrderById(Long orderId) {
         PurchaseOrder order = purchaseOrderMapper.selectById(orderId);
         if (order == null) {

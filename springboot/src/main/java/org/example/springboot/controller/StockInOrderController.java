@@ -34,6 +34,13 @@ public class StockInOrderController {
         return Result.success();
     }
 
+    @Operation(summary = "编辑入库单(含明细)")
+    @PutMapping("/{id}")
+    public Result<?> update(@PathVariable Long id, @RequestBody StockInOrder stockIn) {
+        stockIn.setId(id);
+        return Result.success(stockInOrderService.updateStockInOrder(stockIn));
+    }
+
     @Operation(summary = "获取入库单详情(含明细)")
     @GetMapping("/{id}")
     public Result<?> get(@PathVariable Long id) {

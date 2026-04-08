@@ -132,6 +132,76 @@ public class PurchaseAcceptanceService {
         }
     }
 
+    @Transactional
+    public PurchaseAcceptance updateAcceptance(PurchaseAcceptance acceptance) {
+        if (acceptance == null || acceptance.getId() == null) {
+            throw new ServiceException("验收单不存在");
+        }
+        PurchaseAcceptance existing = purchaseAcceptanceMapper.selectById(acceptance.getId());
+        if (existing == null) {
+            throw new ServiceException("验收单不存在");
+        }
+        if (existing.getStatus() == null || existing.getStatus() != 0) {
+            throw new ServiceException("验收单已完成，不能编辑");
+        }
+        if (acceptance.getPurchaseOrderId() == null) {
+            throw new ServiceException("来源采购单不能为空");
+        }
+        if (acceptance.getItems() == null || acceptance.getItems().isEmpty()) {
+            throw new ServiceException("验收明细不能为空");
+        }
+
+        PurchaseOrder order = purchaseOrderMapper.selectById(acceptance.getPurchaseOrderId());
+        if (order == null || order.getStatus() == null || order.getStatus() != 1) {
+            throw new ServiceException("仅已发送的采购单允许编辑验收单");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        PurchaseAcceptance update = new PurchaseAcceptance();
+        update.setId(existing.getId());
+        update.setPurchaseOrderId(acceptance.getPurchaseOrderId());
+        update.setRemark(acceptance.getRemark());
+        update.setUpdateTime(now);
+        if (purchaseAcceptanceMapper.updateById(update) <= 0) {
+            throw new ServiceException("验收单更新失败");
+        }
+
+        purchaseAcceptanceItemMapper.delete(
+                new LambdaQueryWrapper<PurchaseAcceptanceItem>().eq(PurchaseAcceptanceItem::getAcceptanceId, existing.getId())
+        );
+        for (PurchaseAcceptanceItem item : acceptance.getItems()) {
+            if (item.getPurchaseOrderItemId() == null) {
+                throw new ServiceException("验收明细来源采购单明细不能为空");
+            }
+            PurchaseOrderItem orderItem = purchaseOrderItemMapper.selectById(item.getPurchaseOrderItemId());
+            if (orderItem == null || !order.getId().equals(orderItem.getOrderId())) {
+                throw new ServiceException("来源采购单明细不存在或不匹配");
+            }
+            int orderedQty = orderItem.getOrderQty() == null ? 0 : orderItem.getOrderQty();
+            int receivedQty = item.getReceivedQty() == null ? 0 : item.getReceivedQty();
+            int qualifiedQty = item.getQualifiedQty() == null ? 0 : item.getQualifiedQty();
+            if (receivedQty < 0 || qualifiedQty < 0) {
+                throw new ServiceException("验收数量不能为负数");
+            }
+            if (receivedQty > orderedQty) {
+                throw new ServiceException("到货数量不能超过下单数量");
+            }
+            if (qualifiedQty > receivedQty) {
+                throw new ServiceException("合格数量不能超过到货数量");
+            }
+            item.setId(null);
+            item.setAcceptanceId(existing.getId());
+            item.setMedicineId(orderItem.getMedicineId());
+            item.setOrderedQty(orderedQty);
+            item.setCreateTime(now);
+            item.setUpdateTime(now);
+            if (purchaseAcceptanceItemMapper.insert(item) <= 0) {
+                throw new ServiceException("验收明细更新失败");
+            }
+        }
+        return getAcceptanceById(existing.getId());
+    }
+
     public PurchaseAcceptance getAcceptanceById(Long acceptanceId) {
         PurchaseAcceptance acceptance = purchaseAcceptanceMapper.selectById(acceptanceId);
         if (acceptance == null) {

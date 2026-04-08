@@ -34,6 +34,13 @@ public class PurchasePlanController {
         return Result.success();
     }
 
+    @Operation(summary = "编辑采购计划(含明细)")
+    @PutMapping("/{id}")
+    public Result<?> update(@PathVariable Long id, @RequestBody PurchasePlan plan) {
+        plan.setId(id);
+        return Result.success(purchasePlanService.updatePlan(plan));
+    }
+
     @Operation(summary = "获取采购计划详情(含明细)")
     @GetMapping("/{id}")
     public Result<?> get(@PathVariable Long id) {

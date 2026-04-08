@@ -34,6 +34,13 @@ public class PurchaseAcceptanceController {
         return Result.success();
     }
 
+    @Operation(summary = "编辑验收单(含明细)")
+    @PutMapping("/{id}")
+    public Result<?> update(@PathVariable Long id, @RequestBody PurchaseAcceptance acceptance) {
+        acceptance.setId(id);
+        return Result.success(purchaseAcceptanceService.updateAcceptance(acceptance));
+    }
+
     @Operation(summary = "获取验收单详情(含明细)")
     @GetMapping("/{id}")
     public Result<?> get(@PathVariable Long id) {

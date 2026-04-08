@@ -30,7 +30,7 @@
 
       <el-table v-loading="loading" :data="tableData" border style="width: 100%">
         <el-table-column prop="planNo" label="计划编号" width="170" />
-        <el-table-column prop="title" label="主题" min-width="180" />
+        <el-table-column prop="title" label="主题" min-width="130" />
         <el-table-column prop="status" label="状态" width="110">
           <template #default="scope">
             <el-tag :type="getStatusTagType(scope.row.status)">{{ getStatusText(scope.row.status) }}</el-tag>
@@ -39,9 +39,15 @@
         <el-table-column prop="createTime" label="创建时间" width="180">
           <template #default="scope">{{ formatDate(scope.row.createTime) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="240" fixed="right">
+        <el-table-column label="操作" width="280" fixed="right">
           <template #default="scope">
             <el-button size="small" type="primary" @click="openDetail(scope.row)">详情</el-button>
+            <el-button
+              size="small"
+              type="warning"
+              v-if="scope.row.status === 0"
+              @click="openEdit(scope.row)"
+            >编辑</el-button>
             <el-button
               size="small"
               type="success"
@@ -73,7 +79,7 @@
     </el-card>
 
     <!-- 创建计划 -->
-    <el-dialog v-model="createVisible" title="新增采购计划" width="900px" @closed="resetCreate">
+    <el-dialog v-model="createVisible" :title="isEdit ? '编辑采购计划' : '新增采购计划'" width="900px" @closed="resetCreate">
       <el-form :model="createForm" label-width="90px">
         <el-form-item label="主题">
           <el-input v-model="createForm.title" placeholder="请输入主题" />
@@ -127,7 +133,7 @@
 
       <template #footer>
         <el-button @click="createVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="createPlan">创建</el-button>
+        <el-button type="primary" :loading="saving" @click="savePlan">{{ isEdit ? '保存' : '创建' }}</el-button>
       </template>
     </el-dialog>
 
@@ -182,6 +188,8 @@ const searchForm = reactive({
 })
 
 const createVisible = ref(false)
+const isEdit = ref(false)
+const editingPlanId = ref(null)
 const detailVisible = ref(false)
 const detail = reactive({})
 
@@ -260,6 +268,8 @@ const handleCurrentChange = (val) => {
 }
 
 const openCreate = async () => {
+  isEdit.value = false
+  editingPlanId.value = null
   createVisible.value = true
   if (medicineOptions.value.length === 0) {
     await fetchMedicines()
@@ -267,6 +277,27 @@ const openCreate = async () => {
   if (createForm.items.length === 0) {
     addItem()
   }
+}
+
+const openEdit = async (row) => {
+  isEdit.value = true
+  editingPlanId.value = row.id
+  createVisible.value = true
+  if (medicineOptions.value.length === 0) {
+    await fetchMedicines()
+  }
+  await request.get(`/purchasePlan/${row.id}`, {}, {
+    showDefaultMsg: false,
+    onSuccess: (res) => {
+      createForm.title = res?.title || ''
+      createForm.remark = res?.remark || ''
+      createForm.items = (res?.items || []).map(it => ({
+        medicineId: it.medicineId,
+        planQty: it.planQty || 1,
+        remark: it.remark || ''
+      }))
+    }
+  })
 }
 
 const addItem = () => {
@@ -282,27 +313,40 @@ const removeItem = (idx) => {
 }
 
 const resetCreate = () => {
+  isEdit.value = false
+  editingPlanId.value = null
   createForm.title = ''
   createForm.remark = ''
   createForm.items = []
 }
 
-const createPlan = async () => {
+const savePlan = async () => {
   const items = (createForm.items || []).filter(i => i.medicineId && i.planQty > 0)
   if (items.length === 0) return
   saving.value = true
   try {
-    await request.post('/purchasePlan', {
+    const payload = {
       title: createForm.title,
       remark: createForm.remark,
       items
-    }, {
-      successMsg: '创建采购计划成功',
-      onSuccess: () => {
-        createVisible.value = false
-        fetchPlans()
-      }
-    })
+    }
+    if (isEdit.value && editingPlanId.value) {
+      await request.put(`/purchasePlan/${editingPlanId.value}`, payload, {
+        successMsg: '编辑采购计划成功',
+        onSuccess: () => {
+          createVisible.value = false
+          fetchPlans()
+        }
+      })
+    } else {
+      await request.post('/purchasePlan', payload, {
+        successMsg: '创建采购计划成功',
+        onSuccess: () => {
+          createVisible.value = false
+          fetchPlans()
+        }
+      })
+    }
   } finally {
     saving.value = false
   }

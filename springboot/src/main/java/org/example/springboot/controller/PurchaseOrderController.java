@@ -34,6 +34,13 @@ public class PurchaseOrderController {
         return Result.success();
     }
 
+    @Operation(summary = "编辑采购单(含明细)")
+    @PutMapping("/{id}")
+    public Result<?> update(@PathVariable Long id, @RequestBody PurchaseOrder order) {
+        order.setId(id);
+        return Result.success(purchaseOrderService.updateOrder(order));
+    }
+
     @Operation(summary = "获取采购单详情(含明细)")
     @GetMapping("/{id}")
     public Result<?> get(@PathVariable Long id) {

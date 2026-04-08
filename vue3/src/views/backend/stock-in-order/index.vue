@@ -41,9 +41,15 @@
         <el-table-column prop="createTime" label="创建时间" width="180">
           <template #default="scope">{{ formatDate(scope.row.createTime) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="200">
+        <el-table-column label="操作" width="260">
           <template #default="scope">
             <el-button size="small" type="primary" @click="openDetail(scope.row)">详情</el-button>
+            <el-button
+              size="small"
+              type="warning"
+              v-if="scope.row.status === 0"
+              @click="openEdit(scope.row)"
+            >编辑</el-button>
             <el-button
               size="small"
               type="success"
@@ -75,7 +81,7 @@
     </el-card>
 
     <!-- 创建入库单 -->
-    <el-dialog v-model="createVisible" title="新增入库单" width="980px" @closed="resetCreate">
+    <el-dialog v-model="createVisible" :title="isEdit ? '编辑入库单' : '新增入库单'" width="980px" @closed="resetCreate">
       <el-form :model="createForm" label-width="90px">
         <el-form-item label="验收单">
           <el-select v-model="createForm.acceptanceId" placeholder="请选择已完成验收单" filterable style="width: 360px" @change="onAcceptanceChange">
@@ -121,7 +127,7 @@
 
       <template #footer>
         <el-button @click="createVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="createStockIn">创建</el-button>
+        <el-button type="primary" :loading="saving" @click="saveStockIn">{{ isEdit ? '保存' : '创建' }}</el-button>
       </template>
     </el-dialog>
 
@@ -174,6 +180,8 @@ const searchForm = reactive({
 })
 
 const createVisible = ref(false)
+const isEdit = ref(false)
+const editingStockInId = ref(null)
 const detailVisible = ref(false)
 const detail = reactive({})
 
@@ -225,6 +233,8 @@ const handleCurrentChange = (val) => {
 }
 
 const openCreate = async () => {
+  isEdit.value = false
+  editingStockInId.value = null
   createVisible.value = true
   await request.get('/purchaseAcceptance/page', {
     status: 1,
@@ -234,6 +244,43 @@ const openCreate = async () => {
     showDefaultMsg: false,
     onSuccess: (res) => {
       acceptanceOptions.value = res.records || []
+    }
+  })
+}
+
+const openEdit = async (row) => {
+  isEdit.value = true
+  editingStockInId.value = row.id
+  createVisible.value = true
+  await request.get('/purchaseAcceptance/page', {
+    status: 1,
+    currentPage: 1,
+    size: 999
+  }, {
+    showDefaultMsg: false,
+    onSuccess: (res) => {
+      acceptanceOptions.value = res.records || []
+    }
+  })
+  await request.get(`/stockInOrder/${row.id}`, {}, {
+    showDefaultMsg: false,
+    onSuccess: async (res) => {
+      createForm.acceptanceId = res?.acceptanceId || null
+      createForm.remark = res?.remark || ''
+      await onAcceptanceChange(createForm.acceptanceId)
+      const itemMap = {}
+      ;(res?.items || []).forEach(it => {
+        itemMap[it.acceptanceItemId] = it
+      })
+      createForm.items = (createForm.items || []).map(it => {
+        const saved = itemMap[it.acceptanceItemId]
+        if (!saved) return it
+        return {
+          ...it,
+          stockInQty: saved.stockInQty || 0,
+          unitCost: Number(saved.unitCost || it.unitCost || 0)
+        }
+      })
     }
   })
 }
@@ -271,12 +318,14 @@ const onAcceptanceChange = async (acceptanceId) => {
 }
 
 const resetCreate = () => {
+  isEdit.value = false
+  editingStockInId.value = null
   createForm.acceptanceId = null
   createForm.remark = ''
   createForm.items = []
 }
 
-const createStockIn = async () => {
+const saveStockIn = async () => {
   if (!createForm.acceptanceId) return
   const items = (createForm.items || [])
     .filter(i => i.stockInQty && i.stockInQty > 0)
@@ -289,17 +338,28 @@ const createStockIn = async () => {
 
   saving.value = true
   try {
-    await request.post('/stockInOrder', {
+    const payload = {
       acceptanceId: createForm.acceptanceId,
       remark: createForm.remark,
       items
-    }, {
-      successMsg: '创建入库单成功',
-      onSuccess: () => {
-        createVisible.value = false
-        fetchStockIns()
-      }
-    })
+    }
+    if (isEdit.value && editingStockInId.value) {
+      await request.put(`/stockInOrder/${editingStockInId.value}`, payload, {
+        successMsg: '编辑入库单成功',
+        onSuccess: () => {
+          createVisible.value = false
+          fetchStockIns()
+        }
+      })
+    } else {
+      await request.post('/stockInOrder', payload, {
+        successMsg: '创建入库单成功',
+        onSuccess: () => {
+          createVisible.value = false
+          fetchStockIns()
+        }
+      })
+    }
   } finally {
     saving.value = false
   }
