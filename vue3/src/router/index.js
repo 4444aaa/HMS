@@ -61,13 +61,13 @@ export const backendRoutes = [
         path: 'appointment',
         name: 'AppointmentManagement',
         component: () => import('@/views/backend/appointment/index.vue'),
-        meta: { title: '预约管理', icon: 'Calendar' }
+        meta: { title: '门诊管理', icon: 'Calendar' }
       },
       {
         path: 'medical-record',
         name: 'MedicalRecordManagement',
         component: () => import('@/views/backend/medical-record/index.vue'),
-        meta: { title: '就诊记录管理', icon: 'Document' }
+        meta: { title: '病历管理', icon: 'Document' }
       },
       {
         path: 'prescription',

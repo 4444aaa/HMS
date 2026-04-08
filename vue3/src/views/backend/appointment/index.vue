@@ -3,7 +3,7 @@
     <el-card class="box-card">
       <template #header>
         <div class="card-header">
-          <h3>预约管理</h3>
+          <h3>门诊管理</h3>
         </div>
       </template>
 

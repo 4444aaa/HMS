@@ -3,7 +3,7 @@
     <el-card class="box-card">
       <template #header>
         <div class="card-header">
-          <h3>就诊记录管理</h3>
+          <h3>病历管理</h3>
           <el-button type="primary" @click="handleAdd">新增就诊记录</el-button>
         </div>
       </template>

@@ -34,7 +34,7 @@
         <el-sub-menu index="/back/system">
           <template #title>
             <el-icon><Setting /></el-icon>
-            <span>系统管理</span>
+            <span>门诊服务</span>
           </template>
           
           <el-menu-item index="/back/department">
@@ -64,12 +64,12 @@
           
           <el-menu-item index="/back/appointment">
             <el-icon><Tickets /></el-icon>
-            <span>预约管理</span>
+            <span>门诊管理</span>
           </el-menu-item>
           
           <el-menu-item index="/back/medical-record">
             <el-icon><Document /></el-icon>
-            <span>就诊记录管理</span>
+            <span>病历管理</span>
           </el-menu-item>
           
           <el-menu-item index="/back/prescription">
@@ -183,13 +183,13 @@ const menuItems = [
     roles: ['ADMIN', 'STAFF', 'DOCTOR']
   },
   {
-    title: '预约管理',
+    title: '门诊管理',
     icon: 'Calendar',
     path: '/back/appointment',
     roles: ['ADMIN', 'STAFF', 'DOCTOR']
   },
   {
-    title: '就诊记录管理',
+    title: '病历管理',
     icon: 'Document',
     path: '/back/medical-record',
     roles: ['ADMIN', 'STAFF', 'DOCTOR']
