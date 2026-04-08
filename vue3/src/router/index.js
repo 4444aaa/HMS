@@ -100,6 +100,12 @@ export const backendRoutes = [
         meta: { title: '入库单', icon: 'Box' }
       },
       {
+        path: 'finance',
+        name: 'FinanceManagement',
+        component: () => import('@/views/backend/finance/index.vue'),
+        meta: { title: '财务管理', icon: 'Money' }
+      },
+      {
         path: 'profile',
         name: 'BackendProfile',
         component: () => import('@/views/backend/user/PersonInfo.vue'),
@@ -203,6 +209,46 @@ const router = createRouter({
   ]
 })
 
+const roleBackendAccessMap = {
+  ADMIN: ['*'],
+  PHARMACY_MANAGER: [
+    '/back/dashboard',
+    '/back/profile',
+    '/back/medicine',
+    '/back/medicine-category',
+    '/back/purchase-plan',
+    '/back/purchase-order',
+    '/back/acceptance-order',
+    '/back/stock-in-order'
+  ],
+  DOCTOR: [
+    '/back/dashboard',
+    '/back/patient',
+    '/back/profile',
+    '/back/appointment',
+    '/back/medical-record',
+    '/back/prescription',
+    '/back/medicine',
+    '/back/medicine-category'
+  ],
+  CASHIER: [
+    '/back/dashboard',
+    '/back/profile',
+    '/back/finance'
+  ]
+}
+
+const canAccessBackendPath = (roleCode, path) => {
+  const allowed = roleBackendAccessMap[roleCode]
+  if (!allowed) {
+    return path === '/back/dashboard' || path === '/back/profile'
+  }
+  if (allowed.includes('*')) {
+    return true
+  }
+  return allowed.includes(path)
+}
+
 // 路由守卫
 router.beforeEach((to, from, next) => {
   // 设置页面标题
@@ -237,7 +283,12 @@ router.beforeEach((to, from, next) => {
     if (!userStore.isUser) {
       // 非普通用户只能访问后台路由
       if (to.path.startsWith('/back')) {
-        next()
+        const roleCode = userStore.userInfo?.roleCode
+        if (canAccessBackendPath(roleCode, to.path)) {
+          next()
+        } else {
+          next('/back/dashboard')
+        }
       } else {
         next('/back/dashboard')
       }

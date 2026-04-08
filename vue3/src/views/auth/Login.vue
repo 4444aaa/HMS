@@ -110,7 +110,7 @@ const handleLogin = () => {
             await userStore.fetchRoleInfo()
             
             // 根据返回的角色决定跳转路径
-            if (['ADMIN', 'DOCTOR', 'NURSE', 'PHARMACY_MANAGER'].includes(data.roleCode)) {
+            if (['ADMIN', 'DOCTOR', 'PHARMACY_MANAGER', 'CASHIER'].includes(data.roleCode)) {
               // 医护人员登录，设置菜单
               userStore.setMenus(data.menuList)
               // 直接导航到后台仪表盘

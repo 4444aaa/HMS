@@ -5,7 +5,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.MedicineCategory;
+import org.example.springboot.entity.User;
+import org.example.springboot.exception.ServiceException;
 import org.example.springboot.service.MedicineCategoryService;
+import org.example.springboot.util.JwtTokenUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
@@ -20,10 +23,36 @@ public class MedicineCategoryController {
     
     @Resource
     private MedicineCategoryService medicineCategoryService;
+
+    private void assertCategoryReadAllowed() {
+        User u = JwtTokenUtils.getCurrentUser();
+        if (u == null) {
+            throw new ServiceException("请先登录");
+        }
+        String r = u.getRoleCode();
+        if (!"ADMIN".equals(r) && !"DOCTOR".equals(r) && !"PHARMACY_MANAGER".equals(r)) {
+            throw new ServiceException("无权限访问药品分类");
+        }
+    }
+
+    private void assertCategoryWriteAllowed() {
+        User u = JwtTokenUtils.getCurrentUser();
+        if (u == null) {
+            throw new ServiceException("请先登录");
+        }
+        String r = u.getRoleCode();
+        if ("DOCTOR".equals(r)) {
+            throw new ServiceException("医生账号仅可查看药品分类");
+        }
+        if (!"ADMIN".equals(r) && !"PHARMACY_MANAGER".equals(r)) {
+            throw new ServiceException("无权限执行此操作");
+        }
+    }
     
     @Operation(summary = "新增药品分类")
     @PostMapping
     public Result<?> addCategory(@RequestBody MedicineCategory medicineCategory) {
+        assertCategoryWriteAllowed();
         LOGGER.info("新增药品分类: {}", medicineCategory.getCategoryName());
         
         // 检查分类名称是否已存在
@@ -43,6 +72,7 @@ public class MedicineCategoryController {
     @Operation(summary = "更新药品分类")
     @PutMapping("/{id}")
     public Result<?> updateCategory(@PathVariable Long id, @RequestBody MedicineCategory medicineCategory) {
+        assertCategoryWriteAllowed();
         LOGGER.info("更新药品分类: {}", id);
         medicineCategory.setId(id);
         
@@ -69,6 +99,7 @@ public class MedicineCategoryController {
     @Operation(summary = "删除药品分类")
     @DeleteMapping("/{id}")
     public Result<?> deleteCategory(@PathVariable Long id) {
+        assertCategoryWriteAllowed();
         LOGGER.info("删除药品分类: {}", id);
         boolean success = medicineCategoryService.delete(id);
         return success ? Result.success() : Result.error("删除失败");
@@ -77,6 +108,7 @@ public class MedicineCategoryController {
     @Operation(summary = "获取药品分类详情")
     @GetMapping("/{id}")
     public Result<?> getCategoryById(@PathVariable Long id) {
+        assertCategoryReadAllowed();
         LOGGER.info("获取药品分类详情: {}", id);
         MedicineCategory category = medicineCategoryService.getById(id);
         return category != null ? Result.success(category) : Result.error("分类不存在");
@@ -85,6 +117,7 @@ public class MedicineCategoryController {
     @Operation(summary = "获取所有药品分类")
     @GetMapping("/list")
     public Result<?> getAllCategories() {
+        assertCategoryReadAllowed();
         LOGGER.info("获取所有药品分类");
         List<MedicineCategory> categories = medicineCategoryService.getAllCategories();
         return Result.success(categories);
@@ -98,6 +131,7 @@ public class MedicineCategoryController {
             @RequestParam(required = false) Integer status,
             @RequestParam(defaultValue = "1") Integer currentPage,
             @RequestParam(defaultValue = "10") Integer size) {
+        assertCategoryReadAllowed();
         LOGGER.info("分页查询药品分类: categoryName={}, categoryCode={}, status={}, page={}, size={}", 
                     categoryName, categoryCode, status, currentPage, size);
         return Result.success(medicineCategoryService.getCategoriesByPage(categoryName, categoryCode, status, currentPage, size));

@@ -190,9 +190,9 @@ const form = reactive({
 const roleOptions = [
   { label: '管理员', value: 'ADMIN' },
   { label: '医生', value: 'DOCTOR' },
-  { label: '护士', value: 'NURSE' },
   { label: '药房', value: 'PHARMACY_MANAGER' },
-  { label: '普通用户', value: 'USER' }
+  { label: '收费员', value: 'CASHIER' },
+  { label: '患者', value: 'PATIENT' }
 ]
 
 // 表单验证规则
@@ -288,11 +288,11 @@ const getRoleTagType = (roleCode) => {
       return 'danger'
     case 'DOCTOR':
       return 'success'
-    case 'NURSE':
-      return 'warning'
     case 'PHARMACY_MANAGER':
       return 'primary'
-    case 'USER':
+    case 'CASHIER':
+      return 'success'
+    case 'PATIENT':
       return 'info'
     default:
       return ''

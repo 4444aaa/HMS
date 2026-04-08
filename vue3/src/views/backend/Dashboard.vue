@@ -34,7 +34,10 @@ const baseAPI = import.meta.env.VITE_API_BASE_URL || '/api'
 const roleLabel = computed(() => {
   const roleMap = {
     'ADMIN': '系统管理员',
-    'USER': '普通用户'
+    'DOCTOR': '医生',
+    'PHARMACY_MANAGER': '药房管理员',
+    'CASHIER': '收费员',
+    'PATIENT': '患者'
   }
   return roleMap[userInfo.value?.roleCode] || '未知角色'
 })

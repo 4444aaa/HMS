@@ -16,12 +16,12 @@
           <template #title>首页</template>
         </el-menu-item>
         
-        <el-menu-item index="/back/user">
+        <el-menu-item index="/back/user" v-if="canSeeUserManagement">
           <el-icon><User /></el-icon>
           <template #title>用户管理</template>
         </el-menu-item>
         
-        <el-menu-item index="/back/patient">
+        <el-menu-item index="/back/patient" v-if="canSeePatientManagement">
           <el-icon><UserFilled /></el-icon>
           <template #title>患者管理</template>
         </el-menu-item>
@@ -31,48 +31,48 @@
           <template #title>个人信息</template>
         </el-menu-item>
         
-        <el-sub-menu index="/back/system">
+        <el-sub-menu index="/back/system" v-if="canSeeOutpatientService">
           <template #title>
             <el-icon><Setting /></el-icon>
             <span>门诊服务</span>
           </template>
           
-          <el-menu-item index="/back/department">
+          <el-menu-item index="/back/department" v-if="isAdmin">
             <el-icon><OfficeBuilding /></el-icon>
             <span>科室管理</span>
           </el-menu-item>
           
-          <el-menu-item index="/back/doctor">
+          <el-menu-item index="/back/doctor" v-if="isAdmin">
             <el-icon><UserFilled /></el-icon>
             <span>医生管理</span>
           </el-menu-item>
           
-          <el-menu-item index="/back/medicine">
+          <el-menu-item index="/back/medicine" v-if="canSeeOutpatientMedicine">
             <el-icon><FirstAidKit /></el-icon>
             <span>药品管理</span>
           </el-menu-item>
           
-          <el-menu-item index="/back/medicine-category">
+          <el-menu-item index="/back/medicine-category" v-if="canSeeOutpatientMedicine">
             <el-icon><Menu /></el-icon>
             <span>药品分类管理</span>
           </el-menu-item>
           
-          <el-menu-item index="/back/schedule">
+          <el-menu-item index="/back/schedule" v-if="isAdmin">
             <el-icon><Calendar /></el-icon>
             <span>排班管理</span>
           </el-menu-item>
           
-          <el-menu-item index="/back/appointment">
+          <el-menu-item index="/back/appointment" v-if="canSeeOutpatientClinical">
             <el-icon><Tickets /></el-icon>
             <span>门诊管理</span>
           </el-menu-item>
           
-          <el-menu-item index="/back/medical-record">
+          <el-menu-item index="/back/medical-record" v-if="canSeeOutpatientClinical">
             <el-icon><Document /></el-icon>
             <span>病历管理</span>
           </el-menu-item>
           
-          <el-menu-item index="/back/prescription">
+          <el-menu-item index="/back/prescription" v-if="canSeeOutpatientClinical">
             <el-icon><List /></el-icon>
             <span>处方管理</span>
           </el-menu-item>
@@ -104,6 +104,17 @@
             <span>入库单</span>
           </el-menu-item>
         </el-sub-menu>
+
+        <el-sub-menu index="/back/finance" v-if="canSeeFinance">
+          <template #title>
+            <el-icon><Money /></el-icon>
+            <span>财务管理</span>
+          </template>
+          <el-menu-item index="/back/finance">
+            <el-icon><Document /></el-icon>
+            <span>财务单据</span>
+          </el-menu-item>
+        </el-sub-menu>
       </el-menu>
     </div>
   </div>
@@ -127,7 +138,8 @@ import {
   Setting,
   Menu,
   ShoppingCart,
-  Box
+  Box,
+  Money
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -212,6 +224,38 @@ const canSeePharmacyPurchase = computed(() => {
   const role = userStore.userInfo?.roleCode
   return role === 'ADMIN' || role === 'PHARMACY_MANAGER'
 })
+
+const canSeeOutpatientService = computed(() => {
+  const role = userStore.userInfo?.roleCode
+  return role === 'ADMIN' || role === 'DOCTOR' || role === 'PHARMACY_MANAGER'
+})
+
+const canSeeOutpatientClinical = computed(() => {
+  const role = userStore.userInfo?.roleCode
+  return role === 'ADMIN' || role === 'DOCTOR'
+})
+
+const canSeeOutpatientMedicine = computed(() => {
+  const role = userStore.userInfo?.roleCode
+  return role === 'ADMIN' || role === 'DOCTOR' || role === 'PHARMACY_MANAGER'
+})
+
+const canSeeFinance = computed(() => {
+  const role = userStore.userInfo?.roleCode
+  return role === 'ADMIN' || role === 'CASHIER'
+})
+
+const canSeeUserManagement = computed(() => {
+  const role = userStore.userInfo?.roleCode
+  return role === 'ADMIN'
+})
+
+const canSeePatientManagement = computed(() => {
+  const role = userStore.userInfo?.roleCode
+  return role === 'ADMIN' || role === 'DOCTOR'
+})
+
+const isAdmin = computed(() => userStore.userInfo?.roleCode === 'ADMIN')
 </script>
 
 <style lang="scss" scoped>

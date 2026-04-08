@@ -4,7 +4,7 @@
       <template #header>
         <div class="card-header">
           <h3>药品管理</h3>
-          <el-button type="primary" @click="handleAdd">新增药品</el-button>
+          <el-button v-if="!isMedicineReadOnly" type="primary" @click="handleAdd">新增药品</el-button>
         </div>
       </template>
 
@@ -81,11 +81,11 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column label="操作" :width="isMedicineReadOnly ? 100 : 220" fixed="right">
           <template #default="scope">
-            <el-button type="primary" size="small" @click="handleEdit(scope.row)">编辑</el-button>
+            <el-button v-if="!isMedicineReadOnly" type="primary" size="small" @click="handleEdit(scope.row)">编辑</el-button>
             <el-button type="success" size="small" @click="handleViewDetail(scope.row)">详情</el-button>
-            <el-popconfirm title="确定删除此药品吗？" @confirm="handleDelete(scope.row)">
+            <el-popconfirm v-if="!isMedicineReadOnly" title="确定删除此药品吗？" @confirm="handleDelete(scope.row)">
               <template #reference>
                 <el-button type="danger" size="small">删除</el-button>
               </template>
@@ -251,7 +251,7 @@
       </el-descriptions>
       
       <!-- 库存调整 -->
-      <div class="stock-adjustment" v-if="detailForm.id">
+      <div class="stock-adjustment" v-if="detailForm.id && !isMedicineReadOnly">
         <h4>库存调整</h4>
         <div class="stock-form">
           <el-input-number v-model="stockChange" :min="-detailForm.stock" placeholder="调整数量" />
@@ -269,6 +269,10 @@
 import { ref, reactive, onMounted, computed, watch } from 'vue'
 import request from '@/utils/request'
 import { ElMessage } from 'element-plus'
+import { useUserStore } from '@/store/user'
+
+const userStore = useUserStore()
+const isMedicineReadOnly = computed(() => userStore.userInfo?.roleCode === 'DOCTOR')
 
 // 列表数据
 const tableData = ref([])

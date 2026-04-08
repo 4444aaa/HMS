@@ -519,7 +519,7 @@ CREATE TABLE `user`  (
 INSERT INTO `user` VALUES (1, 'admin', '$2a$10$Cc6gX7Jel5UtKreBdrY8SeRiqwqEuccdySNafjQRMtz30KE92sPaS', '系统管理员', '/img/default_avatar.png', '男', '13800138000', 'admin@hospital.com', 'ADMIN', 1, '2025-05-14 10:00:00', '2025-05-14 10:00:00');
 INSERT INTO `user` VALUES (2, 'doctor1', '$2a$10$iul6jocLsH.A4gN1QUpgDexDq6KO89syHjUkRD3NbA1L6CTVrNRMO', '张医生', '/img/1749285629955.jpg', '男', '13811111111', 'doctor1@hospital.com', 'DOCTOR', 1, '2025-05-14 10:01:00', '2025-06-29 20:12:41');
 INSERT INTO `user` VALUES (3, 'doctor2', '$2a$10$iul6jocLsH.A4gN1QUpgDexDq6KO89syHjUkRD3NbA1L6CTVrNRMO', '李医生', '/img/1749285629955.jpg', '女', '13822222222', 'doctor2@hospital.com', 'DOCTOR', 1, '2025-05-14 10:02:00', '2025-06-29 20:12:44');
-INSERT INTO `user` VALUES (4, 'nurse1', '$2a$10$iul6jocLsH.A4gN1QUpgDexDq6KO89syHjUkRD3NbA1L6CTVrNRMO', '王护士', '/img/nurse1.jpg', '女', '13833333333', 'nurse1@hospital.com', 'NURSE', 1, '2025-05-14 10:03:00', '2025-05-14 10:03:00');
+INSERT INTO `user` VALUES (4, 'staff1', '$2a$10$iul6jocLsH.A4gN1QUpgDexDq6KO89syHjUkRD3NbA1L6CTVrNRMO', '门诊医生', '/img/default_avatar.png', '女', '13833333333', 'staff1@hospital.com', 'DOCTOR', 1, '2025-05-14 10:03:00', '2025-05-14 10:03:00');
 INSERT INTO `user` VALUES (5, 'patient1', '$2a$10$iul6jocLsH.A4gN1QUpgDexDq6KO89syHjUkRD3NbA1L6CTVrNRMO', '赵患者', '/img/patient1.jpg', '男', '13844444444', 'patient1@example.com', 'PATIENT', 1, '2025-05-14 10:04:00', '2025-05-14 10:04:00');
 INSERT INTO `user` VALUES (6, 'patient2', '$2a$10$iul6jocLsH.A4gN1QUpgDexDq6KO89syHjUkRD3NbA1L6CTVrNRMO', '钱患者', '/img/1749294438197.jpg', '女', '13855555555', 'patient2@example.com', 'PATIENT', 1, '2025-05-14 10:05:00', '2025-06-07 19:07:18');
 INSERT INTO `user` VALUES (7, 'doctor3', '$2a$10$iul6jocLsH.A4gN1QUpgDexDq6KO89syHjUkRD3NbA1L6CTVrNRMO', '刘医生', '/img/1751198696770.jpeg', '男', '13866666666', 'doctor3@hospital.com', 'DOCTOR', 1, '2025-05-14 10:06:00', '2025-06-29 20:17:06');
@@ -850,5 +850,94 @@ CREATE TABLE `stock_in_order_item`  (
   CONSTRAINT `fk_sioi_acceptance_item` FOREIGN KEY (`acceptance_item_id`) REFERENCES `purchase_acceptance_item` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `fk_sioi_medicine` FOREIGN KEY (`medicine_id`) REFERENCES `medicine` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '入库单明细表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Table structure for outpatient_charge_order
+-- ----------------------------
+DROP TABLE IF EXISTS `outpatient_charge_order`;
+CREATE TABLE `outpatient_charge_order` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '缴费单ID',
+  `order_no` varchar(50) NOT NULL COMMENT '缴费单号',
+  `patient_id` bigint(20) NOT NULL COMMENT '患者ID',
+  `total_amount` decimal(12,2) NOT NULL DEFAULT 0.00 COMMENT '总金额',
+  `status` tinyint(4) NOT NULL DEFAULT 0 COMMENT '状态(0:待支付,1:已支付)',
+  `cashier_user_id` bigint(20) DEFAULT NULL COMMENT '收费员用户ID',
+  `charge_time` datetime DEFAULT NULL COMMENT '缴费时间',
+  `remark` varchar(500) DEFAULT NULL COMMENT '备注',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE KEY `uk_outpatient_charge_order_no` (`order_no`) USING BTREE,
+  KEY `idx_outpatient_charge_order_patient_id` (`patient_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='门诊缴费单';
+
+-- ----------------------------
+-- Table structure for outpatient_charge_detail
+-- ----------------------------
+DROP TABLE IF EXISTS `outpatient_charge_detail`;
+CREATE TABLE `outpatient_charge_detail` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '缴费明细ID',
+  `prescription_id` bigint(20) NOT NULL COMMENT '处方ID',
+  `prescription_detail_id` bigint(20) NOT NULL COMMENT '处方明细ID',
+  `patient_id` bigint(20) NOT NULL COMMENT '患者ID',
+  `medicine_id` bigint(20) NOT NULL COMMENT '药品ID',
+  `quantity` int(11) NOT NULL DEFAULT 0 COMMENT '数量',
+  `unit_price` decimal(12,2) NOT NULL DEFAULT 0.00 COMMENT '单价',
+  `amount` decimal(12,2) NOT NULL DEFAULT 0.00 COMMENT '金额',
+  `status` tinyint(4) NOT NULL DEFAULT 0 COMMENT '状态(0:未生成单据,1:已生成单据)',
+  `charge_order_id` bigint(20) DEFAULT NULL COMMENT '缴费单ID',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE KEY `uk_outpatient_charge_prescription_detail` (`prescription_detail_id`) USING BTREE,
+  KEY `idx_outpatient_charge_patient_id` (`patient_id`) USING BTREE,
+  KEY `idx_outpatient_charge_order_id` (`charge_order_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='门诊缴费明细';
+
+-- ----------------------------
+-- Table structure for purchase_settlement_order
+-- ----------------------------
+DROP TABLE IF EXISTS `purchase_settlement_order`;
+CREATE TABLE `purchase_settlement_order` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '结算单ID',
+  `settlement_no` varchar(50) NOT NULL COMMENT '结算单号',
+  `supplier_id` bigint(20) NOT NULL COMMENT '供应商ID',
+  `total_amount` decimal(12,2) NOT NULL DEFAULT 0.00 COMMENT '总金额',
+  `status` tinyint(4) NOT NULL DEFAULT 0 COMMENT '状态(0:待结算,1:已结算)',
+  `cashier_user_id` bigint(20) DEFAULT NULL COMMENT '收费员用户ID',
+  `settlement_time` datetime DEFAULT NULL COMMENT '结算时间',
+  `remark` varchar(500) DEFAULT NULL COMMENT '备注',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE KEY `uk_purchase_settlement_no` (`settlement_no`) USING BTREE,
+  KEY `idx_purchase_settlement_supplier_id` (`supplier_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='采购结算单';
+
+-- ----------------------------
+-- Table structure for purchase_settlement_detail
+-- ----------------------------
+DROP TABLE IF EXISTS `purchase_settlement_detail`;
+CREATE TABLE `purchase_settlement_detail` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '结算明细ID',
+  `stock_in_id` bigint(20) NOT NULL COMMENT '入库单ID',
+  `stock_in_item_id` bigint(20) NOT NULL COMMENT '入库明细ID',
+  `supplier_id` bigint(20) NOT NULL COMMENT '供应商ID',
+  `medicine_id` bigint(20) NOT NULL COMMENT '药品ID',
+  `quantity` int(11) NOT NULL DEFAULT 0 COMMENT '数量',
+  `unit_cost` decimal(12,2) NOT NULL DEFAULT 0.00 COMMENT '单价',
+  `amount` decimal(12,2) NOT NULL DEFAULT 0.00 COMMENT '金额',
+  `status` tinyint(4) NOT NULL DEFAULT 0 COMMENT '状态(0:未生成单据,1:已生成单据)',
+  `settlement_order_id` bigint(20) DEFAULT NULL COMMENT '结算单ID',
+  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE KEY `uk_purchase_settlement_stock_in_item` (`stock_in_item_id`) USING BTREE,
+  KEY `idx_purchase_settlement_supplier_id` (`supplier_id`) USING BTREE,
+  KEY `idx_purchase_settlement_order_id` (`settlement_order_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='采购结算明细';
+
+-- 添加收费员示例账户
+INSERT INTO `user` VALUES (59, 'cashier1', '$2a$10$krj3WlCs/S0WGfv3E8Q2meqfC0sS8p.B7oF7E3A7ZDXMbjH9z2biS', '收费员', '/img/default_avatar.png', '女', '13800008888', 'cashier1@demo.com', 'CASHIER', 1, '2026-04-08 12:00:00', '2026-04-08 12:00:00');
 
 SET FOREIGN_KEY_CHECKS = 1;

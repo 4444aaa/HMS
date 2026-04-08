@@ -4,7 +4,7 @@
       <template #header>
         <div class="card-header">
           <h3>药品分类管理</h3>
-          <el-button type="primary" @click="handleAdd">新增分类</el-button>
+          <el-button v-if="!isCategoryReadOnly" type="primary" @click="handleAdd">新增分类</el-button>
         </div>
       </template>
 
@@ -45,7 +45,7 @@
             {{ new Date(scope.row.createTime).toLocaleString() }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column v-if="!isCategoryReadOnly" label="操作" width="200" fixed="right">
           <template #default="scope">
             <el-button type="primary" size="small" @click="handleEdit(scope.row)">编辑</el-button>
             <el-popconfirm title="确定删除此分类吗？" @confirm="handleDelete(scope.row)">
@@ -120,9 +120,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import request from '@/utils/request'
 import { ElMessage } from 'element-plus'
+import { useUserStore } from '@/store/user'
+
+const userStore = useUserStore()
+const isCategoryReadOnly = computed(() => userStore.userInfo?.roleCode === 'DOCTOR')
 
 // 列表数据
 const tableData = ref([])

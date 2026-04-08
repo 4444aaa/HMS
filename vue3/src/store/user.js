@@ -20,16 +20,16 @@ export const useUserStore = defineStore('user', {
     isAdmin: (state) => state.userInfo?.roleCode === 'ADMIN',
     // 判断是否是医生
     isDoctor: (state) => state.userInfo?.roleCode === 'DOCTOR',
-    // 判断是否是护士
-    isNurse: (state) => state.userInfo?.roleCode === 'NURSE',
     // 判断是否是患者
     isPatient: (state) => state.userInfo?.roleCode === 'PATIENT',
     // 判断是否是普通用户（患者）
     isUser: (state) => state.userInfo?.roleCode === 'PATIENT',
     // 判断是否是医护人员
-    isMedicalStaff: (state) => ['DOCTOR', 'NURSE'].includes(state.userInfo?.roleCode),
+    isMedicalStaff: (state) => ['DOCTOR'].includes(state.userInfo?.roleCode),
     // 判断是否是药房管理员
-    isPharmacyManager: (state) => state.userInfo?.roleCode === 'PHARMACY_MANAGER'
+    isPharmacyManager: (state) => state.userInfo?.roleCode === 'PHARMACY_MANAGER',
+    // 判断是否是收费员
+    isCashier: (state) => state.userInfo?.roleCode === 'CASHIER'
   },
 
   actions: {
