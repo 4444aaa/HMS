@@ -30,6 +30,11 @@
       <el-table v-loading="loading" :data="tableData" border style="width: 100%">
         <el-table-column prop="acceptanceNo" label="验收单号" width="170" />
         <el-table-column prop="purchaseOrderId" label="采购单ID" width="110" />
+        <el-table-column label="供应商" min-width="180">
+          <template #default="scope">
+            {{ scope.row.purchaseOrder?.supplier?.name || '-' }}
+          </template>
+        </el-table-column>
         <el-table-column prop="status" label="状态" width="110">
           <template #default="scope">
             <el-tag :type="getStatusTagType(scope.row.status)">{{ getStatusText(scope.row.status) }}</el-tag>
@@ -105,6 +110,31 @@
         show-icon
         style="margin-bottom: 10px"
       />
+      <div v-if="sourceOrderDetail?.id" class="doc-preview">
+        <div class="doc-preview-title">来源采购订单单</div>
+        <div class="doc-preview-meta">
+          <span>采购单号：{{ sourceOrderDetail.orderNo || '-' }}</span>
+          <span>状态：{{ sourceOrderDetail.status === 1 ? '已发送' : sourceOrderDetail.status }}</span>
+        </div>
+        <div class="doc-preview-meta">
+          <span>供应商名称：{{ sourceOrderDetail.supplier?.name || '-' }}</span>
+          <span>联系人：{{ sourceOrderDetail.supplier?.contactName || '-' }}</span>
+          <span>联系电话：{{ sourceOrderDetail.supplier?.contactPhone || '-' }}</span>
+          <span>地址：{{ sourceOrderDetail.supplier?.address || '-' }}</span>
+        </div>
+        <el-table :data="sourceOrderDetail.items || []" border size="small" style="width: 100%">
+          <el-table-column type="index" label="序号" width="60" />
+          <el-table-column label="产品名称" min-width="180">
+            <template #default="scope">
+              {{ scope.row.medicine?.medicineName || scope.row.medicineId }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="orderQty" label="数量" width="90" />
+          <el-table-column prop="unitPrice" label="单价" width="100" />
+          <el-table-column prop="amount" label="金额" width="110" />
+          <el-table-column prop="remark" label="备注" min-width="140" />
+        </el-table>
+      </div>
 
       <el-table :data="createForm.items" border style="width: 100%">
         <el-table-column label="药品" min-width="220">
@@ -148,21 +178,24 @@
 
     <!-- 详情 -->
     <el-dialog v-model="detailVisible" title="验收单详情" width="980px">
-      <el-descriptions :column="2" border>
-        <el-descriptions-item label="验收单号">{{ detail.acceptanceNo }}</el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <el-tag :type="getStatusTagType(detail.status)">{{ getStatusText(detail.status) }}</el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="采购单">
-          {{ detail.purchaseOrder?.orderNo || detail.purchaseOrderId }}
-        </el-descriptions-item>
-        <el-descriptions-item label="供应商">
-          {{ detail.purchaseOrder?.supplier?.name || '-' }}
-        </el-descriptions-item>
-        <el-descriptions-item label="备注" :span="2">{{ detail.remark || '-' }}</el-descriptions-item>
-      </el-descriptions>
-
-      <el-divider />
+      <div class="doc-preview">
+        <div class="doc-preview-title">采购核验单</div>
+        <div class="doc-preview-meta">
+          <span>验收时间：{{ formatDate(detail.acceptanceTime || detail.createTime) }}</span>
+          <span>核验单号：{{ detail.acceptanceNo || '-' }}</span>
+          <span>状态：{{ getStatusText(detail.status) }}</span>
+        </div>
+        <div class="doc-preview-meta">
+          <span>采购单号：{{ detail.purchaseOrder?.orderNo || detail.purchaseOrderId || '-' }}</span>
+          <span>供应商名称：{{ detail.purchaseOrder?.supplier?.name || '-' }}</span>
+          <span>联系人：{{ detail.purchaseOrder?.supplier?.contactName || '-' }}</span>
+          <span>联系电话：{{ detail.purchaseOrder?.supplier?.contactPhone || '-' }}</span>
+          <span>地址：{{ detail.purchaseOrder?.supplier?.address || '-' }}</span>
+        </div>
+        <div class="doc-preview-meta">
+          <span>备注：{{ detail.remark || '-' }}</span>
+        </div>
+      </div>
       <el-table :data="detail.items || []" border style="width: 100%">
         <el-table-column label="药品" min-width="220">
           <template #default="scope">
@@ -204,6 +237,7 @@ const isEdit = ref(false)
 const editingAcceptanceId = ref(null)
 const detailVisible = ref(false)
 const detail = reactive({})
+const sourceOrderDetail = ref(null)
 
 const orderOptions = ref([])
 const createForm = reactive({
@@ -307,6 +341,7 @@ const onOrderChange = async (orderId) => {
   await request.get(`/purchaseOrder/${orderId}`, {}, {
     showDefaultMsg: false,
     onSuccess: (res) => {
+      sourceOrderDetail.value = res || null
       const items = (res.items || []).map(it => ({
         purchaseOrderItemId: it.id,
         medicineId: it.medicineId,
@@ -329,6 +364,7 @@ const resetCreate = () => {
   createForm.purchaseOrderId = null
   createForm.remark = ''
   createForm.items = []
+  sourceOrderDetail.value = null
 }
 
 const saveAcceptance = async () => {
@@ -430,6 +466,24 @@ onMounted(() => {
     display: flex;
     justify-content: flex-end;
     margin-top: 16px;
+  }
+  .doc-preview {
+    border: 1px solid #dcdfe6;
+    border-radius: 4px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    background: #fafafa;
+  }
+  .doc-preview-title {
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .doc-preview-meta {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: #606266;
   }
 }
 </style>

@@ -238,7 +238,16 @@ public class PurchaseAcceptanceService {
             qw.eq(PurchaseAcceptance::getStatus, status);
         }
         qw.orderByDesc(PurchaseAcceptance::getUpdateTime);
-        return purchaseAcceptanceMapper.selectPage(new Page<>(currentPage, size), qw);
+        Page<PurchaseAcceptance> page = purchaseAcceptanceMapper.selectPage(new Page<>(currentPage, size), qw);
+        for (PurchaseAcceptance acceptance : page.getRecords()) {
+            PurchaseOrder order = purchaseOrderMapper.selectById(acceptance.getPurchaseOrderId());
+            if (order != null) {
+                Supplier supplier = supplierMapper.selectById(order.getSupplierId());
+                order.setSupplier(supplier);
+            }
+            acceptance.setPurchaseOrder(order);
+        }
+        return page;
     }
 
     private String generateAcceptanceNo() {

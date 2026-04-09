@@ -122,6 +122,30 @@
         show-icon
         style="margin-bottom: 10px"
       />
+      <div v-if="sourcePlanDetail?.id" class="doc-preview">
+        <div class="doc-preview-title">来源采购计划单</div>
+        <div class="doc-preview-meta">
+          <span>计划编号：{{ sourcePlanDetail.planNo || '-' }}</span>
+          <span>主题：{{ sourcePlanDetail.title || '-' }}</span>
+          <span>状态：{{ sourcePlanDetail.status === 1 ? '已提交' : '草稿' }}</span>
+        </div>
+        <el-table :data="sourcePlanDetail.items || []" border size="small" style="width: 100%">
+          <el-table-column type="index" label="序号" width="60" />
+          <el-table-column label="产品名称" min-width="180">
+            <template #default="scope">
+              {{ scope.row.medicine?.medicineName || scope.row.medicineId }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="planQty" label="数量" width="90" />
+          <el-table-column prop="purchasedQty" label="已下单" width="90" />
+          <el-table-column label="剩余" width="90">
+            <template #default="scope">
+              {{ (scope.row.planQty || 0) - (scope.row.purchasedQty || 0) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="remark" label="备注" min-width="140" />
+        </el-table>
+      </div>
 
       <el-table :data="createForm.items" border style="width: 100%">
         <el-table-column label="药品" min-width="240">
@@ -159,19 +183,24 @@
 
     <!-- 详情 -->
     <el-dialog v-model="detailVisible" title="采购单详情" width="980px">
-      <el-descriptions :column="2" border>
-        <el-descriptions-item label="采购单号">{{ detail.orderNo }}</el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <el-tag :type="getStatusTagType(detail.status)">{{ getStatusText(detail.status) }}</el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="计划ID">{{ detail.planId }}</el-descriptions-item>
-        <el-descriptions-item label="供应商">
-          {{ detail.supplier?.name || detail.supplierId }}
-        </el-descriptions-item>
-        <el-descriptions-item label="备注" :span="2">{{ detail.remark || '-' }}</el-descriptions-item>
-      </el-descriptions>
-
-      <el-divider />
+      <div class="doc-preview">
+        <div class="doc-preview-title">采购订单单</div>
+        <div class="doc-preview-meta">
+          <span>采购时间：{{ formatDate(detail.createTime) }}</span>
+          <span>采购单号：{{ detail.orderNo || '-' }}</span>
+          <span>状态：{{ getStatusText(detail.status) }}</span>
+        </div>
+        <div class="doc-preview-meta">
+          <span>供应商名称：{{ detail.supplier?.name || '-' }}</span>
+          <span>联系人：{{ detail.supplier?.contactName || '-' }}</span>
+          <span>联系电话：{{ detail.supplier?.contactPhone || '-' }}</span>
+          <span>地址：{{ detail.supplier?.address || '-' }}</span>
+        </div>
+        <div class="doc-preview-meta">
+          <span>采购计划：{{ detail.planId || '-' }}</span>
+          <span>备注：{{ detail.remark || '-' }}</span>
+        </div>
+      </div>
       <el-table :data="detail.items || []" border style="width: 100%">
         <el-table-column label="药品" min-width="240">
           <template #default="scope">
@@ -183,6 +212,7 @@
         <el-table-column prop="amount" label="金额" width="120" />
         <el-table-column prop="remark" label="备注" min-width="200" />
       </el-table>
+      <div class="doc-preview-total">总金额：{{ detail.totalAmount || 0 }} 元</div>
     </el-dialog>
   </div>
 </template>
@@ -225,6 +255,7 @@ const createForm = reactive({
 })
 const supplierMedicineIdSet = ref(new Set())
 const sourcePlanItems = ref([])
+const sourcePlanDetail = ref(null)
 
 const fetchOrders = async () => {
   loading.value = true
@@ -355,6 +386,7 @@ const onPlanChange = async (planId) => {
   await request.get(`/purchasePlan/${planId}`, {}, {
     showDefaultMsg: false,
     onSuccess: (res) => {
+      sourcePlanDetail.value = res || null
       const items = (res.items || []).map(it => ({
         planItemId: it.id,
         medicineId: it.medicineId,
@@ -399,6 +431,7 @@ const resetCreate = () => {
   createForm.remark = ''
   createForm.items = []
   sourcePlanItems.value = []
+  sourcePlanDetail.value = null
 }
 
 const saveOrder = async () => {
@@ -505,6 +538,29 @@ onMounted(() => {
     display: flex;
     justify-content: flex-end;
     margin-top: 16px;
+  }
+  .doc-preview {
+    border: 1px solid #dcdfe6;
+    border-radius: 4px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    background: #fafafa;
+  }
+  .doc-preview-title {
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .doc-preview-meta {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: #606266;
+  }
+  .doc-preview-total {
+    margin-top: 10px;
+    text-align: right;
+    font-weight: 600;
   }
 }
 </style>

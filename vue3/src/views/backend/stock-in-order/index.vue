@@ -105,6 +105,26 @@
         show-icon
         style="margin-bottom: 10px"
       />
+      <div v-if="sourceAcceptanceDetail?.id" class="doc-preview">
+        <div class="doc-preview-title">来源采购核验单</div>
+        <div class="doc-preview-meta">
+          <span>核验单号：{{ sourceAcceptanceDetail.acceptanceNo || '-' }}</span>
+          <span>采购单号：{{ sourceAcceptanceDetail.purchaseOrder?.orderNo || sourceAcceptanceDetail.purchaseOrderId || '-' }}</span>
+          <span>状态：{{ sourceAcceptanceDetail.status === 1 ? '已完成' : sourceAcceptanceDetail.status }}</span>
+        </div>
+        <el-table :data="sourceAcceptanceDetail.items || []" border size="small" style="width: 100%">
+          <el-table-column type="index" label="序号" width="60" />
+          <el-table-column label="产品名称" min-width="180">
+            <template #default="scope">
+              {{ scope.row.medicine?.medicineName || scope.row.medicineId }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="orderedQty" label="下单数量" width="100" />
+          <el-table-column prop="receivedQty" label="到货数量" width="100" />
+          <el-table-column prop="qualifiedQty" label="合格数量" width="100" />
+          <el-table-column prop="remark" label="备注" min-width="140" />
+        </el-table>
+      </div>
 
       <el-table :data="createForm.items" border style="width: 100%">
         <el-table-column label="药品" min-width="220">
@@ -133,18 +153,18 @@
 
     <!-- 详情 -->
     <el-dialog v-model="detailVisible" title="入库单详情" width="980px">
-      <el-descriptions :column="2" border>
-        <el-descriptions-item label="入库单号">{{ detail.stockInNo }}</el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <el-tag :type="getStatusTagType(detail.status)">{{ getStatusText(detail.status) }}</el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="验收单">
-          {{ detail.acceptance?.acceptanceNo || detail.acceptanceId }}
-        </el-descriptions-item>
-        <el-descriptions-item label="备注">{{ detail.remark || '-' }}</el-descriptions-item>
-      </el-descriptions>
-
-      <el-divider />
+      <div class="doc-preview">
+        <div class="doc-preview-title">采购入库单</div>
+        <div class="doc-preview-meta">
+          <span>入库时间：{{ formatDate(detail.stockInTime || detail.createTime) }}</span>
+          <span>入库单号：{{ detail.stockInNo || '-' }}</span>
+          <span>状态：{{ getStatusText(detail.status) }}</span>
+        </div>
+        <div class="doc-preview-meta">
+          <span>核验单：{{ detail.acceptance?.acceptanceNo || detail.acceptanceId || '-' }}</span>
+          <span>备注：{{ detail.remark || '-' }}</span>
+        </div>
+      </div>
       <el-table :data="detail.items || []" border style="width: 100%">
         <el-table-column label="药品" min-width="220">
           <template #default="scope">
@@ -184,6 +204,7 @@ const isEdit = ref(false)
 const editingStockInId = ref(null)
 const detailVisible = ref(false)
 const detail = reactive({})
+const sourceAcceptanceDetail = ref(null)
 
 const acceptanceOptions = ref([])
 const createForm = reactive({
@@ -290,6 +311,7 @@ const onAcceptanceChange = async (acceptanceId) => {
   await request.get(`/purchaseAcceptance/${acceptanceId}`, {}, {
     showDefaultMsg: false,
     onSuccess: async (res) => {
+      sourceAcceptanceDetail.value = res || null
       let orderPriceMap = {}
       const orderId = res?.purchaseOrder?.id || res?.purchaseOrderId
       if (orderId) {
@@ -323,6 +345,7 @@ const resetCreate = () => {
   createForm.acceptanceId = null
   createForm.remark = ''
   createForm.items = []
+  sourceAcceptanceDetail.value = null
 }
 
 const saveStockIn = async () => {
@@ -425,6 +448,24 @@ onMounted(() => {
     display: flex;
     justify-content: flex-end;
     margin-top: 16px;
+  }
+  .doc-preview {
+    border: 1px solid #dcdfe6;
+    border-radius: 4px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    background: #fafafa;
+  }
+  .doc-preview-title {
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .doc-preview-meta {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: #606266;
   }
 }
 </style>

@@ -635,6 +635,28 @@ WHERE m.`supplier_id` IS NULL;
 -- 兜底：如果还有空值，统一归属到供应商ID=1
 UPDATE `medicine` SET `supplier_id` = 1 WHERE `supplier_id` IS NULL;
 
+-- 统一补全供应商信息（联系人/电话/地址/邮箱/编码）
+-- 说明：仅对空值或初始化占位值进行回填，不覆盖已维护的真实数据
+UPDATE `supplier`
+SET `supplier_code` = CONCAT('SUP-FIX-', LPAD(`id`, 3, '0'))
+WHERE `supplier_code` IS NULL OR `supplier_code` = '';
+
+UPDATE `supplier`
+SET `contact_name` = CONCAT('供应联系人', LPAD(`id`, 2, '0'))
+WHERE `contact_name` IS NULL OR `contact_name` = '' OR `contact_name` = '系统初始化';
+
+UPDATE `supplier`
+SET `contact_phone` = CONCAT('1390001', LPAD(`id`, 4, '0'))
+WHERE `contact_phone` IS NULL OR `contact_phone` = '' OR `contact_phone` = '13800000000';
+
+UPDATE `supplier`
+SET `address` = CONCAT('待完善地址-供应商', `id`)
+WHERE `address` IS NULL OR `address` = '' OR `address` = '待维护';
+
+UPDATE `supplier`
+SET `email` = CONCAT('supplier', `id`, '@demo.com')
+WHERE `email` IS NULL OR `email` = '';
+
 -- 强制非空 + 外键约束
 ALTER TABLE `medicine` MODIFY COLUMN `supplier_id` bigint(20) NOT NULL COMMENT '供应商ID';
 ALTER TABLE `medicine` ADD CONSTRAINT `fk_medicine_supplier` FOREIGN KEY (`supplier_id`) REFERENCES `supplier` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;

@@ -139,16 +139,18 @@
 
     <!-- 详情 -->
     <el-dialog v-model="detailVisible" title="采购计划详情" width="900px">
-      <el-descriptions :column="2" border>
-        <el-descriptions-item label="计划编号">{{ detail.planNo }}</el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <el-tag :type="getStatusTagType(detail.status)">{{ getStatusText(detail.status) }}</el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="主题" :span="2">{{ detail.title || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="备注" :span="2">{{ detail.remark || '-' }}</el-descriptions-item>
-      </el-descriptions>
-
-      <el-divider />
+      <div class="doc-preview">
+        <div class="doc-preview-title">采购计划单</div>
+        <div class="doc-preview-meta">
+          <span>采购时间：{{ formatDate(detail.createTime) }}</span>
+          <span>采购单号：{{ detail.planNo || '-' }}</span>
+          <span>状态：{{ getStatusText(detail.status) }}</span>
+        </div>
+        <div class="doc-preview-meta">
+          <span>主题：{{ detail.title || '-' }}</span>
+          <span>备注：{{ detail.remark || '-' }}</span>
+        </div>
+      </div>
       <el-table :data="detail.items || []" border style="width: 100%">
         <el-table-column prop="medicine.medicineName" label="药品" min-width="220">
           <template #default="scope">
@@ -423,6 +425,24 @@ onMounted(() => {
     .items-title {
       font-weight: 600;
     }
+  }
+  .doc-preview {
+    border: 1px solid #dcdfe6;
+    border-radius: 4px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    background: #fafafa;
+  }
+  .doc-preview-title {
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .doc-preview-meta {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: #606266;
   }
 }
 </style>
