@@ -34,6 +34,8 @@ public class FinanceController {
                                            @RequestParam(required = false) Integer status,
                                            @RequestParam(defaultValue = "1") Integer currentPage,
                                            @RequestParam(defaultValue = "10") Integer size) {
+        // 自动生成可缴费明细，避免依赖手工按钮触发
+        financeService.generateOutpatientChargeDetails();
         Page<OutpatientChargeDetail> page = financeService.pageOutpatientChargeDetails(patientId, status, currentPage, size);
         return Result.success(page);
     }
@@ -83,6 +85,8 @@ public class FinanceController {
                                            @RequestParam(required = false) Integer status,
                                            @RequestParam(defaultValue = "1") Integer currentPage,
                                            @RequestParam(defaultValue = "10") Integer size) {
+        // 自动生成可结算明细，避免依赖手工按钮触发
+        financeService.generatePurchaseSettlementDetails();
         Page<PurchaseSettlementDetail> page = financeService.pagePurchaseSettlementDetails(supplierId, status, currentPage, size);
         return Result.success(page);
     }

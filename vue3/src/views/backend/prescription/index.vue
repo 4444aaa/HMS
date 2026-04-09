@@ -100,17 +100,9 @@
               v-if="scope.row.status === 0" 
               type="success" 
               size="small" 
-              @click="handleUpdateStatus(scope.row.id, 1)"
+              @click="handleUpdateStatus(scope.row.id)"
             >
               标记已取药
-            </el-button>
-            <el-button 
-              v-else
-              type="warning" 
-              size="small" 
-              @click="handleUpdateStatus(scope.row.id, 0)"
-            >
-              标记未取药
             </el-button>
           </template>
         </el-table-column>
@@ -148,7 +140,13 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="患者" prop="patientId">
-              <el-select v-model="prescriptionForm.patientId" placeholder="请选择患者" filterable style="width: 100%">
+              <el-select
+                v-model="prescriptionForm.patientId"
+                placeholder="请先选择患者"
+                filterable
+                style="width: 100%"
+                @change="onPatientChange"
+              >
                 <el-option
                   v-for="patient in patientOptions"
                   :key="patient.id"
@@ -159,23 +157,14 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="医生" prop="doctorId">
-              <el-select v-model="prescriptionForm.doctorId" placeholder="请选择医生" filterable style="width: 100%">
-                <el-option
-                  v-for="doctor in doctorOptions"
-                  :key="doctor.id"
-                  :label="`${doctor.name} (${doctor.department?.deptName || ''})`"
-                  :value="doctor.id"
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        
-        <el-row :gutter="20">
-          <el-col :span="12">
             <el-form-item label="就诊记录" prop="recordId">
-              <el-select v-model="prescriptionForm.recordId" placeholder="请选择就诊记录" filterable style="width: 100%">
+              <el-select
+                v-model="prescriptionForm.recordId"
+                placeholder="请再选择病历"
+                filterable
+                style="width: 100%"
+                @change="onRecordChange"
+              >
                 <el-option
                   v-for="record in recordOptions"
                   :key="record.id"
@@ -185,16 +174,17 @@
               </el-select>
             </el-form-item>
           </el-col>
+        </el-row>
+        
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="医生" prop="doctorId">
+              <el-input :value="currentRecordInfo.doctorName" readonly placeholder="选择病历后自动带出" />
+            </el-form-item>
+          </el-col>
           <el-col :span="12">
             <el-form-item label="处方日期" prop="prescriptionDate">
-              <el-date-picker
-                v-model="prescriptionForm.prescriptionDate"
-                type="date"
-                placeholder="选择日期"
-                format="YYYY-MM-DD"
-                value-format="YYYY-MM-DD"
-                style="width: 100%"
-              />
+              <el-input :value="currentRecordInfo.recordDate" readonly placeholder="选择病历后自动带出" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -330,7 +320,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, onMounted, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import request from '@/utils/request'
 import { ElMessage } from 'element-plus'
 
@@ -340,6 +331,8 @@ const loading = ref(false)
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
+const route = useRoute()
+const router = useRouter()
 
 // 搜索表单
 const searchForm = reactive({
@@ -354,10 +347,13 @@ const dateRange = ref([])
 
 // 患者、医生、就诊记录和药品选项
 const patientOptions = ref([])
-const doctorOptions = ref([])
 const recordOptions = ref([])
 const medicineOptions = ref([])
 const recordDetailOptions = ref([])
+const currentRecordInfo = reactive({
+  doctorName: '',
+  recordDate: ''
+})
 
 // 新增/编辑对话框
 const dialogVisible = ref(false)
@@ -398,10 +394,41 @@ const prescriptionFormRules = {
 // 初始化
 onMounted(() => {
   fetchPatients()
-  fetchDoctors()
   fetchMedicines()
   fetchPrescriptions()
+  openAddFromRouteQuery()
 })
+
+const openAddFromRouteQuery = async () => {
+  if (route.query.autoAdd !== '1') {
+    return
+  }
+  const recordId = Number(route.query.recordId)
+  if (!recordId) {
+    return
+  }
+  dialogType.value = 'add'
+  dialogVisible.value = true
+  await nextTick()
+
+  let patientId = Number(route.query.patientId)
+  if (!patientId) {
+    await request.get(`/medical-record/${recordId}`, {}, {
+      onSuccess: (res) => {
+        patientId = Number(res?.patientId || 0)
+      }
+    })
+  }
+
+  if (patientId) {
+    prescriptionForm.patientId = patientId
+    await onPatientChange(patientId)
+  }
+  prescriptionForm.recordId = recordId
+  await onRecordChange(recordId)
+
+  router.replace({ path: '/back/prescription' })
+}
 
 // 获取患者列表
 const fetchPatients = async () => {
@@ -413,19 +440,6 @@ const fetchPatients = async () => {
     })
   } catch (error) {
     console.error('获取患者列表失败:', error)
-  }
-}
-
-// 获取医生列表
-const fetchDoctors = async () => {
-  try {
-    await request.get('/doctor/list', {}, {
-      onSuccess: (res) => {
-        doctorOptions.value = res || []
-      }
-    })
-  } catch (error) {
-    console.error('获取医生列表失败:', error)
   }
 }
 
@@ -507,7 +521,7 @@ const handleAdd = () => {
   dialogVisible.value = true
   
   // 设置默认值
-  prescriptionForm.prescriptionDate = formatDate(new Date())
+  prescriptionForm.prescriptionDate = ''
   prescriptionForm.status = 0
   prescriptionForm.details = []
 }
@@ -523,6 +537,10 @@ const handleView = async (row) => {
         Object.keys(prescriptionForm).forEach(key => {
           prescriptionForm[key] = res[key]
         })
+        currentRecordInfo.doctorName = res.doctor?.name || ''
+        currentRecordInfo.recordDate = res.prescriptionDate || ''
+        recordOptions.value = res.patientId ? [{ id: res.recordId, recordNo: res.medicalRecord?.recordNo, recordDate: res.medicalRecord?.recordDate }] : []
+        recordDetailOptions.value = res.medicalRecord?.details || []
       }
     })
   } catch (error) {
@@ -531,12 +549,10 @@ const handleView = async (row) => {
 }
 
 // 更新处方状态
-const handleUpdateStatus = async (id, status) => {
+const handleUpdateStatus = async (id) => {
   try {
-    await request.put(`/prescription/status/${id}?status=${status}`, {
-     
-    }, {
-      successMsg: status === 1 ? '已标记为已取药' : '已标记为未取药',
+    await request.put(`/prescription/status/${id}?status=1`, {}, {
+      successMsg: '已标记为已取药',
       onSuccess: () => {
         fetchPrescriptions()
       }
@@ -653,42 +669,53 @@ const resetForm = () => {
   
   // 清空就诊记录选项
   recordOptions.value = []
+  recordDetailOptions.value = []
+  currentRecordInfo.doctorName = ''
+  currentRecordInfo.recordDate = ''
 }
 
-// 监听患者和医生选择变化，加载对应的就诊记录
-watch([() => prescriptionForm.patientId, () => prescriptionForm.doctorId], async ([newPatientId, newDoctorId]) => {
-  if (newPatientId && newDoctorId) {
-    try {
-      const params = {
-        patientId: newPatientId,
-        doctorId: newDoctorId
-      }
-      
-      await request.get('/medical-record/page', params, {
-        onSuccess: (res) => {
-          recordOptions.value = res.records || []
-        }
-      })
-    } catch (error) {
-      console.error('获取就诊记录失败:', error)
-    }
-  } else {
+const onPatientChange = async (patientId) => {
+  prescriptionForm.recordId = null
+  prescriptionForm.doctorId = null
+  prescriptionForm.prescriptionDate = ''
+  currentRecordInfo.doctorName = ''
+  currentRecordInfo.recordDate = ''
+  recordDetailOptions.value = []
+  if (!patientId) {
     recordOptions.value = []
-    recordDetailOptions.value = []
+    return
   }
-}, { immediate: false })
+  await request.get('/medical-record/page', {
+    patientId,
+    currentPage: 1,
+    size: 999
+  }, {
+    onSuccess: (res) => {
+      recordOptions.value = res.records || []
+    }
+  })
+}
 
-watch(() => prescriptionForm.recordId, async (newRecordId) => {
-  if (!newRecordId) {
+const onRecordChange = async (recordId) => {
+  if (!recordId) {
+    prescriptionForm.doctorId = null
+    prescriptionForm.prescriptionDate = ''
+    currentRecordInfo.doctorName = ''
+    currentRecordInfo.recordDate = ''
     recordDetailOptions.value = []
     return
   }
-  await request.get(`/medical-record/${newRecordId}`, {}, {
+  await request.get(`/medical-record/${recordId}`, {}, {
     onSuccess: (res) => {
+      prescriptionForm.patientId = res.patientId || prescriptionForm.patientId
+      prescriptionForm.doctorId = res.doctorId || null
+      prescriptionForm.prescriptionDate = res.recordDate || ''
+      currentRecordInfo.doctorName = res.doctor?.name || ''
+      currentRecordInfo.recordDate = res.recordDate || ''
       recordDetailOptions.value = res.details || []
     }
   })
-})
+}
 
 // 格式化日期
 const formatDate = (date) => {

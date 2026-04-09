@@ -4,7 +4,7 @@
       <template #header>
         <div class="card-header">
           <h3>病历管理</h3>
-          <el-button type="primary" @click="handleAdd">新增就诊记录</el-button>
+          <el-button type="primary" @click="handleAdd">新增病历</el-button>
         </div>
       </template>
 
@@ -33,7 +33,7 @@
         </el-form-item>
       </el-form>
 
-      <!-- 就诊记录列表 -->
+      <!-- 病历列表 -->
       <el-table v-loading="loading" :data="tableData" border style="width: 100%">
         <el-table-column prop="recordNo" label="记录编号" width="180" />
         <el-table-column label="患者信息" width="150">
@@ -54,6 +54,13 @@
           </template>
         </el-table-column>
         <el-table-column prop="recordDate" label="就诊日期" width="120" sortable />
+        <el-table-column prop="status" label="状态" width="100">
+          <template #default="scope">
+            <el-tag :type="scope.row.status === 1 ? 'success' : 'info'">
+              {{ scope.row.status === 1 ? '已提交' : '未提交' }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="diagnosis" label="诊断结果" width="200">
           <template #default="scope">
             <el-tooltip
@@ -72,21 +79,25 @@
             {{ scope.row.details?.length || 0 }} 条
           </template>
         </el-table-column>
-        <el-table-column prop="followUp" label="随访日期" width="120" />
         <el-table-column prop="createTime" label="创建时间" sortable />
-        <el-table-column label="操作" width="250" fixed="right">
+        <el-table-column label="操作" width="220" fixed="right">
           <template #default="scope">
-            <el-button type="primary" size="small" @click="handleView(scope.row)">查看</el-button>
-            <el-button type="success" size="small" @click="handlePrescription(scope.row)">处方</el-button>
-            <el-button type="warning" size="small" @click="handleEdit(scope.row)">编辑</el-button>
-            <el-popconfirm
-              title="确定删除此就诊记录吗？"
-              @confirm="handleDelete(scope.row.id)"
-            >
-              <template #reference>
-                <el-button type="danger" size="small">删除</el-button>
-              </template>
-            </el-popconfirm>
+            <div class="action-row">
+              <el-button type="primary" size="small" @click="handleView(scope.row)">查看</el-button>
+              <el-button v-if="scope.row.status === 1" type="success" size="small" @click="handlePrescription(scope.row)">处方</el-button>
+            </div>
+            <div class="action-row" v-if="scope.row.status !== 1">
+              <el-button type="success" size="small" @click="handleSubmit(scope.row)">提交</el-button>
+              <el-button type="warning" size="small" @click="handleEdit(scope.row)">编辑</el-button>
+              <el-popconfirm
+              title="确定删除此病历吗？"
+                @confirm="handleDelete(scope.row.id)"
+              >
+                <template #reference>
+                  <el-button type="danger" size="small">删除</el-button>
+                </template>
+              </el-popconfirm>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -106,10 +117,10 @@
       </div>
     </el-card>
 
-    <!-- 新增/编辑就诊记录对话框 -->
+    <!-- 新增/编辑病历对话框 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="dialogType === 'add' ? '新增就诊记录' : dialogType === 'edit' ? '编辑就诊记录' : '查看就诊记录'"
+      :title="dialogType === 'add' ? '新增病历' : dialogType === 'edit' ? '编辑病历' : '查看病历'"
       width="650px"
       @closed="resetForm"
     >
@@ -123,7 +134,13 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="患者" prop="patientId">
-              <el-select v-model="recordForm.patientId" placeholder="请选择患者" filterable style="width: 100%">
+              <el-select
+                v-model="recordForm.patientId"
+                placeholder="请先选择患者"
+                filterable
+                style="width: 100%"
+                @change="onPatientChange"
+              >
                 <el-option
                   v-for="patient in patientOptions"
                   :key="patient.id"
@@ -134,23 +151,15 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="医生" prop="doctorId">
-              <el-select v-model="recordForm.doctorId" placeholder="请选择医生" filterable style="width: 100%">
-                <el-option
-                  v-for="doctor in doctorOptions"
-                  :key="doctor.id"
-                  :label="`${doctor.name} (${doctor.department?.deptName || ''})`"
-                  :value="doctor.id"
-                />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="关联预约">
-              <el-select v-model="recordForm.appointmentId" placeholder="请选择预约" filterable clearable style="width: 100%">
+            <el-form-item label="关联预约" prop="appointmentId">
+              <el-select
+                v-model="recordForm.appointmentId"
+                placeholder="请再选择预约"
+                filterable
+                clearable
+                style="width: 100%"
+                @change="onAppointmentChange"
+              >
                 <el-option
                   v-for="appointment in appointmentOptions"
                   :key="appointment.id"
@@ -160,16 +169,17 @@
               </el-select>
             </el-form-item>
           </el-col>
+        </el-row>
+        
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="医生" prop="doctorId">
+              <el-input :value="currentAppointmentInfo.doctorName" readonly placeholder="选择预约后自动带出" />
+            </el-form-item>
+          </el-col>
           <el-col :span="12">
             <el-form-item label="就诊日期" prop="recordDate">
-              <el-date-picker
-                v-model="recordForm.recordDate"
-                type="date"
-                placeholder="选择日期"
-                format="YYYY-MM-DD"
-                value-format="YYYY-MM-DD"
-                style="width: 100%"
-              />
+              <el-input :value="currentAppointmentInfo.recordDate" readonly placeholder="选择预约后自动带出" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -223,21 +233,6 @@
             </template>
           </el-table-column>
         </el-table>
-        
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="随访日期">
-              <el-date-picker
-                v-model="recordForm.followUp"
-                type="date"
-                placeholder="选择随访日期"
-                format="YYYY-MM-DD"
-                value-format="YYYY-MM-DD"
-                style="width: 100%"
-              />
-            </el-form-item>
-          </el-col>
-        </el-row>
         
         <el-form-item label="医生备注">
           <el-input
@@ -293,7 +288,7 @@
                 >
                   <div class="ellipsis">{{ scope.row.diagnosis }}</div>
                 </el-tooltip>
-                <span v-else>同就诊记录</span>
+                <span v-else>同病历</span>
               </template>
             </el-table-column>
             <el-table-column prop="status" label="状态" width="100">
@@ -310,17 +305,9 @@
                   v-if="scope.row.status === 0" 
                   type="success" 
                   size="small" 
-                  @click="handleUpdatePrescriptionStatus(scope.row.id, 1)"
+                  @click="handleUpdatePrescriptionStatus(scope.row.id)"
                 >
                   标记已取药
-                </el-button>
-                <el-button 
-                  v-else
-                  type="warning" 
-                  size="small" 
-                  @click="handleUpdatePrescriptionStatus(scope.row.id, 0)"
-                >
-                  标记未取药
                 </el-button>
               </template>
             </el-table-column>
@@ -332,7 +319,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import request from '@/utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -342,6 +330,7 @@ const loading = ref(false)
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
+const router = useRouter()
 
 // 搜索表单
 const searchForm = reactive({
@@ -356,6 +345,10 @@ const dateRange = ref([])
 const patientOptions = ref([])
 const doctorOptions = ref([])
 const appointmentOptions = ref([])
+const currentAppointmentInfo = reactive({
+  doctorName: '',
+  recordDate: ''
+})
 
 // 新增/编辑对话框
 const dialogVisible = ref(false)
@@ -379,6 +372,7 @@ const recordForm = reactive({
 const recordFormRules = {
   patientId: [{ required: true, message: '请选择患者', trigger: 'change' }],
   doctorId: [{ required: true, message: '请选择医生', trigger: 'change' }],
+  appointmentId: [{ required: true, message: '请选择关联预约', trigger: 'change' }],
   recordDate: [{ required: true, message: '请选择就诊日期', trigger: 'change' }],
   diagnosis: [{ required: true, message: '请输入诊断结果', trigger: 'blur' }]
 }
@@ -422,7 +416,7 @@ const fetchDoctors = async () => {
   }
 }
 
-// 获取就诊记录列表
+// 获取病历列表
 const fetchMedicalRecords = async () => {
   loading.value = true
   try {
@@ -452,7 +446,7 @@ const fetchMedicalRecords = async () => {
       }
     })
   } catch (error) {
-    console.error('获取就诊记录列表失败:', error)
+    console.error('获取病历列表失败:', error)
   } finally {
     loading.value = false
   }
@@ -473,22 +467,22 @@ const resetSearch = () => {
   fetchMedicalRecords()
 }
 
-// 新增就诊记录
+// 新增病历
 const handleAdd = () => {
   dialogType.value = 'add'
   dialogVisible.value = true
   
   // 设置默认值
-  recordForm.recordDate = formatDate(new Date())
+  recordForm.recordDate = ''
 }
 
-// 编辑就诊记录
+// 编辑病历
 const handleEdit = (row) => {
   dialogType.value = 'edit'
   openRecordDetail(row.id)
 }
 
-// 查看就诊记录
+// 查看病历
 const handleView = (row) => {
   dialogType.value = 'view'
   openRecordDetail(row.id)
@@ -509,7 +503,7 @@ const handlePrescription = async (row) => {
   await fetchPrescriptions(row.id)
 }
 
-// 获取就诊记录关联的处方列表
+// 获取病历关联的处方列表
 const fetchPrescriptions = async (recordId) => {
   prescriptionLoading.value = true
   try {
@@ -527,21 +521,19 @@ const fetchPrescriptions = async (recordId) => {
 
 // 新增处方
 const handleAddPrescription = () => {
-  // 跳转到处方创建页面，并传递就诊记录信息
-  ElMessageBox.confirm(
-    '将跳转到处方创建页面，是否继续？',
-    '提示',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'info'
+  if (!currentRecord.id) {
+    ElMessage.warning('请先选择有效病历')
+    return
+  }
+  prescriptionDialogVisible.value = false
+  router.push({
+    path: '/back/prescription',
+    query: {
+      autoAdd: '1',
+      recordId: String(currentRecord.id),
+      patientId: currentRecord.patientId ? String(currentRecord.patientId) : ''
     }
-  )
-    .then(() => {
-      // TODO: 跳转到处方创建页面
-      ElMessage.info('功能开发中，敬请期待')
-    })
-    .catch(() => {})
+  })
 }
 
 // 查看处方详情
@@ -550,7 +542,7 @@ const handleViewPrescription = (prescription) => {
   ElMessageBox.alert(
     `处方编号: ${prescription.prescriptionNo}<br>
      处方日期: ${prescription.prescriptionDate}<br>
-     诊断: ${prescription.diagnosis || '同就诊记录'}<br>
+     诊断: ${prescription.diagnosis || '同病历'}<br>
      状态: ${prescription.status === 1 ? '已取药' : '未取药'}<br>
      药品数量: ${prescription.details?.length || 0}种`,
     '处方详情',
@@ -562,12 +554,10 @@ const handleViewPrescription = (prescription) => {
 }
 
 // 更新处方状态
-const handleUpdatePrescriptionStatus = async (id, status) => {
+const handleUpdatePrescriptionStatus = async (id) => {
   try {
-    await request.put(`/prescription/status/${id}`, {
-      status
-    }, {
-      successMsg: status === 1 ? '已标记为已取药' : '已标记为未取药',
+    await request.put(`/prescription/status/${id}?status=1`, {}, {
+      successMsg: '已标记为已取药',
       onSuccess: () => {
         // 刷新处方列表
         fetchPrescriptions(currentRecord.id)
@@ -578,7 +568,7 @@ const handleUpdatePrescriptionStatus = async (id, status) => {
   }
 }
 
-// 删除就诊记录
+// 删除病历
 const handleDelete = async (id) => {
   try {
     await request.delete(`/medical-record/${id}`, {
@@ -588,8 +578,18 @@ const handleDelete = async (id) => {
       }
     })
   } catch (error) {
-    console.error('删除就诊记录失败:', error)
+    console.error('删除病历失败:', error)
   }
+}
+
+const handleSubmit = async (row) => {
+  await ElMessageBox.confirm(`确定提交病历 ${row.recordNo} 吗？提交后不可编辑和删除。`, '提示', { type: 'warning' })
+  await request.put(`/medical-record/submit/${row.id}`, {}, {
+    successMsg: '病历提交成功',
+    onSuccess: () => {
+      fetchMedicalRecords()
+    }
+  })
 }
 
 // 提交表单
@@ -597,26 +597,26 @@ const submitForm = () => {
   recordFormRef.value.validate(async (valid) => {
     if (valid) {
       if (dialogType.value === 'add') {
-        // 新增就诊记录
+        // 新增病历
         const payload = {
           ...recordForm,
           details: (recordForm.details || []).filter(d => d?.symptomName)
         }
         await request.post('/medical-record', payload, {
-          successMsg: '新增就诊记录成功',
+          successMsg: '新增病历成功',
           onSuccess: () => {
             dialogVisible.value = false
             fetchMedicalRecords()
           }
         })
       } else {
-        // 编辑就诊记录
+        // 编辑病历
         const payload = {
           ...recordForm,
           details: (recordForm.details || []).filter(d => d?.symptomName)
         }
         await request.put(`/medical-record/${recordForm.id}`, payload, {
-          successMsg: '编辑就诊记录成功',
+          successMsg: '编辑病历成功',
           onSuccess: () => {
             dialogVisible.value = false
             fetchMedicalRecords()
@@ -638,14 +638,19 @@ const resetForm = () => {
   
   // 清空预约选项
   appointmentOptions.value = []
+  currentAppointmentInfo.doctorName = ''
+  currentAppointmentInfo.recordDate = ''
 }
 
 const openRecordDetail = async (id) => {
   await request.get(`/medical-record/${id}`, {}, {
-    onSuccess: (res) => {
+    onSuccess: async (res) => {
       Object.keys(recordForm).forEach(key => {
         recordForm[key] = key === 'details' ? (res.details || []) : res[key]
       })
+      currentAppointmentInfo.doctorName = res.doctor?.name || ''
+      currentAppointmentInfo.recordDate = res.recordDate || ''
+      await fetchAppointments()
       dialogVisible.value = true
     }
   })
@@ -662,13 +667,8 @@ const removeDetail = (index) => {
   recordForm.details.splice(index, 1)
 }
 
-// 监听患者选择变化，加载该患者的预约
-const watchPatientId = computed(() => recordForm.patientId)
-const watchDoctorId = computed(() => recordForm.doctorId)
-
-// 当患者或医生选择变化时，加载预约
 const fetchAppointments = async () => {
-  if (!recordForm.patientId || !recordForm.doctorId) {
+  if (!recordForm.patientId) {
     appointmentOptions.value = []
     return
   }
@@ -676,7 +676,6 @@ const fetchAppointments = async () => {
   try {
     const params = {
       patientId: recordForm.patientId,
-      doctorId: recordForm.doctorId,
       status: 1 // 待就诊状态
     }
     
@@ -688,6 +687,32 @@ const fetchAppointments = async () => {
   } catch (error) {
     console.error('获取预约列表失败:', error)
   }
+}
+
+const onPatientChange = async () => {
+  recordForm.appointmentId = null
+  recordForm.doctorId = null
+  recordForm.recordDate = ''
+  currentAppointmentInfo.doctorName = ''
+  currentAppointmentInfo.recordDate = ''
+  await fetchAppointments()
+}
+
+const onAppointmentChange = (appointmentId) => {
+  if (!appointmentId) {
+    recordForm.doctorId = null
+    recordForm.recordDate = ''
+    currentAppointmentInfo.doctorName = ''
+    currentAppointmentInfo.recordDate = ''
+    return
+  }
+  const appt = appointmentOptions.value.find(item => item.id === appointmentId)
+  if (!appt) return
+  recordForm.doctorId = appt.doctorId || null
+  recordForm.recordDate = appt.appointmentDate || ''
+  currentAppointmentInfo.recordDate = appt.appointmentDate || ''
+  const doctor = doctorOptions.value.find(item => item.id === appt.doctorId)
+  currentAppointmentInfo.doctorName = doctor?.name || ''
 }
 
 // 格式化日期
@@ -757,5 +782,11 @@ const handleCurrentChange = (val) => {
 
 .detail-toolbar {
   margin-bottom: 10px;
+}
+
+.action-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
 }
 </style> 

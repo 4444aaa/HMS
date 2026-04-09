@@ -43,10 +43,10 @@ CREATE TABLE `appointment`  (
 -- ----------------------------
 -- Records of appointment
 -- ----------------------------
-INSERT INTO `appointment` VALUES (1, 1, 1, 1, 'A001', '2025-06-08', '上午', '头痛、发热三天', 2, '2025-05-14 11:00:00', '2025-06-07 15:06:45');
-INSERT INTO `appointment` VALUES (2, 2, 2, 3, 'A002', '2025-06-08', '上午', '腹部疼痛两天', 1, '2025-05-14 11:01:00', '2025-05-14 11:01:00');
-INSERT INTO `appointment` VALUES (5, 3, 9, 19, 'A20250607130564', '2025-06-09', '上午', '咳嗽', 2, '2025-06-07 16:03:06', '2025-06-07 19:42:56');
-INSERT INTO `appointment` VALUES (6, 2, 12, 25, 'A20250607052564', '2025-06-10', '上午', '1111', 1, '2025-06-07 19:42:03', '2025-06-07 19:42:03');
+INSERT INTO `appointment` VALUES (1, 1, 1, 1, 'A001', '2026-04-09', '上午', '头痛、发热三天', 2, '2026-04-09 10:00:00', '2026-04-09 10:00:00');
+INSERT INTO `appointment` VALUES (2, 2, 2, 3, 'A002', '2026-04-09', '上午', '腹部疼痛两天', 1, '2026-04-09 10:00:00', '2026-04-09 10:00:00');
+INSERT INTO `appointment` VALUES (5, 3, 9, 19, 'A20250607130564', '2026-04-09', '上午', '咳嗽', 2, '2026-04-09 10:00:00', '2026-04-09 10:00:00');
+INSERT INTO `appointment` VALUES (6, 2, 12, 25, 'A20250607052564', '2026-04-09', '上午', '1111', 1, '2026-04-09 10:00:00', '2026-04-09 10:00:00');
 
 -- ----------------------------
 -- Table structure for department
@@ -187,6 +187,7 @@ CREATE TABLE `medical_record`  (
   `record_date` date NOT NULL COMMENT '就诊日期',
   `notes` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '医生备注',
   `follow_up` date NULL DEFAULT NULL COMMENT '随访日期',
+  `status` tinyint(4) NULL DEFAULT 0 COMMENT '状态(0:未提交,1:已提交)',
   `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`) USING BTREE,
@@ -199,8 +200,7 @@ CREATE TABLE `medical_record`  (
 -- ----------------------------
 -- Records of medical_record
 -- ----------------------------
-INSERT INTO `medical_record` VALUES (1, 'MR001', 1, 1, 1, '普通感冒', '多喝水，休息，对症用药', '2025-06-08', '注意保暖', '2025-06-15', '2025-06-08 10:30:00', '2025-06-08 10:30:00');
-INSERT INTO `medical_record` VALUES (2, 'MR002', 2, 2, 2, '胃炎', '口服药物治疗，清淡饮食', '2025-06-08', '避免辛辣刺激食物', '2025-06-15', '2025-06-08 11:00:00', '2025-06-08 11:00:00');
+-- 按需求清空病历数据，初始化不插入病历记录
 
 -- ----------------------------
 -- Table structure for medicine
@@ -359,10 +359,7 @@ CREATE TABLE `medical_record_detail`  (
 -- ----------------------------
 -- Records of medical_record_detail
 -- ----------------------------
-INSERT INTO `medical_record_detail` VALUES (1, 1, '上呼吸道感染', '对症抗感染治疗，注意休息与补液', 1, '2025-06-08 10:35:00', '2025-06-08 10:35:00');
-INSERT INTO `medical_record_detail` VALUES (2, 2, '慢性胃炎', '抑酸护胃，清淡饮食', 1, '2025-06-08 11:05:00', '2025-06-08 11:05:00');
-INSERT INTO `medical_record_detail` VALUES (3, 1, '发热', '退热及观察体温变化', 2, '2025-06-15 09:35:00', '2025-06-15 09:35:00');
-INSERT INTO `medical_record_detail` VALUES (4, 2, '胃黏膜刺激', '复诊评估，继续护胃治疗', 2, '2025-06-15 10:05:00', '2025-06-15 10:05:00');
+-- 按需求清空病历明细数据，初始化不插入病历明细
 
 -- ----------------------------
 -- Table structure for prescription
@@ -390,12 +387,7 @@ CREATE TABLE `prescription`  (
 -- ----------------------------
 -- Records of prescription
 -- ----------------------------
-INSERT INTO `prescription` VALUES (1, 'P001', 1, 1, 1, '2025-06-08', '普通感冒', '按时服药', 1, '2025-06-08 10:35:00', '2025-06-07 15:07:46');
-INSERT INTO `prescription` VALUES (2, 'P002', 2, 2, 2, '2025-06-08', '胃炎', '饭后服药', 0, '2025-06-08 11:05:00', '2025-06-08 11:05:00');
-INSERT INTO `prescription` VALUES (3, 'P003', 1, 3, 1, '2025-06-15', '感冒后续治疗', '继续服药', 0, '2025-06-15 09:35:00', '2025-06-15 09:35:00');
-INSERT INTO `prescription` VALUES (4, 'P004', 2, 4, 2, '2025-06-15', '胃炎后续治疗', '继续服药', 1, '2025-06-15 10:05:00', '2025-06-07 19:43:06');
-INSERT INTO `prescription` VALUES (5, 'P005', 1, 5, 1, '2025-06-20', '感冒后续治疗', '最后一次服药', 0, '2025-06-20 09:35:00', '2025-06-20 09:35:00');
-INSERT INTO `prescription` VALUES (6, 'P20250607438970', 2, 2, 2, '2025-06-07', '', '', 0, '2025-06-07 15:08:40', '2025-06-07 15:08:40');
+-- 按需求清空处方数据，初始化不插入处方记录
 
 -- ----------------------------
 -- Table structure for prescription_detail
@@ -424,14 +416,7 @@ CREATE TABLE `prescription_detail`  (
 -- ----------------------------
 -- Records of prescription_detail
 -- ----------------------------
-INSERT INTO `prescription_detail` VALUES (1, 1, 1, 4, '每次一袋', '一日三次', 5, 15, '口服', '饭后温水冲服', '2025-06-08 10:35:00', '2025-06-08 10:35:00');
-INSERT INTO `prescription_detail` VALUES (2, 1, 1, 8, '每次一片', '一日一次', 5, 5, '口服', '早餐后服用', '2025-06-08 10:35:00', '2025-06-08 10:35:00');
-INSERT INTO `prescription_detail` VALUES (3, 2, 2, 9, '每次一粒', '一日两次', 7, 14, '口服', '饭后服用', '2025-06-08 11:05:00', '2025-06-08 11:05:00');
-INSERT INTO `prescription_detail` VALUES (4, 2, 2, 19, '每次一粒', '一日四次', 7, 28, '口服', '饭后服用', '2025-06-08 11:05:00', '2025-06-08 11:05:00');
-INSERT INTO `prescription_detail` VALUES (5, 3, 3, 16, '每次一袋', '一日三次', 5, 15, '口服', '饭后温水冲服', '2025-06-15 09:35:00', '2025-06-15 09:35:00');
-INSERT INTO `prescription_detail` VALUES (6, 4, 4, 36, '每次一粒', '一日一次', 14, 14, '口服', '早餐后服用', '2025-06-15 10:05:00', '2025-06-15 10:05:00');
-INSERT INTO `prescription_detail` VALUES (7, 5, 3, 21, '每次两片', '一日三次', 5, 30, '口服', '饭后服用', '2025-06-20 09:35:00', '2025-06-20 09:35:00');
-INSERT INTO `prescription_detail` VALUES (8, 6, NULL, 5, '2', '一日三次', 7, 1, '口服', NULL, '2025-06-07 15:08:40', '2025-06-07 15:08:40');
+-- 按需求清空处方明细数据，初始化不插入处方明细
 
 -- ----------------------------
 -- Table structure for schedule

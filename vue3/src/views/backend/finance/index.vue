@@ -10,7 +10,6 @@
       <el-tabs v-model="activeTab">
         <el-tab-pane label="门诊缴费" name="outpatient">
           <div class="actions">
-            <el-button type="primary" @click="generateOutpatientDetails">生成缴费明细</el-button>
             <el-button type="success" @click="createOutpatientOrder">生成缴费单</el-button>
           </div>
           <el-table :data="outpatientDetails" @selection-change="onOutpatientSelectionChange" border>
@@ -52,7 +51,6 @@
 
         <el-tab-pane label="采购结算" name="purchase">
           <div class="actions">
-            <el-button type="primary" @click="generateSettlementDetails">生成结算明细</el-button>
             <el-button type="success" @click="createSettlementOrder">生成结算单</el-button>
           </div>
           <el-table :data="settlementDetails" @selection-change="onSettlementSelectionChange" border>
@@ -169,22 +167,22 @@ const selectedSettlementAmount = computed(() => {
 })
 
 const loadOutpatient = async () => {
-  const detailsPage = await request.get('/finance/outpatient-details/page', { currentPage: 1, size: 50 })
+  // 仅展示待处理明细，处理完成后自动隐藏
+  const detailsPage = await request.get('/finance/outpatient-details/page', { currentPage: 1, size: 50, status: 0 })
   outpatientDetails.value = detailsPage.records || []
   const ordersPage = await request.get('/finance/outpatient-orders/page', { currentPage: 1, size: 50 })
   outpatientOrders.value = ordersPage.records || []
+  selectedOutpatientIds.value = []
 }
 
 const loadSettlement = async () => {
-  const detailsPage = await request.get('/finance/settlement-details/page', { currentPage: 1, size: 50 })
+  // 仅展示待处理明细，处理完成后自动隐藏
+  const detailsPage = await request.get('/finance/settlement-details/page', { currentPage: 1, size: 50, status: 0 })
   settlementDetails.value = detailsPage.records || []
   const ordersPage = await request.get('/finance/settlement-orders/page', { currentPage: 1, size: 50 })
   settlementOrders.value = ordersPage.records || []
-}
-
-const generateOutpatientDetails = async () => {
-  await request.post('/finance/outpatient-details/generate', {}, { successMsg: '缴费明细生成完成' })
-  await loadOutpatient()
+  selectedSettlementRows.value = []
+  selectedSettlementIds.value = []
 }
 
 const createOutpatientOrder = async () => {
@@ -195,11 +193,6 @@ const createOutpatientOrder = async () => {
 const payOutpatientOrder = async (id) => {
   await request.put(`/finance/outpatient-orders/pay/${id}`, {}, { successMsg: '缴费单已支付' })
   await loadOutpatient()
-}
-
-const generateSettlementDetails = async () => {
-  await request.post('/finance/settlement-details/generate', {}, { successMsg: '结算明细生成完成' })
-  await loadSettlement()
 }
 
 const createSettlementOrder = async () => {

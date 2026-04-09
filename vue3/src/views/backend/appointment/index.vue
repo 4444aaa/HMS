@@ -69,25 +69,32 @@
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="创建时间" sortable />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="220" fixed="right">
           <template #default="scope">
-            <el-button type="primary" size="small" @click="handleViewDetail(scope.row)">详情</el-button>
-            <el-button 
-              v-if="scope.row.status === 1" 
-              type="success" 
-              size="small" 
-              @click="handleComplete(scope.row)"
-            >
-              完成就诊
-            </el-button>
-            <el-button 
-              v-if="scope.row.status === 1" 
-              type="danger" 
-              size="small" 
-              @click="handleCancel(scope.row)"
-            >
-              取消预约
-            </el-button>
+            <div class="action-group">
+              <div class="action-row">
+                <el-button class="action-btn" type="primary" size="small" @click="handleViewDetail(scope.row)">详情</el-button>
+                <el-button
+                  v-if="scope.row.status === 1"
+                  class="action-btn"
+                  type="success"
+                  size="small"
+                  @click="handleComplete(scope.row)"
+                >
+                  完成就诊
+                </el-button>
+              </div>
+              <div class="action-row" v-if="scope.row.status === 1">
+                <el-button
+                  class="action-btn"
+                  type="danger"
+                  size="small"
+                  @click="handleCancel(scope.row)"
+                >
+                  取消预约
+                </el-button>
+              </div>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -365,5 +372,20 @@ const handleCurrentChange = (val) => {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.action-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.action-row {
+  display: flex;
+  gap: 6px;
+}
+
+.action-btn {
+  min-width: 72px;
 }
 </style> 

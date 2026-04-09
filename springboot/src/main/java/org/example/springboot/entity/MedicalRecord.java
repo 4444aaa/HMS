@@ -45,6 +45,9 @@ public class MedicalRecord {
     
     @Schema(description = "随访日期")
     private LocalDate followUp;
+
+    @Schema(description = "状态(0:未提交,1:已提交)")
+    private Integer status;
     
     @Schema(description = "创建时间")
     private LocalDateTime createTime;

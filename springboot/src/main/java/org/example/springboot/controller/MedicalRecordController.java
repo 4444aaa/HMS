@@ -104,4 +104,12 @@ public class MedicalRecordController {
         medicalRecordService.deleteMedicalRecord(id);
         return Result.success();
     }
+
+    @Operation(summary = "提交就诊记录")
+    @PutMapping("/submit/{id}")
+    public Result<?> submitMedicalRecord(@PathVariable Long id) {
+        LOGGER.info("提交就诊记录: id={}", id);
+        medicalRecordService.submitMedicalRecord(id);
+        return Result.success();
+    }
 } 

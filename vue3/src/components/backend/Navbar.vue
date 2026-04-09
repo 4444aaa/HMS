@@ -1,9 +1,6 @@
 <template>
   <div class="navbar">
     <div class="left-menu">
-      <el-icon class="hamburger" :size="20" @click="toggleSidebar">
-        <component :is="appStore.sidebarCollapsed ? Expand : Fold" />
-      </el-icon>
       <el-breadcrumb separator="/">
         <el-breadcrumb-item :to="{ path: '/dashboard' }">首页</el-breadcrumb-item>
         <el-breadcrumb-item v-if="route.meta.title">{{ route.meta.title }}</el-breadcrumb-item>
@@ -11,11 +8,6 @@
     </div>
     
     <div class="right-menu">
-      <div class="right-menu-item health-stats" title="系统健康状态">
-        <el-icon><DataAnalysis /></el-icon>
-        <span>系统正常</span>
-      </div>
-      
       <div class="right-menu-item" @click="toggleFullScreen" title="全屏切换">
         <el-icon :size="20">
           <component :is="isFullscreen ? Aim : FullScreen" />
@@ -53,30 +45,21 @@
 import { computed, ref, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/store/user'
-import { useAppStore } from '@/store/app'
 import { ElMessageBox } from 'element-plus'
 import { 
-  Expand, 
-  Fold, 
   ArrowDown, 
   UserFilled, 
   SwitchButton, 
   FullScreen, 
-  Aim,
-  DataAnalysis
+  Aim
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
-const appStore = useAppStore()
 const baseAPI = import.meta.env.VITE_API_BASE_URL || '/api'
 const userInfo = computed(() => userStore.userInfo)
 const isFullscreen = ref(false)
-
-const toggleSidebar = () => {
-  appStore.toggleSidebar()
-}
 const avatarUrl = computed(() => {
   if (!userStore.userInfo?.avatar) return ''
   return baseAPI + userStore.userInfo.avatar
@@ -145,24 +128,6 @@ $success-color: #4caf50; // 成功色
     align-items: center;
     gap: 16px;
 
-    .hamburger {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      padding: 8px;
-      border-radius: 8px;
-      color: $primary-dark;
-      height: 32px;
-      width: 32px;
-      transition: all 0.3s ease;
-      
-      &:hover {
-        background: rgba($primary-light, 0.12);
-        transform: scale(1.05);
-      }
-    }
-
     :deep(.el-breadcrumb__inner) {
       color: $text-color;
       line-height: 32px;
@@ -198,26 +163,6 @@ $success-color: #4caf50; // 成功色
       &:hover {
         background: rgba($primary-light, 0.12);
         color: $primary-dark;
-      }
-      
-      &.health-stats {
-        background-color: rgba($success-color, 0.1);
-        color: $success-color;
-        padding: 0 12px;
-        
-        .el-icon {
-          margin-right: 6px;
-        }
-        
-        span {
-          font-size: 13px;
-          white-space: nowrap;
-        }
-        
-        &:hover {
-          background-color: rgba($success-color, 0.15);
-          color: $success-color;
-        }
       }
     }
     

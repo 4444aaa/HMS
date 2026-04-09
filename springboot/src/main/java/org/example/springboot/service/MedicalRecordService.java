@@ -92,6 +92,9 @@ public class MedicalRecordService {
         
         // 设置创建时间和更新时间
         LocalDateTime now = LocalDateTime.now();
+        if (medicalRecord.getStatus() == null) {
+            medicalRecord.setStatus(0);
+        }
         medicalRecord.setCreateTime(now);
         medicalRecord.setUpdateTime(now);
         
@@ -113,8 +116,12 @@ public class MedicalRecordService {
         if (existingRecord == null) {
             throw new ServiceException("就诊记录不存在");
         }
+        if (existingRecord.getStatus() != null && existingRecord.getStatus() == 1) {
+            throw new ServiceException("病历已提交，不允许编辑");
+        }
         
         medicalRecord.setId(id);
+        medicalRecord.setStatus(existingRecord.getStatus());
         medicalRecord.setUpdateTime(LocalDateTime.now());
         
         if (medicalRecordMapper.updateById(medicalRecord) <= 0) {
@@ -283,6 +290,9 @@ public class MedicalRecordService {
         if (medicalRecord == null) {
             throw new ServiceException("就诊记录不存在");
         }
+        if (medicalRecord.getStatus() != null && medicalRecord.getStatus() == 1) {
+            throw new ServiceException("病历已提交，不允许删除");
+        }
         
         // 检查就诊记录是否有关联处方
         LambdaQueryWrapper<Prescription> queryWrapper = new LambdaQueryWrapper<>();
@@ -297,6 +307,30 @@ public class MedicalRecordService {
         
         if (medicalRecordMapper.deleteById(id) <= 0) {
             throw new ServiceException("就诊记录删除失败");
+        }
+    }
+
+    @Transactional
+    public void submitMedicalRecord(Long id) {
+        MedicalRecord medicalRecord = medicalRecordMapper.selectById(id);
+        if (medicalRecord == null) {
+            throw new ServiceException("就诊记录不存在");
+        }
+        if (medicalRecord.getStatus() != null && medicalRecord.getStatus() == 1) {
+            return;
+        }
+        List<MedicalRecordDetail> details = medicalRecordDetailMapper.selectList(
+                new LambdaQueryWrapper<MedicalRecordDetail>().eq(MedicalRecordDetail::getRecordId, id)
+        );
+        if (details == null || details.isEmpty()) {
+            throw new ServiceException("病历明细为空，不能提交");
+        }
+        MedicalRecord update = new MedicalRecord();
+        update.setId(id);
+        update.setStatus(1);
+        update.setUpdateTime(LocalDateTime.now());
+        if (medicalRecordMapper.updateById(update) <= 0) {
+            throw new ServiceException("病历提交失败");
         }
     }
     

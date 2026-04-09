@@ -128,10 +128,16 @@ public class PrescriptionService {
         if (prescription == null) {
             throw new ServiceException("处方不存在");
         }
+        if (status == null || status != 1) {
+            throw new ServiceException("处方状态仅支持标记为已取药");
+        }
+        if (prescription.getStatus() != null && prescription.getStatus() == 1) {
+            throw new ServiceException("处方已取药，状态不可回退");
+        }
         
         Prescription updatePrescription = new Prescription();
         updatePrescription.setId(id);
-        updatePrescription.setStatus(status);
+        updatePrescription.setStatus(1);
         updatePrescription.setUpdateTime(LocalDateTime.now());
         
         if (prescriptionMapper.updateById(updatePrescription) <= 0) {

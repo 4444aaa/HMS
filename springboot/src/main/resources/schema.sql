@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS medical_record (
     record_date DATE NOT NULL COMMENT '就诊日期',
     notes TEXT COMMENT '医生备注',
     follow_up DATE COMMENT '随访日期',
+    status TINYINT(1) DEFAULT 0 COMMENT '状态: 0-未提交, 1-已提交',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     FOREIGN KEY (patient_id) REFERENCES patient(id) ON DELETE CASCADE,
