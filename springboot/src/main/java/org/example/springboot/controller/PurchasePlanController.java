@@ -11,6 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Tag(name = "采购计划接口")
 @RestController
 @RequestMapping("/purchasePlan")
@@ -51,6 +53,12 @@ public class PurchasePlanController {
     @GetMapping("/{id}/suppliers")
     public Result<?> getCandidateSuppliers(@PathVariable Long id) {
         return Result.success(purchasePlanService.getCandidateSuppliers(id));
+    }
+
+    @Operation(summary = "按多个计划获取可选供应商列表")
+    @GetMapping("/suppliers")
+    public Result<?> getCandidateSuppliersByPlans(@RequestParam List<Long> planIds) {
+        return Result.success(purchasePlanService.getCandidateSuppliersByPlanIds(planIds));
     }
 
     @Operation(summary = "分页查询采购计划")

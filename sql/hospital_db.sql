@@ -768,6 +768,39 @@ CREATE TABLE `purchase_order_item`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '采购单明细表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
+-- Table structure for purchase_order_plan
+-- ----------------------------
+DROP TABLE IF EXISTS `purchase_order_plan`;
+CREATE TABLE `purchase_order_plan`  (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '关联ID',
+  `order_id` bigint(20) NOT NULL COMMENT '采购单ID',
+  `plan_id` bigint(20) NOT NULL COMMENT '采购计划ID',
+  `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_order_plan`(`order_id` ASC, `plan_id` ASC) USING BTREE,
+  INDEX `idx_pop_plan_id`(`plan_id` ASC) USING BTREE,
+  CONSTRAINT `fk_pop_order` FOREIGN KEY (`order_id`) REFERENCES `purchase_order` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
+  CONSTRAINT `fk_pop_plan` FOREIGN KEY (`plan_id`) REFERENCES `purchase_plan` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '采购单-采购计划关联表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Table structure for purchase_order_item_plan
+-- ----------------------------
+DROP TABLE IF EXISTS `purchase_order_item_plan`;
+CREATE TABLE `purchase_order_item_plan`  (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '分摊ID',
+  `order_item_id` bigint(20) NOT NULL COMMENT '采购单明细ID',
+  `plan_item_id` bigint(20) NOT NULL COMMENT '采购计划明细ID',
+  `allocated_qty` int(11) NOT NULL COMMENT '分摊数量',
+  `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_order_item_plan`(`order_item_id` ASC, `plan_item_id` ASC) USING BTREE,
+  INDEX `idx_poip_plan_item_id`(`plan_item_id` ASC) USING BTREE,
+  CONSTRAINT `fk_poip_order_item` FOREIGN KEY (`order_item_id`) REFERENCES `purchase_order_item` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
+  CONSTRAINT `fk_poip_plan_item` FOREIGN KEY (`plan_item_id`) REFERENCES `purchase_plan_item` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '采购单明细-计划明细分摊表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
 -- Table structure for purchase_acceptance
 -- ----------------------------
 DROP TABLE IF EXISTS `purchase_acceptance`;

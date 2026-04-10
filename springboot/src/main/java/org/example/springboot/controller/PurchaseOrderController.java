@@ -23,7 +23,7 @@ public class PurchaseOrderController {
     @Operation(summary = "创建采购单(由计划拆分，含明细)")
     @PostMapping
     public Result<?> create(@RequestBody PurchaseOrder order) {
-        LOGGER.info("创建采购单: planId={}, supplierId={}", order != null ? order.getPlanId() : null, order != null ? order.getSupplierId() : null);
+        LOGGER.info("创建采购单: planIds={}, supplierId={}", order != null ? order.getPlanIds() : null, order != null ? order.getSupplierId() : null);
         return Result.success(purchaseOrderService.createOrder(order));
     }
 

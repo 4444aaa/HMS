@@ -9,6 +9,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @TableName("purchase_order_item")
@@ -48,5 +49,9 @@ public class PurchaseOrderItem {
     @TableField(exist = false)
     @Schema(description = "药品信息")
     private Medicine medicine;
+
+    @TableField(exist = false)
+    @Schema(description = "计划明细分摊列表")
+    private List<PurchaseOrderItemPlan> planAllocations;
 }
 

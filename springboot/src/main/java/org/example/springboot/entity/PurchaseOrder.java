@@ -53,5 +53,9 @@ public class PurchaseOrder {
     @TableField(exist = false)
     @Schema(description = "供应商信息")
     private Supplier supplier;
+
+    @TableField(exist = false)
+    @Schema(description = "关联采购计划ID列表")
+    private List<Long> planIds;
 }
 

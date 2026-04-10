@@ -15,7 +15,13 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class PurchaseOrderService {
@@ -28,6 +34,10 @@ public class PurchaseOrderService {
     @Resource
     private PurchaseOrderItemMapper purchaseOrderItemMapper;
     @Resource
+    private PurchaseOrderPlanMapper purchaseOrderPlanMapper;
+    @Resource
+    private PurchaseOrderItemPlanMapper purchaseOrderItemPlanMapper;
+    @Resource
     private PurchaseAcceptanceMapper purchaseAcceptanceMapper;
     @Resource
     private SupplierMapper supplierMapper;
@@ -39,29 +49,21 @@ public class PurchaseOrderService {
         if (order == null) {
             throw new ServiceException("采购单不能为空");
         }
-        if (order.getPlanId() == null) {
-            throw new ServiceException("来源采购计划不能为空");
-        }
         if (order.getSupplierId() == null) {
             throw new ServiceException("供应商不能为空");
         }
         if (order.getItems() == null || order.getItems().isEmpty()) {
             throw new ServiceException("采购单明细不能为空");
         }
-
-        PurchasePlan plan = purchasePlanMapper.selectById(order.getPlanId());
-        if (plan == null) {
-            throw new ServiceException("来源采购计划不存在");
-        }
-        if (plan.getStatus() == null || plan.getStatus() != 1) {
-            throw new ServiceException("仅已提交的采购计划允许创建采购单");
-        }
+        Set<Long> planIds = normalizePlanIds(order);
+        Map<Long, PurchasePlanItem> planItemMap = loadAndValidatePlans(planIds);
         Supplier supplier = supplierMapper.selectById(order.getSupplierId());
         if (supplier == null || (supplier.getStatus() != null && supplier.getStatus() == 0)) {
             throw new ServiceException("供应商不存在或已停用");
         }
 
         LocalDateTime now = LocalDateTime.now();
+        order.setPlanId(planIds.iterator().next());
         order.setOrderNo(generateOrderNo());
         order.setStatus(order.getStatus() == null ? 0 : order.getStatus());
         order.setCreateTime(now);
@@ -75,27 +77,15 @@ public class PurchaseOrderService {
         if (purchaseOrderMapper.insert(order) <= 0) {
             throw new ServiceException("采购单创建失败");
         }
+        saveOrderPlanRelations(order.getId(), planIds, now);
 
         for (PurchaseOrderItem item : order.getItems()) {
-            if (item.getPlanItemId() == null) {
-                throw new ServiceException("明细来源计划项不能为空");
-            }
             if (item.getOrderQty() == null || item.getOrderQty() <= 0) {
                 throw new ServiceException("下单数量必须大于0");
             }
-
-            PurchasePlanItem planItem = purchasePlanItemMapper.selectById(item.getPlanItemId());
-            if (planItem == null || !order.getPlanId().equals(planItem.getPlanId())) {
-                throw new ServiceException("来源计划明细不存在或不匹配");
-            }
-            int purchased = planItem.getPurchasedQty() == null ? 0 : planItem.getPurchasedQty();
-            int remaining = planItem.getPlanQty() - purchased;
-            if (item.getOrderQty() > remaining) {
-                throw new ServiceException("下单数量超过计划剩余量");
-            }
-
+            List<PurchaseOrderItemPlan> allocations = normalizeAllocations(item);
+            validateAndApplyAllocations(item, allocations, planItemMap, order.getSupplierId(), now);
             item.setOrderId(order.getId());
-            item.setMedicineId(planItem.getMedicineId());
             Medicine medicine = medicineMapper.selectById(item.getMedicineId());
             if (medicine == null) {
                 throw new ServiceException("药品不存在");
@@ -117,14 +107,7 @@ public class PurchaseOrderService {
             if (purchaseOrderItemMapper.insert(item) <= 0) {
                 throw new ServiceException("采购单明细创建失败");
             }
-
-            PurchasePlanItem updatePlanItem = new PurchasePlanItem();
-            updatePlanItem.setId(planItem.getId());
-            updatePlanItem.setPurchasedQty(purchased + item.getOrderQty());
-            updatePlanItem.setUpdateTime(now);
-            if (purchasePlanItemMapper.updateById(updatePlanItem) <= 0) {
-                throw new ServiceException("采购计划明细占用数量更新失败");
-            }
+            saveItemAllocations(item.getId(), allocations, now);
 
             total = total.add(amount);
         }
@@ -168,61 +151,33 @@ public class PurchaseOrderService {
         if (existing.getStatus() == null || existing.getStatus() != 0) {
             throw new ServiceException("采购单已发送，不能编辑");
         }
-        if (order.getPlanId() == null || order.getSupplierId() == null) {
-            throw new ServiceException("采购计划和供应商不能为空");
+        if (order.getSupplierId() == null) {
+            throw new ServiceException("供应商不能为空");
         }
         if (order.getItems() == null || order.getItems().isEmpty()) {
             throw new ServiceException("采购单明细不能为空");
         }
-
-        PurchasePlan plan = purchasePlanMapper.selectById(order.getPlanId());
-        if (plan == null || plan.getStatus() == null || plan.getStatus() != 1) {
-            throw new ServiceException("仅已提交的采购计划允许编辑采购单");
-        }
+        Set<Long> planIds = normalizePlanIds(order);
         Supplier supplier = supplierMapper.selectById(order.getSupplierId());
         if (supplier == null || (supplier.getStatus() != null && supplier.getStatus() == 0)) {
             throw new ServiceException("供应商不存在或已停用");
         }
-
-        List<PurchaseOrderItem> oldItems = purchaseOrderItemMapper.selectList(
-                new LambdaQueryWrapper<PurchaseOrderItem>().eq(PurchaseOrderItem::getOrderId, existing.getId())
-        );
-        for (PurchaseOrderItem oldItem : oldItems) {
-            PurchasePlanItem planItem = purchasePlanItemMapper.selectById(oldItem.getPlanItemId());
-            if (planItem != null) {
-                int purchased = planItem.getPurchasedQty() == null ? 0 : planItem.getPurchasedQty();
-                int qty = oldItem.getOrderQty() == null ? 0 : oldItem.getOrderQty();
-                PurchasePlanItem updatePlanItem = new PurchasePlanItem();
-                updatePlanItem.setId(planItem.getId());
-                updatePlanItem.setPurchasedQty(Math.max(0, purchased - qty));
-                updatePlanItem.setUpdateTime(LocalDateTime.now());
-                purchasePlanItemMapper.updateById(updatePlanItem);
-            }
-        }
+        rollbackOrderPlanUsage(existing.getId());
+        Map<Long, PurchasePlanItem> planItemMap = loadAndValidatePlans(planIds);
         purchaseOrderItemMapper.delete(new LambdaQueryWrapper<PurchaseOrderItem>().eq(PurchaseOrderItem::getOrderId, existing.getId()));
+        purchaseOrderPlanMapper.delete(new LambdaQueryWrapper<PurchaseOrderPlan>().eq(PurchaseOrderPlan::getOrderId, existing.getId()));
 
         LocalDateTime now = LocalDateTime.now();
+        saveOrderPlanRelations(existing.getId(), planIds, now);
         BigDecimal total = BigDecimal.ZERO;
         for (PurchaseOrderItem item : order.getItems()) {
-            if (item.getPlanItemId() == null) {
-                throw new ServiceException("明细来源计划项不能为空");
-            }
             if (item.getOrderQty() == null || item.getOrderQty() <= 0) {
                 throw new ServiceException("下单数量必须大于0");
             }
-            PurchasePlanItem planItem = purchasePlanItemMapper.selectById(item.getPlanItemId());
-            if (planItem == null || !order.getPlanId().equals(planItem.getPlanId())) {
-                throw new ServiceException("来源计划明细不存在或不匹配");
-            }
-            int purchased = planItem.getPurchasedQty() == null ? 0 : planItem.getPurchasedQty();
-            int remaining = planItem.getPlanQty() - purchased;
-            if (item.getOrderQty() > remaining) {
-                throw new ServiceException("下单数量超过计划剩余量");
-            }
-
+            List<PurchaseOrderItemPlan> allocations = normalizeAllocations(item);
+            validateAndApplyAllocations(item, allocations, planItemMap, order.getSupplierId(), now);
             item.setId(null);
             item.setOrderId(existing.getId());
-            item.setMedicineId(planItem.getMedicineId());
             Medicine medicine = medicineMapper.selectById(item.getMedicineId());
             if (medicine == null) {
                 throw new ServiceException("药品不存在");
@@ -243,18 +198,13 @@ public class PurchaseOrderService {
             if (purchaseOrderItemMapper.insert(item) <= 0) {
                 throw new ServiceException("采购单明细更新失败");
             }
-
-            PurchasePlanItem updatePlanItem = new PurchasePlanItem();
-            updatePlanItem.setId(planItem.getId());
-            updatePlanItem.setPurchasedQty(purchased + item.getOrderQty());
-            updatePlanItem.setUpdateTime(now);
-            purchasePlanItemMapper.updateById(updatePlanItem);
+            saveItemAllocations(item.getId(), allocations, now);
             total = total.add(amount);
         }
 
         PurchaseOrder update = new PurchaseOrder();
         update.setId(existing.getId());
-        update.setPlanId(order.getPlanId());
+        update.setPlanId(planIds.iterator().next());
         update.setSupplierId(order.getSupplierId());
         update.setRemark(order.getRemark());
         update.setTotalAmount(total);
@@ -275,11 +225,28 @@ public class PurchaseOrderService {
         List<PurchaseOrderItem> items = purchaseOrderItemMapper.selectList(
                 new LambdaQueryWrapper<PurchaseOrderItem>().eq(PurchaseOrderItem::getOrderId, orderId)
         );
+        Map<Long, List<PurchaseOrderItemPlan>> allocationMap = new HashMap<>();
+        if (!items.isEmpty()) {
+            List<PurchaseOrderItemPlan> allocations = purchaseOrderItemPlanMapper.selectList(
+                    new LambdaQueryWrapper<PurchaseOrderItemPlan>().in(PurchaseOrderItemPlan::getOrderItemId,
+                            items.stream().map(PurchaseOrderItem::getId).collect(Collectors.toList()))
+            );
+            allocationMap = allocations.stream().collect(Collectors.groupingBy(PurchaseOrderItemPlan::getOrderItemId));
+        }
         for (PurchaseOrderItem item : items) {
             Medicine medicine = medicineMapper.selectById(item.getMedicineId());
             item.setMedicine(medicine);
+            item.setPlanAllocations(allocationMap.getOrDefault(item.getId(), new ArrayList<>()));
         }
         order.setItems(items);
+        List<PurchaseOrderPlan> orderPlans = purchaseOrderPlanMapper.selectList(
+                new LambdaQueryWrapper<PurchaseOrderPlan>().eq(PurchaseOrderPlan::getOrderId, orderId)
+        );
+        if (orderPlans.isEmpty() && order.getPlanId() != null) {
+            order.setPlanIds(List.of(order.getPlanId()));
+        } else {
+            order.setPlanIds(orderPlans.stream().map(PurchaseOrderPlan::getPlanId).distinct().toList());
+        }
         return order;
     }
 
@@ -290,7 +257,14 @@ public class PurchaseOrderService {
             qw.like(PurchaseOrder::getOrderNo, orderNo);
         }
         if (planId != null) {
-            qw.eq(PurchaseOrder::getPlanId, planId);
+            List<Long> orderIds = purchaseOrderPlanMapper.selectList(
+                    new LambdaQueryWrapper<PurchaseOrderPlan>().eq(PurchaseOrderPlan::getPlanId, planId)
+            ).stream().map(PurchaseOrderPlan::getOrderId).distinct().toList();
+            if (orderIds.isEmpty()) {
+                qw.eq(PurchaseOrder::getPlanId, planId);
+            } else {
+                qw.and(w -> w.eq(PurchaseOrder::getPlanId, planId).or().in(PurchaseOrder::getId, orderIds));
+            }
         }
         if (supplierId != null) {
             qw.eq(PurchaseOrder::getSupplierId, supplierId);
@@ -326,19 +300,170 @@ public class PurchaseOrderService {
         List<PurchaseOrderItem> items = purchaseOrderItemMapper.selectList(
                 new LambdaQueryWrapper<PurchaseOrderItem>().eq(PurchaseOrderItem::getOrderId, orderId)
         );
-        for (PurchaseOrderItem item : items) {
-            PurchasePlanItem planItem = purchasePlanItemMapper.selectById(item.getPlanItemId());
-            if (planItem != null) {
-                int purchased = planItem.getPurchasedQty() == null ? 0 : planItem.getPurchasedQty();
-                PurchasePlanItem update = new PurchasePlanItem();
-                update.setId(planItem.getId());
-                update.setPurchasedQty(Math.max(0, purchased - (item.getOrderQty() == null ? 0 : item.getOrderQty())));
-                update.setUpdateTime(LocalDateTime.now());
-                purchasePlanItemMapper.updateById(update);
+        rollbackOrderPlanUsage(orderId);
+        purchaseOrderItemPlanMapper.delete(new LambdaQueryWrapper<PurchaseOrderItemPlan>().in(PurchaseOrderItemPlan::getOrderItemId,
+                items.stream().map(PurchaseOrderItem::getId).collect(Collectors.toList())));
+        purchaseOrderItemMapper.delete(new LambdaQueryWrapper<PurchaseOrderItem>().eq(PurchaseOrderItem::getOrderId, orderId));
+        purchaseOrderPlanMapper.delete(new LambdaQueryWrapper<PurchaseOrderPlan>().eq(PurchaseOrderPlan::getOrderId, orderId));
+        purchaseOrderMapper.deleteById(orderId);
+    }
+
+    private Set<Long> normalizePlanIds(PurchaseOrder order) {
+        Set<Long> planIds = new HashSet<>();
+        if (order.getPlanIds() != null) {
+            planIds.addAll(order.getPlanIds().stream().filter(id -> id != null).toList());
+        }
+        if (order.getPlanId() != null) {
+            planIds.add(order.getPlanId());
+        }
+        if (planIds.isEmpty()) {
+            throw new ServiceException("来源采购计划不能为空");
+        }
+        return planIds;
+    }
+
+    private Map<Long, PurchasePlanItem> loadAndValidatePlans(Set<Long> planIds) {
+        List<PurchasePlan> plans = purchasePlanMapper.selectBatchIds(planIds);
+        if (plans.size() != planIds.size()) {
+            throw new ServiceException("存在来源采购计划不存在");
+        }
+        for (PurchasePlan plan : plans) {
+            if (plan.getStatus() == null || plan.getStatus() != 1) {
+                throw new ServiceException("仅已提交的采购计划允许创建采购单");
             }
         }
-        purchaseOrderItemMapper.delete(new LambdaQueryWrapper<PurchaseOrderItem>().eq(PurchaseOrderItem::getOrderId, orderId));
-        purchaseOrderMapper.deleteById(orderId);
+        List<PurchasePlanItem> allPlanItems = purchasePlanItemMapper.selectList(
+                new LambdaQueryWrapper<PurchasePlanItem>().in(PurchasePlanItem::getPlanId, planIds)
+        );
+        return allPlanItems.stream().collect(Collectors.toMap(PurchasePlanItem::getId, p -> p));
+    }
+
+    private List<PurchaseOrderItemPlan> normalizeAllocations(PurchaseOrderItem item) {
+        List<PurchaseOrderItemPlan> allocations = item.getPlanAllocations();
+        if ((allocations == null || allocations.isEmpty()) && item.getPlanItemId() != null) {
+            PurchaseOrderItemPlan fallback = new PurchaseOrderItemPlan();
+            fallback.setPlanItemId(item.getPlanItemId());
+            fallback.setAllocatedQty(item.getOrderQty());
+            allocations = List.of(fallback);
+        }
+        if (allocations == null || allocations.isEmpty()) {
+            throw new ServiceException("采购单明细必须包含计划明细分摊");
+        }
+        return allocations;
+    }
+
+    private void validateAndApplyAllocations(PurchaseOrderItem item, List<PurchaseOrderItemPlan> allocations,
+                                             Map<Long, PurchasePlanItem> planItemMap, Long supplierId, LocalDateTime now) {
+        int allocationSum = 0;
+        Set<Long> usedPlanItemIds = new HashSet<>();
+        Long legacyPlanItemId = null;
+        for (PurchaseOrderItemPlan ap : allocations) {
+            if (ap.getPlanItemId() == null || ap.getAllocatedQty() == null || ap.getAllocatedQty() <= 0) {
+                throw new ServiceException("计划分摊明细不合法");
+            }
+            if (legacyPlanItemId == null) {
+                legacyPlanItemId = ap.getPlanItemId();
+            }
+            if (!usedPlanItemIds.add(ap.getPlanItemId())) {
+                throw new ServiceException("同一计划明细不能重复分摊");
+            }
+            PurchasePlanItem planItem = planItemMap.get(ap.getPlanItemId());
+            if (planItem == null) {
+                throw new ServiceException("存在分摊计划明细不属于所选采购计划");
+            }
+            if (item.getMedicineId() == null) {
+                item.setMedicineId(planItem.getMedicineId());
+            }
+            if (!item.getMedicineId().equals(planItem.getMedicineId())) {
+                throw new ServiceException("同一采购单明细只能合并同一种药品");
+            }
+            int purchased = planItem.getPurchasedQty() == null ? 0 : planItem.getPurchasedQty();
+            int remaining = planItem.getPlanQty() - purchased;
+            if (ap.getAllocatedQty() > remaining) {
+                throw new ServiceException("下单数量超过计划剩余量");
+            }
+            PurchasePlanItem updatePlanItem = new PurchasePlanItem();
+            updatePlanItem.setId(planItem.getId());
+            updatePlanItem.setPurchasedQty(purchased + ap.getAllocatedQty());
+            updatePlanItem.setUpdateTime(now);
+            if (purchasePlanItemMapper.updateById(updatePlanItem) <= 0) {
+                throw new ServiceException("采购计划明细占用数量更新失败");
+            }
+            planItem.setPurchasedQty(purchased + ap.getAllocatedQty());
+            allocationSum += ap.getAllocatedQty();
+        }
+        if (allocationSum != item.getOrderQty()) {
+            throw new ServiceException("明细下单数量必须等于分摊数量之和");
+        }
+        // 兼容旧库结构：purchase_order_item.plan_item_id 仍为 NOT NULL 时写入一个主分摊计划明细
+        item.setPlanItemId(legacyPlanItemId);
+        Medicine medicine = medicineMapper.selectById(item.getMedicineId());
+        if (medicine == null || medicine.getSupplierId() == null || !supplierId.equals(medicine.getSupplierId())) {
+            throw new ServiceException("该药品不属于当前供应商供货范围");
+        }
+    }
+
+    private void saveOrderPlanRelations(Long orderId, Set<Long> planIds, LocalDateTime now) {
+        for (Long planId : planIds) {
+            PurchaseOrderPlan relation = new PurchaseOrderPlan();
+            relation.setOrderId(orderId);
+            relation.setPlanId(planId);
+            relation.setCreateTime(now);
+            purchaseOrderPlanMapper.insert(relation);
+        }
+    }
+
+    private void saveItemAllocations(Long orderItemId, List<PurchaseOrderItemPlan> allocations, LocalDateTime now) {
+        for (PurchaseOrderItemPlan allocation : allocations) {
+            PurchaseOrderItemPlan record = new PurchaseOrderItemPlan();
+            record.setOrderItemId(orderItemId);
+            record.setPlanItemId(allocation.getPlanItemId());
+            record.setAllocatedQty(allocation.getAllocatedQty());
+            record.setCreateTime(now);
+            purchaseOrderItemPlanMapper.insert(record);
+        }
+    }
+
+    private void rollbackOrderPlanUsage(Long orderId) {
+        List<PurchaseOrderItem> oldItems = purchaseOrderItemMapper.selectList(
+                new LambdaQueryWrapper<PurchaseOrderItem>().eq(PurchaseOrderItem::getOrderId, orderId)
+        );
+        if (oldItems.isEmpty()) {
+            return;
+        }
+        List<Long> oldItemIds = oldItems.stream().map(PurchaseOrderItem::getId).toList();
+        List<PurchaseOrderItemPlan> oldAllocations = purchaseOrderItemPlanMapper.selectList(
+                new LambdaQueryWrapper<PurchaseOrderItemPlan>().in(PurchaseOrderItemPlan::getOrderItemId, oldItemIds)
+        );
+        if (oldAllocations.isEmpty()) {
+            for (PurchaseOrderItem oldItem : oldItems) {
+                if (oldItem.getPlanItemId() == null) continue;
+                PurchasePlanItem planItem = purchasePlanItemMapper.selectById(oldItem.getPlanItemId());
+                if (planItem == null) continue;
+                int purchased = planItem.getPurchasedQty() == null ? 0 : planItem.getPurchasedQty();
+                int qty = oldItem.getOrderQty() == null ? 0 : oldItem.getOrderQty();
+                PurchasePlanItem updatePlanItem = new PurchasePlanItem();
+                updatePlanItem.setId(planItem.getId());
+                updatePlanItem.setPurchasedQty(Math.max(0, purchased - qty));
+                updatePlanItem.setUpdateTime(LocalDateTime.now());
+                purchasePlanItemMapper.updateById(updatePlanItem);
+            }
+            return;
+        }
+        Map<Long, Integer> rollbackByPlanItem = new HashMap<>();
+        for (PurchaseOrderItemPlan allocation : oldAllocations) {
+            rollbackByPlanItem.merge(allocation.getPlanItemId(), allocation.getAllocatedQty(), Integer::sum);
+        }
+        for (Map.Entry<Long, Integer> entry : rollbackByPlanItem.entrySet()) {
+            PurchasePlanItem planItem = purchasePlanItemMapper.selectById(entry.getKey());
+            if (planItem == null) continue;
+            int purchased = planItem.getPurchasedQty() == null ? 0 : planItem.getPurchasedQty();
+            PurchasePlanItem updatePlanItem = new PurchasePlanItem();
+            updatePlanItem.setId(planItem.getId());
+            updatePlanItem.setPurchasedQty(Math.max(0, purchased - entry.getValue()));
+            updatePlanItem.setUpdateTime(LocalDateTime.now());
+            purchasePlanItemMapper.updateById(updatePlanItem);
+        }
     }
 }
 

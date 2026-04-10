@@ -33,7 +33,11 @@
 
       <el-table v-loading="loading" :data="tableData" border style="width: 100%">
         <el-table-column prop="orderNo" label="采购单号" width="170" />
-        <el-table-column prop="planId" label="计划ID" width="100" />
+        <el-table-column label="计划ID" min-width="150">
+          <template #default="scope">
+            {{ formatPlanIds(scope.row) }}
+          </template>
+        </el-table-column>
         <el-table-column label="供应商" min-width="180">
           <template #default="scope">
             {{ supplierNameMap[scope.row.supplierId] || scope.row.supplierId }}
@@ -91,7 +95,7 @@
     <el-dialog v-model="createVisible" :title="isEdit ? '编辑采购单' : '新增采购单'" width="980px" @closed="resetCreate">
       <el-form :model="createForm" label-width="90px">
         <el-form-item label="采购计划">
-          <el-select v-model="createForm.planId" placeholder="请选择已提交计划" filterable style="width: 320px" @change="onPlanChange">
+          <el-select v-model="createForm.planIds" multiple collapse-tags collapse-tags-tooltip placeholder="请选择已提交计划" filterable style="width: 420px" @change="onPlansChange">
             <el-option
               v-for="p in planOptions"
               :key="p.id"
@@ -122,53 +126,34 @@
         show-icon
         style="margin-bottom: 10px"
       />
-      <div v-if="sourcePlanDetail?.id" class="doc-preview">
-        <div class="doc-preview-title">来源采购计划单</div>
-        <div class="doc-preview-meta">
-          <span>计划编号：{{ sourcePlanDetail.planNo || '-' }}</span>
-          <span>主题：{{ sourcePlanDetail.title || '-' }}</span>
-          <span>状态：{{ sourcePlanDetail.status === 1 ? '已提交' : '草稿' }}</span>
-        </div>
-        <el-table :data="sourcePlanDetail.items || []" border size="small" style="width: 100%">
-          <el-table-column type="index" label="序号" width="60" />
-          <el-table-column label="产品名称" min-width="180">
-            <template #default="scope">
-              {{ scope.row.medicine?.medicineName || scope.row.medicineId }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="planQty" label="数量" width="90" />
-          <el-table-column prop="purchasedQty" label="已下单" width="90" />
-          <el-table-column label="剩余" width="90">
-            <template #default="scope">
-              {{ (scope.row.planQty || 0) - (scope.row.purchasedQty || 0) }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="remark" label="备注" min-width="140" />
-        </el-table>
-      </div>
 
       <el-table :data="createForm.items" border style="width: 100%">
-        <el-table-column label="药品" min-width="240">
+        <el-table-column label="药品" min-width="160">
           <template #default="scope">
             {{ scope.row.medicine?.medicineName || scope.row.medicineId }}
           </template>
         </el-table-column>
-        <el-table-column label="计划剩余" width="120">
-          <template #default="scope">
-            {{ scope.row.remainingQty }}
-          </template>
+        <el-table-column label="计划总量" width="100">
+          <template #default="scope">{{ scope.row.planQty }}</template>
         </el-table-column>
-        <el-table-column label="下单数量" width="160">
+        <el-table-column label="已下单量" width="100">
+          <template #default="scope">{{ scope.row.purchasedQty }}</template>
+        </el-table-column>
+        <el-table-column label="计划剩余" width="100">
+          <template #default="scope">{{ scope.row.remainingQty }}</template>
+        </el-table-column>
+        <el-table-column label="下单数量" width="130">
           <template #default="scope">
             <el-input-number v-model="scope.row.orderQty" :min="0" :max="scope.row.remainingQty" style="width: 100%" />
           </template>
         </el-table-column>
-        <el-table-column label="单价" width="160">
-          <template #default="scope">
-            <el-input-number v-model="scope.row.unitPrice" :min="0" :precision="2" style="width: 100%" />
-          </template>
+        <el-table-column label="单价" width="100">
+          <template #default="scope">{{ formatMoney(scope.row.unitPrice) }}</template>
         </el-table-column>
-        <el-table-column label="备注" min-width="200">
+        <el-table-column label="总价" width="100">
+          <template #default="scope">{{ formatMoney(lineAmount(scope.row)) }}</template>
+        </el-table-column>
+        <el-table-column label="备注" min-width="140">
           <template #default="scope">
             <el-input v-model="scope.row.remark" placeholder="可选" />
           </template>
@@ -248,14 +233,32 @@ const supplierOptions = ref([])
 const supplierNameMap = reactive({})
 
 const createForm = reactive({
-  planId: null,
+  planIds: [],
   supplierId: null,
   remark: '',
   items: []
 })
 const supplierMedicineIdSet = ref(new Set())
 const sourcePlanItems = ref([])
-const sourcePlanDetail = ref(null)
+
+const lineAmount = (row) => {
+  const q = Number(row?.orderQty) || 0
+  const p = Number(row?.unitPrice) || 0
+  return q * p
+}
+
+const formatMoney = (n) => {
+  const v = Number(n)
+  if (Number.isNaN(v)) return '0.00'
+  return v.toFixed(2)
+}
+
+const formatPlanIds = (row) => {
+  if (Array.isArray(row?.planIds) && row.planIds.length > 0) {
+    return row.planIds.join(', ')
+  }
+  return row?.planId ?? '-'
+}
 
 const fetchOrders = async () => {
   loading.value = true
@@ -315,20 +318,33 @@ const openEdit = async (row) => {
   await request.get(`/purchaseOrder/${row.id}`, {}, {
     showDefaultMsg: false,
     onSuccess: async (res) => {
-      createForm.planId = res?.planId || null
+      createForm.planIds = (res?.planIds && res.planIds.length > 0) ? res.planIds : (res?.planId ? [res.planId] : [])
       createForm.supplierId = res?.supplierId || null
       createForm.remark = res?.remark || ''
-      await onPlanChange(createForm.planId)
+      await onPlansChange(createForm.planIds, true)
       await onSupplierChange(createForm.supplierId)
       const itemMap = {}
       ;(res?.items || []).forEach(it => {
-        itemMap[it.planItemId] = it
+        itemMap[it.medicineId] = it
       })
       createForm.items = (createForm.items || []).map(it => {
-        const saved = itemMap[it.planItemId]
+        const saved = itemMap[it.medicineId]
         if (!saved) return it
+        const allocationQtyMap = {}
+        ;(saved.planAllocations || []).forEach(a => {
+          allocationQtyMap[a.planItemId] = Number(a.allocatedQty || 0)
+        })
+        const planAllocations = (it.planAllocations || []).map(a => ({
+          ...a,
+          // 编辑时把“本单已占用”加回可分配额度，避免无法原样保存
+          remainingQty: Number(a.remainingQty || 0) + Number(allocationQtyMap[a.planItemId] || 0)
+        }))
+        const rowRemaining = planAllocations.reduce((sum, a) => sum + Number(a.remainingQty || 0), 0)
         return {
           ...it,
+          planAllocations,
+          remainingQty: rowRemaining,
+          purchasedQty: Math.max(0, Number(it.purchasedQty || 0) - Number(saved.orderQty || 0)),
           orderQty: saved.orderQty || 0,
           unitPrice: Number(saved.unitPrice || it.unitPrice || 0),
           remark: saved.remark || ''
@@ -372,34 +388,71 @@ const fetchSupplierNameMap = async () => {
   })
 }
 
-const onPlanChange = async (planId) => {
-  if (!planId) return
-  createForm.supplierId = null
+const onPlansChange = async (planIds, preserveSupplier = false) => {
+  if (!planIds || planIds.length === 0) {
+    sourcePlanItems.value = []
+    createForm.items = []
+    supplierOptions.value = []
+    return
+  }
+  if (!preserveSupplier) {
+    createForm.supplierId = null
+  }
   supplierMedicineIdSet.value = new Set()
   sourcePlanItems.value = []
-  await request.get(`/purchasePlan/${planId}/suppliers`, {}, {
+  await request.get('/purchasePlan/suppliers', { planIds: planIds.join(',') }, {
     showDefaultMsg: false,
     onSuccess: (res) => {
       supplierOptions.value = res || []
     }
   })
-  await request.get(`/purchasePlan/${planId}`, {}, {
-    showDefaultMsg: false,
-    onSuccess: (res) => {
-      sourcePlanDetail.value = res || null
-      const items = (res.items || []).map(it => ({
+  const planDetails = []
+  for (const planId of planIds) {
+    await request.get(`/purchasePlan/${planId}`, {}, {
+      showDefaultMsg: false,
+      onSuccess: (res) => planDetails.push(res)
+    })
+  }
+  const merged = {}
+  planDetails.forEach((plan) => {
+    ;(plan?.items || []).forEach((it) => {
+      const planQty = it.planQty || 0
+      const purchasedQty = it.purchasedQty || 0
+      const remainingQty = planQty - purchasedQty
+      if (!merged[it.medicineId]) {
+        merged[it.medicineId] = {
+          medicineId: it.medicineId,
+          medicine: it.medicine,
+          planQty: 0,
+          purchasedQty: 0,
+          remainingQty: 0,
+          orderQty: 0,
+          unitPrice: Number(it.medicine?.price || 0),
+          remark: '',
+          planAllocations: []
+        }
+      }
+      merged[it.medicineId].planQty += planQty
+      merged[it.medicineId].purchasedQty += purchasedQty
+      merged[it.medicineId].remainingQty += remainingQty
+      merged[it.medicineId].planAllocations.push({
         planItemId: it.id,
-        medicineId: it.medicineId,
-        medicine: it.medicine,
-        remainingQty: (it.planQty || 0) - (it.purchasedQty || 0),
-        orderQty: 0,
-        unitPrice: Number(it.medicine?.price || 0),
-        remark: ''
-      }))
-      sourcePlanItems.value = items
-      createForm.items = filterItemsBySupplier(sourcePlanItems.value)
-    }
+        remainingQty
+      })
+    })
   })
+  Object.values(merged).forEach((row) => {
+    row.orderQty = row.remainingQty
+  })
+  sourcePlanItems.value = Object.values(merged)
+  createForm.items = filterItemsBySupplier(sourcePlanItems.value)
+  if (preserveSupplier && createForm.supplierId) {
+    const exists = (supplierOptions.value || []).some(s => s.id === createForm.supplierId)
+    if (!exists) {
+      createForm.supplierId = null
+      createForm.items = sourcePlanItems.value
+    }
+  }
 }
 
 const onSupplierChange = async (supplierId) => {
@@ -426,29 +479,43 @@ const filterItemsBySupplier = (items) => {
 const resetCreate = () => {
   isEdit.value = false
   editingOrderId.value = null
-  createForm.planId = null
+  createForm.planIds = []
   createForm.supplierId = null
   createForm.remark = ''
   createForm.items = []
   sourcePlanItems.value = []
-  sourcePlanDetail.value = null
 }
 
 const saveOrder = async () => {
+  const buildAllocations = (row) => {
+    let left = Number(row.orderQty || 0)
+    const result = []
+    ;(row.planAllocations || []).forEach((p) => {
+      if (left <= 0) return
+      const canUse = Number(p.remainingQty || 0)
+      const allocatedQty = Math.min(left, canUse)
+      if (allocatedQty > 0) {
+        result.push({ planItemId: p.planItemId, allocatedQty })
+        left -= allocatedQty
+      }
+    })
+    return result
+  }
   const items = (createForm.items || [])
     .filter(i => i.orderQty && i.orderQty > 0)
     .map(i => ({
-      planItemId: i.planItemId,
+      medicineId: i.medicineId,
       orderQty: i.orderQty,
       unitPrice: i.unitPrice,
-      remark: i.remark
+      remark: i.remark,
+      planAllocations: buildAllocations(i)
     }))
-  if (!createForm.planId || !createForm.supplierId || items.length === 0) return
+  if (!createForm.planIds?.length || !createForm.supplierId || items.length === 0) return
 
   saving.value = true
   try {
     const payload = {
-      planId: createForm.planId,
+      planIds: createForm.planIds,
       supplierId: createForm.supplierId,
       remark: createForm.remark,
       items

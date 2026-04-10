@@ -8,11 +8,13 @@ import org.example.springboot.entity.Medicine;
 import org.example.springboot.entity.PurchasePlan;
 import org.example.springboot.entity.PurchasePlanItem;
 import org.example.springboot.entity.PurchaseOrder;
+import org.example.springboot.entity.PurchaseOrderPlan;
 import org.example.springboot.entity.Supplier;
 import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.MedicineMapper;
 import org.example.springboot.mapper.PurchasePlanItemMapper;
 import org.example.springboot.mapper.PurchasePlanMapper;
+import org.example.springboot.mapper.PurchaseOrderPlanMapper;
 import org.example.springboot.mapper.PurchaseOrderMapper;
 import org.example.springboot.mapper.SupplierMapper;
 import org.example.springboot.util.JwtTokenUtils;
@@ -22,7 +24,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class PurchasePlanService {
@@ -38,6 +43,8 @@ public class PurchasePlanService {
     private PurchaseOrderMapper purchaseOrderMapper;
     @Resource
     private SupplierMapper supplierMapper;
+    @Resource
+    private PurchaseOrderPlanMapper purchaseOrderPlanMapper;
 
     @Transactional
     public PurchasePlan createPlan(PurchasePlan plan) {
@@ -197,6 +204,9 @@ public class PurchasePlanService {
         long orderCount = purchaseOrderMapper.selectCount(
                 new LambdaQueryWrapper<PurchaseOrder>().eq(PurchaseOrder::getPlanId, planId)
         );
+        orderCount += purchaseOrderPlanMapper.selectCount(
+                new LambdaQueryWrapper<PurchaseOrderPlan>().eq(PurchaseOrderPlan::getPlanId, planId)
+        );
         if (orderCount > 0) {
             throw new ServiceException("采购计划已生成采购单，不能删除");
         }
@@ -205,22 +215,32 @@ public class PurchasePlanService {
     }
 
     public List<Supplier> getCandidateSuppliers(Long planId) {
-        PurchasePlan plan = purchasePlanMapper.selectById(planId);
-        if (plan == null) {
-            throw new ServiceException("采购计划不存在");
+        return getCandidateSuppliersByPlanIds(Collections.singletonList(planId));
+    }
+
+    public List<Supplier> getCandidateSuppliersByPlanIds(List<Long> planIds) {
+        if (planIds == null || planIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        Set<Long> validPlanIds = planIds.stream().filter(id -> id != null).collect(Collectors.toSet());
+        if (validPlanIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<PurchasePlan> plans = purchasePlanMapper.selectBatchIds(validPlanIds);
+        if (plans.size() != validPlanIds.size()) {
+            throw new ServiceException("存在采购计划不存在");
         }
         List<PurchasePlanItem> items = purchasePlanItemMapper.selectList(
-                new LambdaQueryWrapper<PurchasePlanItem>().eq(PurchasePlanItem::getPlanId, planId)
+                new LambdaQueryWrapper<PurchasePlanItem>().in(PurchasePlanItem::getPlanId, validPlanIds)
         );
-        java.util.Set<Long> supplierIds = new java.util.HashSet<>();
-        for (PurchasePlanItem item : items) {
-            Medicine medicine = medicineMapper.selectById(item.getMedicineId());
-            if (medicine != null && medicine.getSupplierId() != null) {
-                supplierIds.add(medicine.getSupplierId());
-            }
-        }
+        Set<Long> supplierIds = items.stream()
+                .map(PurchasePlanItem::getMedicineId)
+                .map(medicineMapper::selectById)
+                .filter(m -> m != null && m.getSupplierId() != null)
+                .map(Medicine::getSupplierId)
+                .collect(Collectors.toSet());
         if (supplierIds.isEmpty()) {
-            return java.util.Collections.emptyList();
+            return Collections.emptyList();
         }
         return supplierMapper.selectBatchIds(supplierIds).stream()
                 .filter(s -> s.getStatus() == null || s.getStatus() == 1)

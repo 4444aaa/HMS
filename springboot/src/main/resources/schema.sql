@@ -211,6 +211,17 @@ CREATE TABLE IF NOT EXISTS purchase_order (
     FOREIGN KEY (supplier_id) REFERENCES supplier(id) ON DELETE RESTRICT
 ) COMMENT '采购单主表';
 
+-- 采购单与采购计划关联（支持一个采购单关联多个计划）
+CREATE TABLE IF NOT EXISTS purchase_order_plan (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '关联ID',
+    order_id BIGINT NOT NULL COMMENT '采购单ID',
+    plan_id BIGINT NOT NULL COMMENT '采购计划ID',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    UNIQUE KEY uk_order_plan (order_id, plan_id),
+    FOREIGN KEY (order_id) REFERENCES purchase_order(id) ON DELETE CASCADE,
+    FOREIGN KEY (plan_id) REFERENCES purchase_plan(id) ON DELETE RESTRICT
+) COMMENT '采购单-采购计划关联表';
+
 -- 采购单明细
 CREATE TABLE IF NOT EXISTS purchase_order_item (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '采购单明细ID',
@@ -227,6 +238,18 @@ CREATE TABLE IF NOT EXISTS purchase_order_item (
     FOREIGN KEY (plan_item_id) REFERENCES purchase_plan_item(id) ON DELETE RESTRICT,
     FOREIGN KEY (medicine_id) REFERENCES medicine(id) ON DELETE RESTRICT
 ) COMMENT '采购单明细表';
+
+-- 采购单明细与采购计划明细分摊（支持一个采购单明细拆分到多个计划明细）
+CREATE TABLE IF NOT EXISTS purchase_order_item_plan (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '分摊ID',
+    order_item_id BIGINT NOT NULL COMMENT '采购单明细ID',
+    plan_item_id BIGINT NOT NULL COMMENT '采购计划明细ID',
+    allocated_qty INT NOT NULL COMMENT '分摊数量',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    UNIQUE KEY uk_order_item_plan (order_item_id, plan_item_id),
+    FOREIGN KEY (order_item_id) REFERENCES purchase_order_item(id) ON DELETE CASCADE,
+    FOREIGN KEY (plan_item_id) REFERENCES purchase_plan_item(id) ON DELETE RESTRICT
+) COMMENT '采购单明细-采购计划明细分摊表';
 
 -- 验收单主表（必须来源采购单）
 CREATE TABLE IF NOT EXISTS purchase_acceptance (
