@@ -4,7 +4,10 @@
     <el-card class="welcome-card">
       <template #header>
         <div class="welcome-header">
-          <el-avatar :size="64" :src="avatarUrl">
+          <el-avatar
+            :size="64"
+            :src="avatarUrl"
+          >
             {{ userInfo?.name?.charAt(0) }}
           </el-avatar>
           <div class="welcome-info">

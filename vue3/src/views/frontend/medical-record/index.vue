@@ -7,7 +7,10 @@
       </div>
     </div>
 
-    <el-card class="records-card" shadow="hover">
+    <el-card
+      class="records-card"
+      shadow="hover"
+    >
       <!-- 搜索表单 -->
       <div class="search-container">
         <div class="search-header">
@@ -16,7 +19,11 @@
           </div>
           <h4>查询记录</h4>
         </div>
-        <el-form :model="searchForm" :inline="true" class="search-form">
+        <el-form
+          :model="searchForm"
+          :inline="true"
+          class="search-form"
+        >
           <el-form-item label="就诊日期">
             <el-date-picker
               v-model="dateRange"
@@ -29,13 +36,24 @@
             />
           </el-form-item>
           <el-form-item label="医生姓名">
-            <el-input v-model="searchForm.doctorName" placeholder="请输入医生姓名" clearable />
+            <el-input
+              v-model="searchForm.doctorName"
+              placeholder="请输入医生姓名"
+              clearable
+            />
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" @click="handleSearch" round>
+            <el-button
+              type="primary"
+              round
+              @click="handleSearch"
+            >
               <el-icon><Search /></el-icon>搜索
             </el-button>
-            <el-button @click="resetSearch" round>
+            <el-button
+              round
+              @click="resetSearch"
+            >
               <el-icon><Refresh /></el-icon>重置
             </el-button>
           </el-form-item>
@@ -43,19 +61,36 @@
       </div>
 
       <!-- 就诊记录列表 -->
-      <div v-if="loading" class="loading-container">
-        <el-skeleton :rows="5" animated />
+      <div
+        v-if="loading"
+        class="loading-container"
+      >
+        <el-skeleton
+          :rows="5"
+          animated
+        />
       </div>
       
-      <div v-else-if="medicalRecords.length === 0" class="empty-container">
-        <el-empty description="暂无就诊记录" :image-size="120">
+      <div
+        v-else-if="medicalRecords.length === 0"
+        class="empty-container"
+      >
+        <el-empty
+          description="暂无就诊记录"
+          :image-size="120"
+        >
           <template #image>
-            <el-icon class="empty-icon"><FirstAidKit /></el-icon>
+            <el-icon class="empty-icon">
+              <FirstAidKit />
+            </el-icon>
           </template>
         </el-empty>
       </div>
       
-      <div v-else class="records-container">
+      <div
+        v-else
+        class="records-container"
+      >
         <el-timeline>
           <el-timeline-item
             v-for="record in medicalRecords"
@@ -69,34 +104,77 @@
                 <div class="record-header">
                   <div class="record-title">
                     <span class="record-no">{{ record.recordNo }}</span>
-                    <el-tag size="small" effect="plain">{{ record.doctor?.department?.deptName || '未知科室' }}</el-tag>
+                    <el-tag
+                      size="small"
+                      effect="plain"
+                    >
+                      {{ record.doctor?.department?.deptName || '未知科室' }}
+                    </el-tag>
                   </div>
                   <div class="record-actions">
-                    <el-button type="primary" size="small" @click="handleViewRecord(record)">查看详情</el-button>
+                    <el-button
+                      type="primary"
+                      size="small"
+                      @click="handleViewRecord(record)"
+                    >
+                      查看详情
+                    </el-button>
                   </div>
                 </div>
               </template>
               
-              <el-descriptions :column="2" border size="small">
+              <el-descriptions
+                :column="2"
+                border
+                size="small"
+              >
                 <el-descriptions-item label="就诊医生">
                   {{ record.doctor?.name || '未知' }}
-                  <el-tag size="small">{{ record.doctor?.title || '' }}</el-tag>
+                  <el-tag size="small">
+                    {{ record.doctor?.title || '' }}
+                  </el-tag>
                 </el-descriptions-item>
-                <el-descriptions-item label="就诊日期">{{ record.recordDate }}</el-descriptions-item>
-                <el-descriptions-item label="诊断结果" :span="2">{{ record.diagnosis || '暂无诊断' }}</el-descriptions-item>
-                <el-descriptions-item label="治疗方案" :span="2">{{ record.treatment || '暂无治疗方案' }}</el-descriptions-item>
-                <el-descriptions-item label="病症明细" :span="2">
+                <el-descriptions-item label="就诊日期">
+                  {{ record.recordDate }}
+                </el-descriptions-item>
+                <el-descriptions-item
+                  label="诊断结果"
+                  :span="2"
+                >
+                  {{ record.diagnosis || '暂无诊断' }}
+                </el-descriptions-item>
+                <el-descriptions-item
+                  label="治疗方案"
+                  :span="2"
+                >
+                  {{ record.treatment || '暂无治疗方案' }}
+                </el-descriptions-item>
+                <el-descriptions-item
+                  label="病症明细"
+                  :span="2"
+                >
                   <div v-if="record.details && record.details.length > 0">
-                    <div v-for="d in record.details" :key="d.id">
+                    <div
+                      v-for="d in record.details"
+                      :key="d.id"
+                    >
                       {{ d.symptomName }}：{{ d.treatmentPlan || '无治疗方案' }}
                     </div>
                   </div>
                   <span v-else>暂无病症明细</span>
                 </el-descriptions-item>
-                <el-descriptions-item label="随访日期" v-if="record.followUp">{{ record.followUp }}</el-descriptions-item>
+                <el-descriptions-item
+                  v-if="record.followUp"
+                  label="随访日期"
+                >
+                  {{ record.followUp }}
+                </el-descriptions-item>
               </el-descriptions>
               
-              <div class="prescription-section" v-if="record.prescriptions && record.prescriptions.length > 0">
+              <div
+                v-if="record.prescriptions && record.prescriptions.length > 0"
+                class="prescription-section"
+              >
                 <div class="section-divider">
                   <span>处方信息</span>
                 </div>
@@ -115,28 +193,63 @@
                           </el-tag>
                         </div>
                         <div>
-                          <el-button type="primary" size="small" @click="handleViewPrescription(prescription)">
+                          <el-button
+                            type="primary"
+                            size="small"
+                            @click="handleViewPrescription(prescription)"
+                          >
                             查看处方详情
                           </el-button>
                         </div>
                       </div>
                       
-                      <div class="medicine-list" v-if="prescription.details && prescription.details.length > 0">
-                        <el-table :data="prescription.details" border style="width: 100%">
-                          <el-table-column label="病症" min-width="140">
+                      <div
+                        v-if="prescription.details && prescription.details.length > 0"
+                        class="medicine-list"
+                      >
+                        <el-table
+                          :data="prescription.details"
+                          border
+                          style="width: 100%"
+                        >
+                          <el-table-column
+                            label="病症"
+                            min-width="140"
+                          >
                             <template #default="scope">
                               {{ scope.row.medicalRecordDetail?.symptomName || '-' }}
                             </template>
                           </el-table-column>
-                          <el-table-column prop="medicine.medicineName" label="药品名称" />
-                          <el-table-column prop="dosage" label="用量" />
-                          <el-table-column prop="frequency" label="频次" />
-                          <el-table-column prop="days" label="用药天数" />
-                          <el-table-column prop="usage" label="用法" />
+                          <el-table-column
+                            prop="medicine.medicineName"
+                            label="药品名称"
+                          />
+                          <el-table-column
+                            prop="dosage"
+                            label="用量"
+                          />
+                          <el-table-column
+                            prop="frequency"
+                            label="频次"
+                          />
+                          <el-table-column
+                            prop="days"
+                            label="用药天数"
+                          />
+                          <el-table-column
+                            prop="usage"
+                            label="用法"
+                          />
                         </el-table>
                       </div>
-                      <div v-else class="no-medicine">
-                        <el-empty description="暂无药品信息" :image-size="60" />
+                      <div
+                        v-else
+                        class="no-medicine"
+                      >
+                        <el-empty
+                          description="暂无药品信息"
+                          :image-size="60"
+                        />
                       </div>
                     </div>
                   </el-collapse-item>
@@ -148,7 +261,10 @@
       </div>
 
       <!-- 分页 -->
-      <div class="pagination-container" v-if="medicalRecords.length > 0">
+      <div
+        v-if="medicalRecords.length > 0"
+        class="pagination-container"
+      >
         <el-pagination
           :current-page="currentPage"
           :page-size="pageSize"
@@ -163,7 +279,10 @@
     </el-card>
     
     <!-- 健康提示卡片 -->
-    <el-card class="health-tips-card" shadow="hover">
+    <el-card
+      class="health-tips-card"
+      shadow="hover"
+    >
       <div class="tips-header">
         <el-icon><InfoFilled /></el-icon>
         <h4>健康小贴士</h4>
@@ -183,21 +302,35 @@
       width="650px"
       class="record-dialog"
     >
-      <div v-if="currentRecord.id" class="record-detail">
+      <div
+        v-if="currentRecord.id"
+        class="record-detail"
+      >
         <div class="dialog-header-info">
-          <div class="header-icon"><el-icon><DocumentChecked /></el-icon></div>
+          <div class="header-icon">
+            <el-icon><DocumentChecked /></el-icon>
+          </div>
           <div class="header-content">
             <h3>{{ currentRecord.recordNo }}</h3>
             <p>{{ currentRecord.recordDate }}</p>
           </div>
         </div>
 
-        <el-descriptions title="基本信息" :column="2" border>
+        <el-descriptions
+          title="基本信息"
+          :column="2"
+          border
+        >
           <el-descriptions-item label="就诊医生">
             <div class="info-with-icon">
               <el-icon><User /></el-icon>
               {{ currentRecord.doctor?.name || '未知' }}
-              <el-tag size="small" type="info">{{ currentRecord.doctor?.title || '' }}</el-tag>
+              <el-tag
+                size="small"
+                type="info"
+              >
+                {{ currentRecord.doctor?.title || '' }}
+              </el-tag>
             </div>
           </el-descriptions-item>
           <el-descriptions-item label="科室">
@@ -206,20 +339,39 @@
               {{ currentRecord.doctor?.department?.deptName || '未知科室' }}
             </div>
           </el-descriptions-item>
-          <el-descriptions-item label="诊断结果" :span="2">
-            <div class="diagnosis-box">{{ currentRecord.diagnosis || '暂无诊断' }}</div>
+          <el-descriptions-item
+            label="诊断结果"
+            :span="2"
+          >
+            <div class="diagnosis-box">
+              {{ currentRecord.diagnosis || '暂无诊断' }}
+            </div>
           </el-descriptions-item>
-          <el-descriptions-item label="治疗方案" :span="2">
-            <div class="treatment-box">{{ currentRecord.treatment || '暂无治疗方案' }}</div>
+          <el-descriptions-item
+            label="治疗方案"
+            :span="2"
+          >
+            <div class="treatment-box">
+              {{ currentRecord.treatment || '暂无治疗方案' }}
+            </div>
           </el-descriptions-item>
-          <el-descriptions-item label="随访日期" v-if="currentRecord.followUp">
+          <el-descriptions-item
+            v-if="currentRecord.followUp"
+            label="随访日期"
+          >
             <div class="info-with-icon">
               <el-icon><Calendar /></el-icon>
               {{ currentRecord.followUp }}
             </div>
           </el-descriptions-item>
-          <el-descriptions-item label="医生备注" :span="2" v-if="currentRecord.notes">
-            <div class="notes-box">{{ currentRecord.notes }}</div>
+          <el-descriptions-item
+            v-if="currentRecord.notes"
+            label="医生备注"
+            :span="2"
+          >
+            <div class="notes-box">
+              {{ currentRecord.notes }}
+            </div>
           </el-descriptions-item>
         </el-descriptions>
 
@@ -227,47 +379,107 @@
           <span>病症明细</span>
         </div>
         <div v-if="currentRecord.details && currentRecord.details.length > 0">
-          <el-table :data="currentRecord.details" border style="width: 100%" :row-class-name="tableRowClassName">
-            <el-table-column prop="symptomName" label="病症名称" width="180" />
-            <el-table-column prop="treatmentPlan" label="对应治疗方案" min-width="260" />
+          <el-table
+            :data="currentRecord.details"
+            border
+            style="width: 100%"
+            :row-class-name="tableRowClassName"
+          >
+            <el-table-column
+              prop="symptomName"
+              label="病症名称"
+              width="180"
+            />
+            <el-table-column
+              prop="treatmentPlan"
+              label="对应治疗方案"
+              min-width="260"
+            />
           </el-table>
         </div>
-        <div v-else class="no-prescription">
-          <el-empty description="暂无病症明细" :image-size="80" />
+        <div
+          v-else
+          class="no-prescription"
+        >
+          <el-empty
+            description="暂无病症明细"
+            :image-size="80"
+          />
         </div>
         
         <div class="section-divider">
           <span>处方信息</span>
         </div>
         
-        <div v-if="currentRecord.prescriptions && currentRecord.prescriptions.length > 0" class="prescription-list">
-          <el-table :data="currentRecord.prescriptions" border style="width: 100%" :row-class-name="tableRowClassName">
-            <el-table-column prop="prescriptionNo" label="处方编号" width="180" />
-            <el-table-column prop="prescriptionDate" label="处方日期" width="120" />
-            <el-table-column prop="status" label="状态" width="100">
+        <div
+          v-if="currentRecord.prescriptions && currentRecord.prescriptions.length > 0"
+          class="prescription-list"
+        >
+          <el-table
+            :data="currentRecord.prescriptions"
+            border
+            style="width: 100%"
+            :row-class-name="tableRowClassName"
+          >
+            <el-table-column
+              prop="prescriptionNo"
+              label="处方编号"
+              width="180"
+            />
+            <el-table-column
+              prop="prescriptionDate"
+              label="处方日期"
+              width="120"
+            />
+            <el-table-column
+              prop="status"
+              label="状态"
+              width="100"
+            >
               <template #default="scope">
-                <el-tag :type="scope.row.status === 1 ? 'success' : 'warning'" effect="light" round>
+                <el-tag
+                  :type="scope.row.status === 1 ? 'success' : 'warning'"
+                  effect="light"
+                  round
+                >
                   {{ scope.row.status === 1 ? '已取药' : '未取药' }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="120">
+            <el-table-column
+              label="操作"
+              width="120"
+            >
               <template #default="scope">
-                <el-button type="primary" size="small" @click="handleViewPrescription(scope.row)" round>
+                <el-button
+                  type="primary"
+                  size="small"
+                  round
+                  @click="handleViewPrescription(scope.row)"
+                >
                   <el-icon><View /></el-icon>查看
                 </el-button>
               </template>
             </el-table-column>
           </el-table>
         </div>
-        <div v-else class="no-prescription">
-          <el-empty description="暂无处方信息" :image-size="80" />
+        <div
+          v-else
+          class="no-prescription"
+        >
+          <el-empty
+            description="暂无处方信息"
+            :image-size="80"
+          />
         </div>
       </div>
 
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="recordDialogVisible = false" round>关闭</el-button>
+          <el-button
+            round
+            @click="recordDialogVisible = false"
+          >关闭</el-button>
         </span>
       </template>
     </el-dialog>
@@ -279,31 +491,56 @@
       width="700px"
       class="prescription-dialog"
     >
-      <div v-if="currentPrescription.id" class="prescription-detail">
+      <div
+        v-if="currentPrescription.id"
+        class="prescription-detail"
+      >
         <div class="dialog-header-info">
-          <div class="header-icon"><el-icon><Stamp /></el-icon></div>
+          <div class="header-icon">
+            <el-icon><Stamp /></el-icon>
+          </div>
           <div class="header-content">
             <h3>{{ currentPrescription.prescriptionNo }}</h3>
             <p>{{ currentPrescription.prescriptionDate }}</p>
           </div>
         </div>
 
-        <el-descriptions title="处方信息" :column="2" border>
+        <el-descriptions
+          title="处方信息"
+          :column="2"
+          border
+        >
           <el-descriptions-item label="开方医生">
             <div class="info-with-icon">
               <el-icon><User /></el-icon>
               {{ currentPrescription.doctor?.name || '未知' }}
-              <el-tag size="small" type="info">{{ currentPrescription.doctor?.title || '' }}</el-tag>
+              <el-tag
+                size="small"
+                type="info"
+              >
+                {{ currentPrescription.doctor?.title || '' }}
+              </el-tag>
             </div>
           </el-descriptions-item>
           <el-descriptions-item label="状态">
-            <el-tag :type="currentPrescription.status === 1 ? 'success' : 'warning'" effect="light" round>
-              <el-icon v-if="currentPrescription.status === 1"><CircleCheckFilled /></el-icon>
-              <el-icon v-else><Clock /></el-icon>
+            <el-tag
+              :type="currentPrescription.status === 1 ? 'success' : 'warning'"
+              effect="light"
+              round
+            >
+              <el-icon v-if="currentPrescription.status === 1">
+                <CircleCheckFilled />
+              </el-icon>
+              <el-icon v-else>
+                <Clock />
+              </el-icon>
               {{ currentPrescription.status === 1 ? '已取药' : '未取药' }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="诊断结果" :span="2">
+          <el-descriptions-item
+            label="诊断结果"
+            :span="2"
+          >
             <div class="diagnosis-box">
               {{ currentPrescription.diagnosis || '同就诊记录' }}
             </div>
@@ -314,27 +551,68 @@
           <span>药品明细</span>
         </div>
         
-        <div v-if="currentPrescription.details && currentPrescription.details.length > 0" class="medicine-detail">
-          <el-table :data="currentPrescription.details" border style="width: 100%" :row-class-name="tableRowClassName">
-            <el-table-column label="病症" min-width="140">
+        <div
+          v-if="currentPrescription.details && currentPrescription.details.length > 0"
+          class="medicine-detail"
+        >
+          <el-table
+            :data="currentPrescription.details"
+            border
+            style="width: 100%"
+            :row-class-name="tableRowClassName"
+          >
+            <el-table-column
+              label="病症"
+              min-width="140"
+            >
               <template #default="scope">
                 {{ scope.row.medicalRecordDetail?.symptomName || '-' }}
               </template>
             </el-table-column>
-            <el-table-column prop="medicine.medicineName" label="药品名称" />
-            <el-table-column prop="medicine.specification" label="规格" />
-            <el-table-column prop="dosage" label="用量" />
-            <el-table-column prop="frequency" label="频次" />
-            <el-table-column prop="days" label="用药天数" />
-            <el-table-column prop="usage" label="用法" />
-            <el-table-column prop="quantity" label="数量" />
+            <el-table-column
+              prop="medicine.medicineName"
+              label="药品名称"
+            />
+            <el-table-column
+              prop="medicine.specification"
+              label="规格"
+            />
+            <el-table-column
+              prop="dosage"
+              label="用量"
+            />
+            <el-table-column
+              prop="frequency"
+              label="频次"
+            />
+            <el-table-column
+              prop="days"
+              label="用药天数"
+            />
+            <el-table-column
+              prop="usage"
+              label="用法"
+            />
+            <el-table-column
+              prop="quantity"
+              label="数量"
+            />
           </el-table>
         </div>
-        <div v-else class="no-medicine">
-          <el-empty description="暂无药品信息" :image-size="80" />
+        <div
+          v-else
+          class="no-medicine"
+        >
+          <el-empty
+            description="暂无药品信息"
+            :image-size="80"
+          />
         </div>
         
-        <div class="prescription-notes" v-if="currentPrescription.notes">
+        <div
+          v-if="currentPrescription.notes"
+          class="prescription-notes"
+        >
           <div class="section-divider">
             <span>处方备注</span>
           </div>
@@ -346,7 +624,10 @@
 
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="prescriptionDialogVisible = false" round>关闭</el-button>
+          <el-button
+            round
+            @click="prescriptionDialogVisible = false"
+          >关闭</el-button>
         </span>
       </template>
     </el-dialog>

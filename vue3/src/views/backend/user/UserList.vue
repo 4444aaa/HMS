@@ -2,25 +2,58 @@
   <div class="user-list">
     <!-- 搜索栏 -->
     <div class="search-container">
-      <el-form :inline="true" :model="searchForm" class="search-form">
+      <el-form
+        :inline="true"
+        :model="searchForm"
+        class="search-form"
+      >
         <el-form-item label="用户名">
-          <el-input v-model="searchForm.username" placeholder="请输入用户名" clearable></el-input>
+          <el-input
+            v-model="searchForm.username"
+            placeholder="请输入用户名"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="姓名">
-          <el-input v-model="searchForm.name" placeholder="请输入姓名" clearable></el-input>
+          <el-input
+            v-model="searchForm.name"
+            placeholder="请输入姓名"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="角色">
-          <el-select v-model="searchForm.roleCode" placeholder="请选择角色" clearable>
-            <el-option v-for="item in roleOptions" :key="item.value" :label="item.label" :value="item.value"></el-option>
+          <el-select
+            v-model="searchForm.roleCode"
+            placeholder="请选择角色"
+            clearable
+          >
+            <el-option
+              v-for="item in roleOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="resetSearch">重置</el-button>
+          <el-button
+            type="primary"
+            @click="handleSearch"
+          >
+            查询
+          </el-button>
+          <el-button @click="resetSearch">
+            重置
+          </el-button>
         </el-form-item>
       </el-form>
       <div class="operations">
-        <el-button type="primary" @click="handleAdd">新增用户</el-button>
+        <el-button
+          type="primary"
+          @click="handleAdd"
+        >
+          新增用户
+        </el-button>
       </div>
     </div>
 
@@ -31,50 +64,97 @@
       border
       style="width: 100%"
     >
-      <el-table-column prop="username" label="用户名" width="120"></el-table-column>
-      <el-table-column prop="name" label="姓名" width="120"></el-table-column>
-      <el-table-column prop="roleCode" label="角色" width="120">
+      <el-table-column
+        prop="username"
+        label="用户名"
+        width="120"
+      />
+      <el-table-column
+        prop="name"
+        label="姓名"
+        width="120"
+      />
+      <el-table-column
+        prop="roleCode"
+        label="角色"
+        width="120"
+      >
         <template #default="scope">
           <el-tag :type="getRoleTagType(scope.row.roleCode)">
             {{ getRoleName(scope.row.roleCode) }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="sex" label="性别" width="80"></el-table-column>
-      <el-table-column prop="phone" label="手机号" width="120"></el-table-column>
-      <el-table-column prop="email" label="邮箱" width="180"></el-table-column>
-      <el-table-column prop="status" label="状态" width="100">
+      <el-table-column
+        prop="sex"
+        label="性别"
+        width="80"
+      />
+      <el-table-column
+        prop="phone"
+        label="手机号"
+        width="120"
+      />
+      <el-table-column
+        prop="email"
+        label="邮箱"
+        width="180"
+      />
+      <el-table-column
+        prop="status"
+        label="状态"
+        width="100"
+      >
         <template #default="scope">
           <el-tag :type="scope.row.status === 1 ? 'success' : 'danger'">
             {{ scope.row.status === 1 ? '启用' : '禁用' }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="createTime" label="创建时间" >
+      <el-table-column
+        prop="createTime"
+        label="创建时间"
+      >
         <template #default="scope">
           {{ formatDate(scope.row.createTime) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" fixed="right" width="220">
+      <el-table-column
+        label="操作"
+        fixed="right"
+        width="220"
+      >
         <template #default="scope">
-          <el-button type="primary" size="small" @click="handleEdit(scope.row)">编辑</el-button>
+          <el-button
+            type="primary"
+            size="small"
+            @click="handleEdit(scope.row)"
+          >
+            编辑
+          </el-button>
           <el-button 
+            v-if="scope.row.status === 0" 
             type="success" 
-            size="small" 
-            v-if="scope.row.status === 0"
+            size="small"
             @click="handleStatusChange(scope.row, 1)"
-          >启用</el-button>
+          >
+            启用
+          </el-button>
           <el-button 
+            v-if="scope.row.status === 1" 
             type="warning" 
-            size="small" 
-            v-if="scope.row.status === 1"
+            size="small"
             @click="handleStatusChange(scope.row, 0)"
-          >禁用</el-button>
+          >
+            禁用
+          </el-button>
           <el-button 
             type="danger" 
             size="small" 
             @click="handleDelete(scope.row)"
-          >删除</el-button>
+          >
+            删除
+          </el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -106,43 +186,110 @@
         :rules="rules"
         label-width="80px"
       >
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="form.username" :disabled="dialogType === 'edit'" placeholder="请输入用户名"></el-input>
+        <el-form-item
+          label="用户名"
+          prop="username"
+        >
+          <el-input
+            v-model="form.username"
+            :disabled="dialogType === 'edit'"
+            placeholder="请输入用户名"
+          />
         </el-form-item>
-        <el-form-item label="密码" prop="password" v-if="dialogType === 'add'">
-          <el-input v-model="form.password" type="password" placeholder="请输入密码"></el-input>
+        <el-form-item
+          v-if="dialogType === 'add'"
+          label="密码"
+          prop="password"
+        >
+          <el-input
+            v-model="form.password"
+            type="password"
+            placeholder="请输入密码"
+          />
         </el-form-item>
-        <el-form-item label="姓名" prop="name">
-          <el-input v-model="form.name" placeholder="请输入姓名"></el-input>
+        <el-form-item
+          label="姓名"
+          prop="name"
+        >
+          <el-input
+            v-model="form.name"
+            placeholder="请输入姓名"
+          />
         </el-form-item>
-        <el-form-item label="角色" prop="roleCode">
-          <el-select v-model="form.roleCode" placeholder="请选择角色">
-            <el-option v-for="item in roleOptions" :key="item.value" :label="item.label" :value="item.value"></el-option>
+        <el-form-item
+          label="角色"
+          prop="roleCode"
+        >
+          <el-select
+            v-model="form.roleCode"
+            placeholder="请选择角色"
+          >
+            <el-option
+              v-for="item in roleOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
           </el-select>
         </el-form-item>
-        <el-form-item label="性别" prop="sex">
-          <el-select v-model="form.sex" placeholder="请选择性别">
-            <el-option label="男" value="男"></el-option>
-            <el-option label="女" value="女"></el-option>
+        <el-form-item
+          label="性别"
+          prop="sex"
+        >
+          <el-select
+            v-model="form.sex"
+            placeholder="请选择性别"
+          >
+            <el-option
+              label="男"
+              value="男"
+            />
+            <el-option
+              label="女"
+              value="女"
+            />
           </el-select>
         </el-form-item>
-        <el-form-item label="手机号" prop="phone">
-          <el-input v-model="form.phone" placeholder="请输入手机号"></el-input>
+        <el-form-item
+          label="手机号"
+          prop="phone"
+        >
+          <el-input
+            v-model="form.phone"
+            placeholder="请输入手机号"
+          />
         </el-form-item>
-        <el-form-item label="邮箱" prop="email">
-          <el-input v-model="form.email" placeholder="请输入邮箱"></el-input>
+        <el-form-item
+          label="邮箱"
+          prop="email"
+        >
+          <el-input
+            v-model="form.email"
+            placeholder="请输入邮箱"
+          />
         </el-form-item>
-        <el-form-item label="状态" prop="status">
+        <el-form-item
+          label="状态"
+          prop="status"
+        >
           <el-radio-group v-model="form.status">
-            <el-radio :label="1">启用</el-radio>
-            <el-radio :label="0">禁用</el-radio>
+            <el-radio :label="1">
+              启用
+            </el-radio>
+            <el-radio :label="0">
+              禁用
+            </el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitForm" :loading="submitLoading">确定</el-button>
+          <el-button
+            type="primary"
+            :loading="submitLoading"
+            @click="submitForm"
+          >确定</el-button>
         </span>
       </template>
     </el-dialog>

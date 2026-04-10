@@ -6,9 +6,12 @@
         <h2><el-icon><OfficeBuilding /></el-icon> 科室介绍</h2>
         <p>了解我院各科室专业特色，为您提供专业的医疗服务</p>
       </div>
-        </div>
+    </div>
 
-    <el-card class="box-card" shadow="hover">
+    <el-card
+      class="box-card"
+      shadow="hover"
+    >
       <div class="department-container">
         <el-row :gutter="30">
           <!-- 左侧科室列表 -->
@@ -16,14 +19,18 @@
             <div class="department-list">
               <div class="list-header">
                 <el-icon><Menu /></el-icon>
-              <h4>科室列表</h4>
+                <h4>科室列表</h4>
               </div>
               <el-menu
                 :default-active="activeIndex.toString()"
                 class="department-menu"
                 @select="handleSelect"
               >
-                <el-menu-item v-for="dept in departments" :key="dept.id" :index="dept.id.toString()">
+                <el-menu-item
+                  v-for="dept in departments"
+                  :key="dept.id"
+                  :index="dept.id.toString()"
+                >
                   <el-icon><OfficeBuilding /></el-icon>
                   <span>{{ dept.deptName }}</span>
                 </el-menu-item>
@@ -33,42 +40,65 @@
 
           <!-- 右侧科室详情 -->
           <el-col :span="18">
-            <div v-if="currentDepartment" class="department-detail">
+            <div
+              v-if="currentDepartment"
+              class="department-detail"
+            >
               <div class="department-header">
                 <div class="header-icon">
                   <el-icon><OfficeBuilding /></el-icon>
                 </div>
                 <div class="header-content">
-                <h2>{{ currentDepartment.deptName }}</h2>
-                  <el-tag size="small" effect="plain" class="dept-code">{{ currentDepartment.deptCode }}</el-tag>
+                  <h2>{{ currentDepartment.deptName }}</h2>
+                  <el-tag
+                    size="small"
+                    effect="plain"
+                    class="dept-code"
+                  >
+                    {{ currentDepartment.deptCode }}
+                  </el-tag>
                 </div>
               </div>
 
               <div class="department-description info-card">
                 <div class="info-card-header">
                   <el-icon><InfoFilled /></el-icon>
-                <h4>科室简介</h4>
+                  <h4>科室简介</h4>
                 </div>
                 <div class="info-card-content">
-                <p>{{ currentDepartment.description || '暂无简介' }}</p>
+                  <p>{{ currentDepartment.description || '暂无简介' }}</p>
                 </div>
               </div>
 
-              <div class="department-director info-card" v-if="currentDepartment.director">
+              <div
+                v-if="currentDepartment.director"
+                class="department-director info-card"
+              >
                 <div class="info-card-header">
                   <el-icon><UserFilled /></el-icon>
-                <h4>科室主任</h4>
+                  <h4>科室主任</h4>
                 </div>
                 <div class="info-card-content">
                   <div class="director-info">
                     <div class="director-avatar">
-                      <el-avatar :size="80" :src="getAvatarUrl(currentDepartment.director.user?.avatar)" />
+                      <el-avatar
+                        :size="80"
+                        :src="getAvatarUrl(currentDepartment.director.user?.avatar)"
+                      />
                     </div>
                     <div class="director-details">
-                      <h3>{{ currentDepartment.director.name }}
-                        <el-tag size="small" type="info">{{ currentDepartment.director.title }}</el-tag>
+                      <h3>
+                        {{ currentDepartment.director.name }}
+                        <el-tag
+                          size="small"
+                          type="info"
+                        >
+                          {{ currentDepartment.director.title }}
+                        </el-tag>
                       </h3>
-                      <p class="expertise">{{ currentDepartment.director.expertise || '暂无专长信息' }}</p>
+                      <p class="expertise">
+                        {{ currentDepartment.director.expertise || '暂无专长信息' }}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -78,40 +108,88 @@
                 <div class="info-card-header">
                   <el-icon><User /></el-icon>
                   <h4>科室医生</h4>
-                  <el-button type="primary" size="small" round @click="goToAppointment" v-if="isLoggedIn">
+                  <el-button
+                    v-if="isLoggedIn"
+                    type="primary"
+                    size="small"
+                    round
+                    @click="goToAppointment"
+                  >
                     <el-icon><Calendar /></el-icon>
                     预约挂号
                   </el-button>
                 </div>
 
                 <div class="info-card-content">
-                  <div v-if="doctors.length > 0" class="doctor-grid">
-                    <el-card v-for="doctor in doctors" :key="doctor.id" class="doctor-item" shadow="hover" @click="viewDoctorDetail(doctor)">
+                  <div
+                    v-if="doctors.length > 0"
+                    class="doctor-grid"
+                  >
+                    <el-card
+                      v-for="doctor in doctors"
+                      :key="doctor.id"
+                      class="doctor-item"
+                      shadow="hover"
+                      @click="viewDoctorDetail(doctor)"
+                    >
                       <div class="doctor-item-content">
-                        <el-avatar :size="60" :src="getAvatarUrl(doctor.user?.avatar)" />
+                        <el-avatar
+                          :size="60"
+                          :src="getAvatarUrl(doctor.user?.avatar)"
+                        />
                         <h3>{{ doctor.name }}</h3>
-                        <el-tag size="small" type="info">{{ doctor.title }}</el-tag>
-                        <p class="expertise" v-if="doctor.expertise">{{ doctor.expertise }}</p>
+                        <el-tag
+                          size="small"
+                          type="info"
+                        >
+                          {{ doctor.title }}
+                        </el-tag>
+                        <p
+                          v-if="doctor.expertise"
+                          class="expertise"
+                        >
+                          {{ doctor.expertise }}
+                        </p>
                         <div class="doctor-actions">
-                          <el-button type="primary" size="small" round @click.stop="goToAppointmentWithDoctor(doctor)" v-if="isLoggedIn">
+                          <el-button
+                            v-if="isLoggedIn"
+                            type="primary"
+                            size="small"
+                            round
+                            @click.stop="goToAppointmentWithDoctor(doctor)"
+                          >
                             <el-icon><Calendar /></el-icon>
                             预约挂号
                           </el-button>
-                          <el-button type="info" size="small" round @click.stop="viewDoctorDetail(doctor)">
+                          <el-button
+                            type="info"
+                            size="small"
+                            round
+                            @click.stop="viewDoctorDetail(doctor)"
+                          >
                             <el-icon><View /></el-icon>
-                        查看详情
-                      </el-button>
+                            查看详情
+                          </el-button>
                         </div>
                       </div>
                     </el-card>
                   </div>
-                <el-empty v-else description="暂无医生信息" />
+                  <el-empty
+                    v-else
+                    description="暂无医生信息"
+                  />
                 </div>
               </div>
             </div>
-            <el-empty v-else description="请选择科室查看详情" :image-size="200">
+            <el-empty
+              v-else
+              description="请选择科室查看详情"
+              :image-size="200"
+            >
               <template #image>
-                <el-icon class="empty-icon"><OfficeBuilding /></el-icon>
+                <el-icon class="empty-icon">
+                  <OfficeBuilding />
+                </el-icon>
               </template>
             </el-empty>
           </el-col>

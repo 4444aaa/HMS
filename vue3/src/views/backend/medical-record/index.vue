@@ -4,17 +4,34 @@
       <template #header>
         <div class="card-header">
           <h3>病历管理</h3>
-          <el-button type="primary" @click="handleAdd">新增病历</el-button>
+          <el-button
+            type="primary"
+            @click="handleAdd"
+          >
+            新增病历
+          </el-button>
         </div>
       </template>
 
       <!-- 搜索表单 -->
-      <el-form :model="searchForm" :inline="true" class="search-form">
+      <el-form
+        :model="searchForm"
+        :inline="true"
+        class="search-form"
+      >
         <el-form-item label="患者姓名">
-          <el-input v-model="searchForm.patientName" placeholder="请输入患者姓名" clearable />
+          <el-input
+            v-model="searchForm.patientName"
+            placeholder="请输入患者姓名"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="医生姓名">
-          <el-input v-model="searchForm.doctorName" placeholder="请输入医生姓名" clearable />
+          <el-input
+            v-model="searchForm.doctorName"
+            placeholder="请输入医生姓名"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="就诊日期">
           <el-date-picker
@@ -28,40 +45,85 @@
           />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">搜索</el-button>
-          <el-button @click="resetSearch">重置</el-button>
+          <el-button
+            type="primary"
+            @click="handleSearch"
+          >
+            搜索
+          </el-button>
+          <el-button @click="resetSearch">
+            重置
+          </el-button>
         </el-form-item>
       </el-form>
 
       <!-- 病历列表 -->
-      <el-table v-loading="loading" :data="tableData" border style="width: 100%">
-        <el-table-column prop="recordNo" label="记录编号" width="180" />
-        <el-table-column label="患者信息" width="150">
+      <el-table
+        v-loading="loading"
+        :data="tableData"
+        border
+        style="width: 100%"
+      >
+        <el-table-column
+          prop="recordNo"
+          label="记录编号"
+          width="180"
+        />
+        <el-table-column
+          label="患者信息"
+          width="150"
+        >
           <template #default="scope">
             {{ scope.row.patient?.name || '未知' }}
-            <el-tag size="small" type="info">{{ scope.row.patient?.sex || '未知' }}</el-tag>
+            <el-tag
+              size="small"
+              type="info"
+            >
+              {{ scope.row.patient?.sex || '未知' }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="医生信息" width="150">
+        <el-table-column
+          label="医生信息"
+          width="150"
+        >
           <template #default="scope">
             {{ scope.row.doctor?.name || '未知' }}
-            <el-tag size="small">{{ scope.row.doctor?.title || '未知' }}</el-tag>
+            <el-tag size="small">
+              {{ scope.row.doctor?.title || '未知' }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="科室" width="120">
+        <el-table-column
+          label="科室"
+          width="120"
+        >
           <template #default="scope">
             {{ scope.row.doctor?.department?.deptName || '未知科室' }}
           </template>
         </el-table-column>
-        <el-table-column prop="recordDate" label="就诊日期" width="120" sortable />
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column
+          prop="recordDate"
+          label="就诊日期"
+          width="120"
+          sortable
+        />
+        <el-table-column
+          prop="status"
+          label="状态"
+          width="100"
+        >
           <template #default="scope">
             <el-tag :type="scope.row.status === 1 ? 'success' : 'info'">
               {{ scope.row.status === 1 ? '已提交' : '未提交' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="diagnosis" label="诊断结果" width="200">
+        <el-table-column
+          prop="diagnosis"
+          label="诊断结果"
+          width="200"
+        >
           <template #default="scope">
             <el-tooltip
               v-if="scope.row.diagnosis"
@@ -69,32 +131,78 @@
               placement="top"
               effect="light"
             >
-              <div class="ellipsis">{{ scope.row.diagnosis }}</div>
+              <div class="ellipsis">
+                {{ scope.row.diagnosis }}
+              </div>
             </el-tooltip>
             <span v-else>暂无诊断</span>
           </template>
         </el-table-column>
-        <el-table-column label="病症明细" width="120">
+        <el-table-column
+          label="病症明细"
+          width="120"
+        >
           <template #default="scope">
             {{ scope.row.details?.length || 0 }} 条
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" sortable />
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column
+          prop="createTime"
+          label="创建时间"
+          sortable
+        />
+        <el-table-column
+          label="操作"
+          width="220"
+          fixed="right"
+        >
           <template #default="scope">
             <div class="action-row">
-              <el-button type="primary" size="small" @click="handleView(scope.row)">查看</el-button>
-              <el-button v-if="scope.row.status === 1" type="success" size="small" @click="handlePrescription(scope.row)">处方</el-button>
+              <el-button
+                type="primary"
+                size="small"
+                @click="handleView(scope.row)"
+              >
+                查看
+              </el-button>
+              <el-button
+                v-if="scope.row.status === 1"
+                type="success"
+                size="small"
+                @click="handlePrescription(scope.row)"
+              >
+                处方
+              </el-button>
             </div>
-            <div class="action-row" v-if="scope.row.status !== 1">
-              <el-button type="success" size="small" @click="handleSubmit(scope.row)">提交</el-button>
-              <el-button type="warning" size="small" @click="handleEdit(scope.row)">编辑</el-button>
+            <div
+              v-if="scope.row.status !== 1"
+              class="action-row"
+            >
+              <el-button
+                type="success"
+                size="small"
+                @click="handleSubmit(scope.row)"
+              >
+                提交
+              </el-button>
+              <el-button
+                type="warning"
+                size="small"
+                @click="handleEdit(scope.row)"
+              >
+                编辑
+              </el-button>
               <el-popconfirm
-              title="确定删除此病历吗？"
+                title="确定删除此病历吗？"
                 @confirm="handleDelete(scope.row.id)"
               >
                 <template #reference>
-                  <el-button type="danger" size="small">删除</el-button>
+                  <el-button
+                    type="danger"
+                    size="small"
+                  >
+                    删除
+                  </el-button>
                 </template>
               </el-popconfirm>
             </div>
@@ -133,7 +241,10 @@
       >
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="患者" prop="patientId">
+            <el-form-item
+              label="患者"
+              prop="patientId"
+            >
               <el-select
                 v-model="recordForm.patientId"
                 placeholder="请先选择患者"
@@ -151,7 +262,10 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="关联预约" prop="appointmentId">
+            <el-form-item
+              label="关联预约"
+              prop="appointmentId"
+            >
               <el-select
                 v-model="recordForm.appointmentId"
                 placeholder="请再选择预约"
@@ -173,18 +287,35 @@
         
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="医生" prop="doctorId">
-              <el-input :value="currentAppointmentInfo.doctorName" readonly placeholder="选择预约后自动带出" />
+            <el-form-item
+              label="医生"
+              prop="doctorId"
+            >
+              <el-input
+                :value="currentAppointmentInfo.doctorName"
+                readonly
+                placeholder="选择预约后自动带出"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="就诊日期" prop="recordDate">
-              <el-input :value="currentAppointmentInfo.recordDate" readonly placeholder="选择预约后自动带出" />
+            <el-form-item
+              label="就诊日期"
+              prop="recordDate"
+            >
+              <el-input
+                :value="currentAppointmentInfo.recordDate"
+                readonly
+                placeholder="选择预约后自动带出"
+              />
             </el-form-item>
           </el-col>
         </el-row>
         
-        <el-form-item label="诊断结果" prop="diagnosis">
+        <el-form-item
+          label="诊断结果"
+          prop="diagnosis"
+        >
           <el-input
             v-model="recordForm.diagnosis"
             type="textarea"
@@ -193,7 +324,10 @@
           />
         </el-form-item>
         
-        <el-form-item label="治疗方案" prop="treatment">
+        <el-form-item
+          label="治疗方案"
+          prop="treatment"
+        >
           <el-input
             v-model="recordForm.treatment"
             type="textarea"
@@ -203,11 +337,27 @@
         </el-form-item>
 
         <el-divider>病症明细（每条可配置治疗方案）</el-divider>
-        <div class="detail-toolbar" v-if="dialogType !== 'view'">
-          <el-button type="primary" plain @click="addDetail">添加病症明细</el-button>
+        <div
+          v-if="dialogType !== 'view'"
+          class="detail-toolbar"
+        >
+          <el-button
+            type="primary"
+            plain
+            @click="addDetail"
+          >
+            添加病症明细
+          </el-button>
         </div>
-        <el-table :data="recordForm.details" border style="width: 100%; margin-bottom: 12px;">
-          <el-table-column label="病症名称" min-width="180">
+        <el-table
+          :data="recordForm.details"
+          border
+          style="width: 100%; margin-bottom: 12px;"
+        >
+          <el-table-column
+            label="病症名称"
+            min-width="180"
+          >
             <template #default="scope">
               <el-input
                 v-if="dialogType !== 'view'"
@@ -217,7 +367,10 @@
               <span v-else>{{ scope.row.symptomName || '-' }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="治疗方案" min-width="260">
+          <el-table-column
+            label="治疗方案"
+            min-width="260"
+          >
             <template #default="scope">
               <el-input
                 v-if="dialogType !== 'view'"
@@ -227,9 +380,19 @@
               <span v-else>{{ scope.row.treatmentPlan || '-' }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="100" v-if="dialogType !== 'view'">
+          <el-table-column
+            v-if="dialogType !== 'view'"
+            label="操作"
+            width="100"
+          >
             <template #default="scope">
-              <el-button type="danger" size="small" @click="removeDetail(scope.$index)">删除</el-button>
+              <el-button
+                type="danger"
+                size="small"
+                @click="removeDetail(scope.$index)"
+              >
+                删除
+              </el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -247,7 +410,11 @@
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button v-if="dialogType !== 'view'" type="primary" @click="submitForm">确定</el-button>
+          <el-button
+            v-if="dialogType !== 'view'"
+            type="primary"
+            @click="submitForm"
+          >确定</el-button>
         </span>
       </template>
     </el-dialog>
@@ -258,27 +425,68 @@
       title="处方管理"
       width="800px"
     >
-      <div v-if="currentRecord.id" class="prescription-container">
+      <div
+        v-if="currentRecord.id"
+        class="prescription-container"
+      >
         <div class="record-info">
           <h4>就诊信息</h4>
-          <el-descriptions :column="3" border size="small">
-            <el-descriptions-item label="患者">{{ currentRecord.patient?.name }}</el-descriptions-item>
-            <el-descriptions-item label="医生">{{ currentRecord.doctor?.name }}</el-descriptions-item>
-            <el-descriptions-item label="就诊日期">{{ currentRecord.recordDate }}</el-descriptions-item>
-            <el-descriptions-item label="诊断结果" :span="3">{{ currentRecord.diagnosis || '无' }}</el-descriptions-item>
+          <el-descriptions
+            :column="3"
+            border
+            size="small"
+          >
+            <el-descriptions-item label="患者">
+              {{ currentRecord.patient?.name }}
+            </el-descriptions-item>
+            <el-descriptions-item label="医生">
+              {{ currentRecord.doctor?.name }}
+            </el-descriptions-item>
+            <el-descriptions-item label="就诊日期">
+              {{ currentRecord.recordDate }}
+            </el-descriptions-item>
+            <el-descriptions-item
+              label="诊断结果"
+              :span="3"
+            >
+              {{ currentRecord.diagnosis || '无' }}
+            </el-descriptions-item>
           </el-descriptions>
         </div>
 
         <div class="prescription-list">
           <div class="section-header">
             <h4>处方列表</h4>
-            <el-button type="primary" size="small" @click="handleAddPrescription">新增处方</el-button>
+            <el-button
+              type="primary"
+              size="small"
+              @click="handleAddPrescription"
+            >
+              新增处方
+            </el-button>
           </div>
           
-          <el-table v-loading="prescriptionLoading" :data="prescriptionList" border style="width: 100%">
-            <el-table-column prop="prescriptionNo" label="处方编号" width="180" />
-            <el-table-column prop="prescriptionDate" label="处方日期" width="120" />
-            <el-table-column prop="diagnosis" label="诊断" width="200">
+          <el-table
+            v-loading="prescriptionLoading"
+            :data="prescriptionList"
+            border
+            style="width: 100%"
+          >
+            <el-table-column
+              prop="prescriptionNo"
+              label="处方编号"
+              width="180"
+            />
+            <el-table-column
+              prop="prescriptionDate"
+              label="处方日期"
+              width="120"
+            />
+            <el-table-column
+              prop="diagnosis"
+              label="诊断"
+              width="200"
+            >
               <template #default="scope">
                 <el-tooltip
                   v-if="scope.row.diagnosis"
@@ -286,21 +494,36 @@
                   placement="top"
                   effect="light"
                 >
-                  <div class="ellipsis">{{ scope.row.diagnosis }}</div>
+                  <div class="ellipsis">
+                    {{ scope.row.diagnosis }}
+                  </div>
                 </el-tooltip>
                 <span v-else>同病历</span>
               </template>
             </el-table-column>
-            <el-table-column prop="status" label="状态" width="100">
+            <el-table-column
+              prop="status"
+              label="状态"
+              width="100"
+            >
               <template #default="scope">
                 <el-tag :type="scope.row.status === 1 ? 'success' : 'warning'">
                   {{ scope.row.status === 1 ? '已取药' : '未取药' }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="250">
+            <el-table-column
+              label="操作"
+              width="250"
+            >
               <template #default="scope">
-                <el-button type="primary" size="small" @click="handleViewPrescription(scope.row)">查看</el-button>
+                <el-button
+                  type="primary"
+                  size="small"
+                  @click="handleViewPrescription(scope.row)"
+                >
+                  查看
+                </el-button>
                 <el-button 
                   v-if="scope.row.status === 0" 
                   type="success" 

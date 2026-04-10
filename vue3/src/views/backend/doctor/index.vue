@@ -4,20 +4,41 @@
       <template #header>
         <div class="card-header">
           <h3>医生管理</h3>
-          <el-button type="primary" @click="handleAdd">新增医生</el-button>
+          <el-button
+            type="primary"
+            @click="handleAdd"
+          >
+            新增医生
+          </el-button>
         </div>
       </template>
 
       <!-- 搜索表单 -->
-      <el-form :model="searchForm" :inline="true" class="search-form">
+      <el-form
+        :model="searchForm"
+        :inline="true"
+        class="search-form"
+      >
         <el-form-item label="姓名">
-          <el-input v-model="searchForm.name" placeholder="请输入姓名" clearable />
+          <el-input
+            v-model="searchForm.name"
+            placeholder="请输入姓名"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="医生编号">
-          <el-input v-model="searchForm.doctorNo" placeholder="请输入医生编号" clearable />
+          <el-input
+            v-model="searchForm.doctorNo"
+            placeholder="请输入医生编号"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="所属科室">
-          <el-select v-model="searchForm.departmentId" placeholder="请选择科室" clearable>
+          <el-select
+            v-model="searchForm.departmentId"
+            placeholder="请选择科室"
+            clearable
+          >
             <el-option
               v-for="item in departmentOptions"
               :key="item.id"
@@ -27,54 +48,130 @@
           </el-select>
         </el-form-item>
         <el-form-item label="职称">
-          <el-input v-model="searchForm.title" placeholder="请输入职称" clearable />
+          <el-input
+            v-model="searchForm.title"
+            placeholder="请输入职称"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable>
-            <el-option label="在职" :value="1" />
-            <el-option label="离职" :value="0" />
+          <el-select
+            v-model="searchForm.status"
+            placeholder="请选择状态"
+            clearable
+          >
+            <el-option
+              label="在职"
+              :value="1"
+            />
+            <el-option
+              label="离职"
+              :value="0"
+            />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">搜索</el-button>
-          <el-button @click="resetSearch">重置</el-button>
+          <el-button
+            type="primary"
+            @click="handleSearch"
+          >
+            搜索
+          </el-button>
+          <el-button @click="resetSearch">
+            重置
+          </el-button>
         </el-form-item>
       </el-form>
 
       <!-- 医生列表 -->
-      <el-table v-loading="loading" :data="tableData" border style="width: 100%">
-        <el-table-column prop="doctorNo" label="医生编号" width="120" />
-        <el-table-column prop="name" label="姓名" width="100" />
-        <el-table-column label="所属科室" width="120">
+      <el-table
+        v-loading="loading"
+        :data="tableData"
+        border
+        style="width: 100%"
+      >
+        <el-table-column
+          prop="doctorNo"
+          label="医生编号"
+          width="120"
+        />
+        <el-table-column
+          prop="name"
+          label="姓名"
+          width="100"
+        />
+        <el-table-column
+          label="所属科室"
+          width="120"
+        >
           <template #default="scope">
             {{ scope.row.department ? scope.row.department.deptName : '未分配' }}
           </template>
         </el-table-column>
-        <el-table-column prop="title" label="职称" width="120" />
-        <el-table-column prop="expertise" label="专长" min-width="180">
+        <el-table-column
+          prop="title"
+          label="职称"
+          width="120"
+        />
+        <el-table-column
+          prop="expertise"
+          label="专长"
+          min-width="180"
+        >
           <template #default="scope">
             {{ scope.row.expertise || '暂无信息' }}
           </template>
         </el-table-column>
-        <el-table-column label="关联用户" width="120">
+        <el-table-column
+          label="关联用户"
+          width="120"
+        >
           <template #default="scope">
             {{ scope.row.user ? scope.row.user.username : '未关联' }}
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="80">
+        <el-table-column
+          prop="status"
+          label="状态"
+          width="80"
+        >
           <template #default="scope">
             <el-tag :type="scope.row.status === 1 ? 'success' : 'danger'">
               {{ scope.row.status === 1 ? '在职' : '离职' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column
+          label="操作"
+          width="220"
+          fixed="right"
+        >
           <template #default="scope">
-            <el-button type="primary" size="small" @click="handleEdit(scope.row)">编辑</el-button>
-            <el-button type="success" size="small" @click="handleViewDetail(scope.row)">详情</el-button>
-            <el-popconfirm title="确定删除此医生吗？" @confirm="handleDelete(scope.row)">
+            <el-button
+              type="primary"
+              size="small"
+              @click="handleEdit(scope.row)"
+            >
+              编辑
+            </el-button>
+            <el-button
+              type="success"
+              size="small"
+              @click="handleViewDetail(scope.row)"
+            >
+              详情
+            </el-button>
+            <el-popconfirm
+              title="确定删除此医生吗？"
+              @confirm="handleDelete(scope.row)"
+            >
               <template #reference>
-                <el-button type="danger" size="small">删除</el-button>
+                <el-button
+                  type="danger"
+                  size="small"
+                >
+                  删除
+                </el-button>
               </template>
             </el-popconfirm>
           </template>
@@ -109,11 +206,25 @@
         :rules="getDoctorFormRules"
         label-width="100px"
       >
-        <el-form-item label="姓名" prop="name">
-          <el-input v-model="doctorForm.name" placeholder="请输入姓名" />
+        <el-form-item
+          label="姓名"
+          prop="name"
+        >
+          <el-input
+            v-model="doctorForm.name"
+            placeholder="请输入姓名"
+          />
         </el-form-item>
-        <el-form-item label="所属科室" prop="departmentId">
-          <el-select v-model="doctorForm.departmentId" placeholder="请选择科室" clearable filterable>
+        <el-form-item
+          label="所属科室"
+          prop="departmentId"
+        >
+          <el-select
+            v-model="doctorForm.departmentId"
+            placeholder="请选择科室"
+            clearable
+            filterable
+          >
             <el-option
               v-for="item in departmentOptions"
               :key="item.id"
@@ -122,10 +233,19 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="职称" prop="title">
-          <el-input v-model="doctorForm.title" placeholder="请输入职称" />
+        <el-form-item
+          label="职称"
+          prop="title"
+        >
+          <el-input
+            v-model="doctorForm.title"
+            placeholder="请输入职称"
+          />
         </el-form-item>
-        <el-form-item label="专长" prop="expertise">
+        <el-form-item
+          label="专长"
+          prop="expertise"
+        >
           <el-input
             v-model="doctorForm.expertise"
             type="textarea"
@@ -133,7 +253,10 @@
             placeholder="请输入专长"
           />
         </el-form-item>
-        <el-form-item label="简介" prop="introduction">
+        <el-form-item
+          label="简介"
+          prop="introduction"
+        >
           <el-input
             v-model="doctorForm.introduction"
             type="textarea"
@@ -143,16 +266,38 @@
         </el-form-item>
 
         <!-- 关联用户部分 - 现在在新增和编辑时都可见 -->
-        <el-form-item label="关联用户" prop="userType">
-          <el-radio-group v-model="userType" @change="handleUserTypeChange">
-            <el-radio :label="'existing'">选择已有用户</el-radio>
-            <el-radio :label="'new'" v-if="dialogType === 'add'">创建新用户</el-radio>
+        <el-form-item
+          label="关联用户"
+          prop="userType"
+        >
+          <el-radio-group
+            v-model="userType"
+            @change="handleUserTypeChange"
+          >
+            <el-radio :label="'existing'">
+              选择已有用户
+            </el-radio>
+            <el-radio
+              v-if="dialogType === 'add'"
+              :label="'new'"
+            >
+              创建新用户
+            </el-radio>
           </el-radio-group>
         </el-form-item>
 
         <!-- 选择已有用户 -->
-        <el-form-item v-if="userType === 'existing'" label="选择用户" prop="userId">
-          <el-select v-model="doctorForm.userId" placeholder="请选择关联用户" clearable filterable>
+        <el-form-item
+          v-if="userType === 'existing'"
+          label="选择用户"
+          prop="userId"
+        >
+          <el-select
+            v-model="doctorForm.userId"
+            placeholder="请选择关联用户"
+            clearable
+            filterable
+          >
             <el-option
               v-for="user in userOptions"
               :key="user.id"
@@ -171,18 +316,46 @@
         :rules="newUserFormRules"
         label-width="100px"
       >
-        <el-divider content-position="center">新用户信息</el-divider>
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="newUserForm.username" placeholder="请输入用户名" />
+        <el-divider content-position="center">
+          新用户信息
+        </el-divider>
+        <el-form-item
+          label="用户名"
+          prop="username"
+        >
+          <el-input
+            v-model="newUserForm.username"
+            placeholder="请输入用户名"
+          />
         </el-form-item>
-        <el-form-item label="密码" prop="password">
-          <el-input v-model="newUserForm.password" type="password" placeholder="请输入密码" show-password />
+        <el-form-item
+          label="密码"
+          prop="password"
+        >
+          <el-input
+            v-model="newUserForm.password"
+            type="password"
+            placeholder="请输入密码"
+            show-password
+          />
         </el-form-item>
-        <el-form-item label="邮箱" prop="email">
-          <el-input v-model="newUserForm.email" placeholder="请输入邮箱" />
+        <el-form-item
+          label="邮箱"
+          prop="email"
+        >
+          <el-input
+            v-model="newUserForm.email"
+            placeholder="请输入邮箱"
+          />
         </el-form-item>
-        <el-form-item label="手机号" prop="phone">
-          <el-input v-model="newUserForm.phone" placeholder="请输入手机号" />
+        <el-form-item
+          label="手机号"
+          prop="phone"
+        >
+          <el-input
+            v-model="newUserForm.phone"
+            placeholder="请输入手机号"
+          />
         </el-form-item>
       </el-form>
 
@@ -191,10 +364,17 @@
         :model="doctorForm"
         label-width="100px"
       >
-        <el-form-item label="状态" prop="status">
+        <el-form-item
+          label="状态"
+          prop="status"
+        >
           <el-radio-group v-model="doctorForm.status">
-            <el-radio :label="1">在职</el-radio>
-            <el-radio :label="0">离职</el-radio>
+            <el-radio :label="1">
+              在职
+            </el-radio>
+            <el-radio :label="0">
+              离职
+            </el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
@@ -202,7 +382,10 @@
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitForm">确定</el-button>
+          <el-button
+            type="primary"
+            @click="submitForm"
+          >确定</el-button>
         </span>
       </template>
     </el-dialog>
@@ -213,18 +396,37 @@
       title="医生详情"
       width="700px"
     >
-      <el-descriptions :column="2" border>
-        <el-descriptions-item label="医生编号">{{ detailForm.doctorNo }}</el-descriptions-item>
-        <el-descriptions-item label="姓名">{{ detailForm.name }}</el-descriptions-item>
+      <el-descriptions
+        :column="2"
+        border
+      >
+        <el-descriptions-item label="医生编号">
+          {{ detailForm.doctorNo }}
+        </el-descriptions-item>
+        <el-descriptions-item label="姓名">
+          {{ detailForm.name }}
+        </el-descriptions-item>
         <el-descriptions-item label="所属科室">
           {{ detailForm.department ? detailForm.department.deptName : '未分配' }}
         </el-descriptions-item>
-        <el-descriptions-item label="职称">{{ detailForm.title || '暂无' }}</el-descriptions-item>
-        <el-descriptions-item label="专长" :span="2">
-          <div style="white-space: pre-line">{{ detailForm.expertise || '暂无' }}</div>
+        <el-descriptions-item label="职称">
+          {{ detailForm.title || '暂无' }}
         </el-descriptions-item>
-        <el-descriptions-item label="简介" :span="2">
-          <div style="white-space: pre-line">{{ detailForm.introduction || '暂无' }}</div>
+        <el-descriptions-item
+          label="专长"
+          :span="2"
+        >
+          <div style="white-space: pre-line">
+            {{ detailForm.expertise || '暂无' }}
+          </div>
+        </el-descriptions-item>
+        <el-descriptions-item
+          label="简介"
+          :span="2"
+        >
+          <div style="white-space: pre-line">
+            {{ detailForm.introduction || '暂无' }}
+          </div>
         </el-descriptions-item>
         <el-descriptions-item label="关联用户">
           {{ detailForm.user ? detailForm.user.username : '未关联' }}

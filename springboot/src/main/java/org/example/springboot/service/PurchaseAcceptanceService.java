@@ -14,7 +14,14 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class PurchaseAcceptanceService {
@@ -30,6 +37,8 @@ public class PurchaseAcceptanceService {
     private MedicineMapper medicineMapper;
     @Resource
     private SupplierMapper supplierMapper;
+    @Resource
+    private StockInOrderItemMapper stockInOrderItemMapper;
     @Resource
     private StockInOrderMapper stockInOrderMapper;
 
@@ -226,7 +235,9 @@ public class PurchaseAcceptanceService {
     }
 
     public Page<PurchaseAcceptance> getAcceptancesByPage(String acceptanceNo, Long purchaseOrderId, Integer status,
-                                                        Integer currentPage, Integer size) {
+                                                        Integer currentPage, Integer size,
+                                                        Boolean excludeFullyStockPosted,
+                                                        List<Long> alwaysIncludeAcceptanceIds) {
         LambdaQueryWrapper<PurchaseAcceptance> qw = new LambdaQueryWrapper<>();
         if (StringUtils.isNotBlank(acceptanceNo)) {
             qw.like(PurchaseAcceptance::getAcceptanceNo, acceptanceNo);
@@ -238,8 +249,62 @@ public class PurchaseAcceptanceService {
             qw.eq(PurchaseAcceptance::getStatus, status);
         }
         qw.orderByDesc(PurchaseAcceptance::getUpdateTime);
-        Page<PurchaseAcceptance> page = purchaseAcceptanceMapper.selectPage(new Page<>(currentPage, size), qw);
-        for (PurchaseAcceptance acceptance : page.getRecords()) {
+        if (!Boolean.TRUE.equals(excludeFullyStockPosted)) {
+            Page<PurchaseAcceptance> page = purchaseAcceptanceMapper.selectPage(new Page<>(currentPage, size), qw);
+            attachOrdersToAcceptances(page.getRecords());
+            return page;
+        }
+        List<PurchaseAcceptance> all = purchaseAcceptanceMapper.selectList(qw);
+        if (all.isEmpty()) {
+            return new Page<>(currentPage, size, 0);
+        }
+        List<Long> allAccIds = all.stream().map(PurchaseAcceptance::getId).filter(Objects::nonNull).toList();
+        Set<Long> withStockRemaining = acceptanceIdsWithUnpostedQualified(allAccIds);
+        Set<Long> always = alwaysIncludeAcceptanceIds == null ? Set.of() : alwaysIncludeAcceptanceIds.stream()
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        List<PurchaseAcceptance> filtered = all.stream()
+                .filter(a -> withStockRemaining.contains(a.getId()) || always.contains(a.getId()))
+                .collect(Collectors.toCollection(ArrayList::new));
+        Set<Long> seen = filtered.stream().map(PurchaseAcceptance::getId).collect(Collectors.toSet());
+        for (Long id : always) {
+            if (id != null && !seen.contains(id)) {
+                PurchaseAcceptance a = purchaseAcceptanceMapper.selectById(id);
+                if (a != null && matchesAcceptanceListFilters(a, acceptanceNo, purchaseOrderId, status)) {
+                    filtered.add(a);
+                    seen.add(id);
+                }
+            }
+        }
+        filtered.sort((x, y) -> {
+            LocalDateTime tx = x.getUpdateTime();
+            LocalDateTime ty = y.getUpdateTime();
+            if (tx == null && ty == null) {
+                return 0;
+            }
+            if (tx == null) {
+                return 1;
+            }
+            if (ty == null) {
+                return -1;
+            }
+            return ty.compareTo(tx);
+        });
+        long total = filtered.size();
+        int from = Math.max(0, (currentPage - 1) * size);
+        int to = Math.min(from + size, filtered.size());
+        List<PurchaseAcceptance> slice = from < filtered.size() ? filtered.subList(from, to) : List.of();
+        Page<PurchaseAcceptance> page = new Page<>(currentPage, size, total);
+        page.setRecords(slice);
+        attachOrdersToAcceptances(page.getRecords());
+        return page;
+    }
+
+    private void attachOrdersToAcceptances(List<PurchaseAcceptance> records) {
+        if (records == null || records.isEmpty()) {
+            return;
+        }
+        for (PurchaseAcceptance acceptance : records) {
             PurchaseOrder order = purchaseOrderMapper.selectById(acceptance.getPurchaseOrderId());
             if (order != null) {
                 Supplier supplier = supplierMapper.selectById(order.getSupplierId());
@@ -247,7 +312,80 @@ public class PurchaseAcceptanceService {
             }
             acceptance.setPurchaseOrder(order);
         }
-        return page;
+    }
+
+    private boolean matchesAcceptanceListFilters(PurchaseAcceptance a, String acceptanceNo, Long purchaseOrderId, Integer status) {
+        if (status != null && !Objects.equals(a.getStatus(), status)) {
+            return false;
+        }
+        if (purchaseOrderId != null && !Objects.equals(a.getPurchaseOrderId(), purchaseOrderId)) {
+            return false;
+        }
+        if (StringUtils.isNotBlank(acceptanceNo) && (a.getAcceptanceNo() == null || !a.getAcceptanceNo().contains(acceptanceNo.trim()))) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * 仍存在「合格数量未在已过账入库单中扣完」的验收明细的验收单 ID（仅统计 status=1 的入库单明细）。
+     */
+    private Set<Long> acceptanceIdsWithUnpostedQualified(List<Long> acceptanceIds) {
+        if (acceptanceIds == null || acceptanceIds.isEmpty()) {
+            return Set.of();
+        }
+        List<PurchaseAcceptanceItem> items = purchaseAcceptanceItemMapper.selectList(
+                new LambdaQueryWrapper<PurchaseAcceptanceItem>().in(PurchaseAcceptanceItem::getAcceptanceId, acceptanceIds));
+        if (items.isEmpty()) {
+            return Set.of();
+        }
+        List<Long> accItemIds = items.stream().map(PurchaseAcceptanceItem::getId).filter(Objects::nonNull).toList();
+        Map<Long, Integer> postedByAccItem = sumPostedStockInQtyByAcceptanceItemIds(accItemIds);
+        Map<Long, List<PurchaseAcceptanceItem>> byAcc = items.stream().collect(Collectors.groupingBy(PurchaseAcceptanceItem::getAcceptanceId));
+        Set<Long> result = new HashSet<>();
+        for (Map.Entry<Long, List<PurchaseAcceptanceItem>> e : byAcc.entrySet()) {
+            for (PurchaseAcceptanceItem it : e.getValue()) {
+                int q = it.getQualifiedQty() == null ? 0 : it.getQualifiedQty();
+                if (q <= 0) {
+                    continue;
+                }
+                int posted = postedByAccItem.getOrDefault(it.getId(), 0);
+                if (posted < q) {
+                    result.add(e.getKey());
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
+    private Map<Long, Integer> sumPostedStockInQtyByAcceptanceItemIds(List<Long> acceptanceItemIds) {
+        if (acceptanceItemIds == null || acceptanceItemIds.isEmpty()) {
+            return Map.of();
+        }
+        List<StockInOrderItem> lines = stockInOrderItemMapper.selectList(
+                new LambdaQueryWrapper<StockInOrderItem>().in(StockInOrderItem::getAcceptanceItemId, acceptanceItemIds));
+        if (lines.isEmpty()) {
+            return Map.of();
+        }
+        Set<Long> stockInIds = lines.stream().map(StockInOrderItem::getStockInId).filter(Objects::nonNull).collect(Collectors.toSet());
+        if (stockInIds.isEmpty()) {
+            return Map.of();
+        }
+        List<StockInOrder> orders = stockInOrderMapper.selectBatchIds(stockInIds);
+        Set<Long> postedStockInIds = orders.stream()
+                .filter(o -> o.getStatus() != null && o.getStatus() == 1)
+                .map(StockInOrder::getId)
+                .collect(Collectors.toSet());
+        Map<Long, Integer> sum = new HashMap<>();
+        for (StockInOrderItem line : lines) {
+            if (!postedStockInIds.contains(line.getStockInId())) {
+                continue;
+            }
+            int q = line.getStockInQty() == null ? 0 : line.getStockInQty();
+            sum.merge(line.getAcceptanceItemId(), q, Integer::sum);
+        }
+        return sum;
     }
 
     private String generateAcceptanceNo() {
@@ -265,11 +403,17 @@ public class PurchaseAcceptanceService {
         if (acceptance.getStatus() == null || acceptance.getStatus() != 0) {
             throw new ServiceException("仅草稿验收单允许删除");
         }
-        long stockInCount = stockInOrderMapper.selectCount(
-                new LambdaQueryWrapper<StockInOrder>().eq(StockInOrder::getAcceptanceId, acceptanceId)
+        List<PurchaseAcceptanceItem> accItems = purchaseAcceptanceItemMapper.selectList(
+                new LambdaQueryWrapper<PurchaseAcceptanceItem>().eq(PurchaseAcceptanceItem::getAcceptanceId, acceptanceId)
         );
-        if (stockInCount > 0) {
-            throw new ServiceException("验收单已生成入库单，不能删除");
+        if (!accItems.isEmpty()) {
+            List<Long> accItemIds = accItems.stream().map(PurchaseAcceptanceItem::getId).toList();
+            long used = stockInOrderItemMapper.selectCount(
+                    new LambdaQueryWrapper<StockInOrderItem>().in(StockInOrderItem::getAcceptanceItemId, accItemIds)
+            );
+            if (used > 0) {
+                throw new ServiceException("验收单明细已关联入库单，不能删除");
+            }
         }
         purchaseAcceptanceItemMapper.delete(
                 new LambdaQueryWrapper<PurchaseAcceptanceItem>().eq(PurchaseAcceptanceItem::getAcceptanceId, acceptanceId)

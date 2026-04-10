@@ -1,84 +1,141 @@
 <template>
-  <div class="sidebar-container" :class="{ 'is-collapsed': isCollapsed }">
+  <div
+    class="sidebar-container"
+    :class="{ 'is-collapsed': isCollapsed }"
+  >
     <div class="logo">
       <span class="logo-icon">
         <el-icon><FirstAidKit /></el-icon>
       </span>
-      <span class="logo-text" v-show="!isCollapsed">医疗系统</span>
+      <span
+        v-show="!isCollapsed"
+        class="logo-text"
+      >医疗系统</span>
     </div>
     <div class="menu-wrapper">
-      <el-menu :default-active="activeMenu" :collapse="isCollapsed" :collapse-transition="false" mode="vertical" class="sidebar-menu"
-        text-color="#e0f2f1" active-text-color="#ffffff" router>
-        
+      <el-menu
+        :default-active="activeMenu"
+        :collapse="isCollapsed"
+        :collapse-transition="false"
+        mode="vertical"
+        class="sidebar-menu"
+        text-color="#e0f2f1"
+        active-text-color="#ffffff"
+        router
+      >
         <!-- 固定菜单项 -->
         <el-menu-item index="/back/dashboard">
           <el-icon><HomeFilled /></el-icon>
-          <template #title>首页</template>
+          <template #title>
+            首页
+          </template>
         </el-menu-item>
         
-        <el-menu-item index="/back/user" v-if="canSeeUserManagement">
+        <el-menu-item
+          v-if="canSeeUserManagement"
+          index="/back/user"
+        >
           <el-icon><User /></el-icon>
-          <template #title>用户管理</template>
+          <template #title>
+            用户管理
+          </template>
         </el-menu-item>
         
-        <el-menu-item index="/back/patient" v-if="canSeePatientManagement">
+        <el-menu-item
+          v-if="canSeePatientManagement"
+          index="/back/patient"
+        >
           <el-icon><UserFilled /></el-icon>
-          <template #title>患者管理</template>
+          <template #title>
+            患者管理
+          </template>
         </el-menu-item>
         
         <el-menu-item index="/back/profile">
           <el-icon><UserFilled /></el-icon>
-          <template #title>个人信息</template>
+          <template #title>
+            个人信息
+          </template>
         </el-menu-item>
         
-        <el-sub-menu index="/back/system" v-if="canSeeOutpatientService">
+        <el-sub-menu
+          v-if="canSeeOutpatientService"
+          index="/back/system"
+        >
           <template #title>
             <el-icon><Setting /></el-icon>
             <span>门诊服务</span>
           </template>
           
-          <el-menu-item index="/back/department" v-if="isAdmin">
+          <el-menu-item
+            v-if="isAdmin"
+            index="/back/department"
+          >
             <el-icon><OfficeBuilding /></el-icon>
             <span>科室管理</span>
           </el-menu-item>
           
-          <el-menu-item index="/back/doctor" v-if="isAdmin">
+          <el-menu-item
+            v-if="isAdmin"
+            index="/back/doctor"
+          >
             <el-icon><UserFilled /></el-icon>
             <span>医生管理</span>
           </el-menu-item>
           
-          <el-menu-item index="/back/medicine" v-if="canSeeOutpatientMedicine">
+          <el-menu-item
+            v-if="canSeeOutpatientMedicine"
+            index="/back/medicine"
+          >
             <el-icon><FirstAidKit /></el-icon>
             <span>药品管理</span>
           </el-menu-item>
           
-          <el-menu-item index="/back/medicine-category" v-if="canSeeOutpatientMedicine">
+          <el-menu-item
+            v-if="canSeeOutpatientMedicine"
+            index="/back/medicine-category"
+          >
             <el-icon><Menu /></el-icon>
             <span>药品分类管理</span>
           </el-menu-item>
           
-          <el-menu-item index="/back/schedule" v-if="isAdmin">
+          <el-menu-item
+            v-if="isAdmin"
+            index="/back/schedule"
+          >
             <el-icon><Calendar /></el-icon>
             <span>排班管理</span>
           </el-menu-item>
           
-          <el-menu-item index="/back/appointment" v-if="canSeeOutpatientClinical">
+          <el-menu-item
+            v-if="canSeeOutpatientClinical"
+            index="/back/appointment"
+          >
             <el-icon><Tickets /></el-icon>
             <span>门诊管理</span>
           </el-menu-item>
           
-          <el-menu-item index="/back/medical-record" v-if="canSeeOutpatientClinical">
+          <el-menu-item
+            v-if="canSeeOutpatientClinical"
+            index="/back/medical-record"
+          >
             <el-icon><Document /></el-icon>
             <span>病历管理</span>
           </el-menu-item>
           
-          <el-menu-item index="/back/prescription" v-if="canSeeOutpatientClinical">
+          <el-menu-item
+            v-if="canSeeOutpatientClinical"
+            index="/back/prescription"
+          >
             <el-icon><List /></el-icon>
             <span>处方管理</span>
           </el-menu-item>
         </el-sub-menu>
 
-        <el-sub-menu index="/back/pharmacy" v-if="canSeePharmacyPurchase">
+        <el-sub-menu
+          v-if="canSeePharmacyPurchase"
+          index="/back/pharmacy"
+        >
           <template #title>
             <el-icon><ShoppingCart /></el-icon>
             <span>药房采购</span>
@@ -105,7 +162,10 @@
           </el-menu-item>
         </el-sub-menu>
 
-        <el-sub-menu index="/back/finance" v-if="canSeeFinance">
+        <el-sub-menu
+          v-if="canSeeFinance"
+          index="/back/finance"
+        >
           <template #title>
             <el-icon><Money /></el-icon>
             <span>财务管理</span>

@@ -11,6 +11,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Tag(name = "采购验收接口")
 @RestController
 @RequestMapping("/purchaseAcceptance")
@@ -53,9 +56,30 @@ public class PurchaseAcceptanceController {
                           @RequestParam(required = false) Long purchaseOrderId,
                           @RequestParam(required = false) Integer status,
                           @RequestParam(defaultValue = "1") Integer currentPage,
-                          @RequestParam(defaultValue = "10") Integer size) {
-        Page<PurchaseAcceptance> page = purchaseAcceptanceService.getAcceptancesByPage(acceptanceNo, purchaseOrderId, status, currentPage, size);
+                          @RequestParam(defaultValue = "10") Integer size,
+                          @RequestParam(required = false) Boolean excludeFullyStockPosted,
+                          @RequestParam(required = false) String alwaysIncludeAcceptanceIds) {
+        Page<PurchaseAcceptance> page = purchaseAcceptanceService.getAcceptancesByPage(acceptanceNo, purchaseOrderId, status,
+                currentPage, size, excludeFullyStockPosted, parseCommaLongs(alwaysIncludeAcceptanceIds));
         return Result.success(page);
+    }
+
+    private static List<Long> parseCommaLongs(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return List.of();
+        }
+        List<Long> out = new ArrayList<>();
+        for (String part : raw.split(",")) {
+            String t = part.trim();
+            if (t.isEmpty()) {
+                continue;
+            }
+            try {
+                out.add(Long.parseLong(t));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return out;
     }
 
     @Operation(summary = "删除验收单")

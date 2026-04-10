@@ -20,7 +20,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 @Service
@@ -273,7 +275,40 @@ public class PurchaseOrderService {
             qw.eq(PurchaseOrder::getStatus, status);
         }
         qw.orderByDesc(PurchaseOrder::getUpdateTime);
-        return purchaseOrderMapper.selectPage(new Page<>(currentPage, size), qw);
+        Page<PurchaseOrder> page = purchaseOrderMapper.selectPage(new Page<>(currentPage, size), qw);
+        fillPlanIdsForOrders(page.getRecords());
+        return page;
+    }
+
+    /**
+     * 列表页填充关联采购计划 ID（多计划合并一单时 planIds 来自 purchase_order_plan 表）。
+     */
+    private void fillPlanIdsForOrders(List<PurchaseOrder> orders) {
+        if (orders == null || orders.isEmpty()) {
+            return;
+        }
+        List<Long> orderIds = orders.stream().map(PurchaseOrder::getId).filter(Objects::nonNull).distinct().toList();
+        if (orderIds.isEmpty()) {
+            return;
+        }
+        List<PurchaseOrderPlan> relations = purchaseOrderPlanMapper.selectList(
+                new LambdaQueryWrapper<PurchaseOrderPlan>().in(PurchaseOrderPlan::getOrderId, orderIds));
+        Map<Long, Set<Long>> planIdsByOrderId = new HashMap<>();
+        for (PurchaseOrderPlan rel : relations) {
+            planIdsByOrderId
+                    .computeIfAbsent(rel.getOrderId(), k -> new TreeSet<>())
+                    .add(rel.getPlanId());
+        }
+        for (PurchaseOrder order : orders) {
+            Set<Long> planIds = planIdsByOrderId.get(order.getId());
+            if (planIds == null || planIds.isEmpty()) {
+                if (order.getPlanId() != null) {
+                    order.setPlanIds(List.of(order.getPlanId()));
+                }
+            } else {
+                order.setPlanIds(new ArrayList<>(planIds));
+            }
+        }
     }
 
     private String generateOrderNo() {

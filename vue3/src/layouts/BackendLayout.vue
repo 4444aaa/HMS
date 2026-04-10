@@ -1,24 +1,27 @@
 <template>
-    <div class="backend-layout">
-      <!-- 侧边栏 -->
-      <Sidebar />
+  <div class="backend-layout">
+    <!-- 侧边栏 -->
+    <Sidebar />
   
-      <!-- 主要内容区域 -->
-      <div class="main-content">
-        <!-- 顶部导航栏 -->
-        <Navbar @logout="handleLogout" />
+    <!-- 主要内容区域 -->
+    <div class="main-content">
+      <!-- 顶部导航栏 -->
+      <Navbar @logout="handleLogout" />
   
-        <!-- 页面内容 -->
-        <div class="content-container">
-          <router-view v-slot="{ Component }">
-            <transition name="fade" mode="out-in">
-              <component :is="Component" />
-            </transition>
-          </router-view>
-        </div>
+      <!-- 页面内容 -->
+      <div class="content-container">
+        <router-view v-slot="{ Component }">
+          <transition
+            name="fade"
+            mode="out-in"
+          >
+            <component :is="Component" />
+          </transition>
+        </router-view>
       </div>
     </div>
-  </template>
+  </div>
+</template>
   
   <script setup>
   import { computed } from 'vue'

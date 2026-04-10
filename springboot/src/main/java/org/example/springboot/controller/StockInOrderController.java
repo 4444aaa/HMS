@@ -23,7 +23,7 @@ public class StockInOrderController {
     @Operation(summary = "创建入库单(含明细)")
     @PostMapping
     public Result<?> create(@RequestBody StockInOrder stockIn) {
-        LOGGER.info("创建入库单: acceptanceId={}", stockIn != null ? stockIn.getAcceptanceId() : null);
+        LOGGER.info("创建入库单: itemCount={}", stockIn != null && stockIn.getItems() != null ? stockIn.getItems().size() : 0);
         return Result.success(stockInOrderService.createStockInOrder(stockIn));
     }
 

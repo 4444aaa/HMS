@@ -21,7 +21,7 @@ public class StockInOrder {
     @Schema(description = "入库单号")
     private String stockInNo;
 
-    @Schema(description = "来源验收单ID")
+    @Schema(description = "来源验收单ID（仅一单来源时有值；多核验单合并入库时为 null）")
     private Long acceptanceId;
 
     @Schema(description = "入库操作人用户ID")
@@ -47,7 +47,15 @@ public class StockInOrder {
     private List<StockInOrderItem> items;
 
     @TableField(exist = false)
-    @Schema(description = "来源验收单")
+    @Schema(description = "来源验收单（仅一单来源时返回）")
     private PurchaseAcceptance acceptance;
+
+    @TableField(exist = false)
+    @Schema(description = "关联验收单ID列表（多对一合并入库）")
+    private List<Long> acceptanceIds;
+
+    @TableField(exist = false)
+    @Schema(description = "关联验收单简要列表（多来源时返回）")
+    private List<PurchaseAcceptance> sourceAcceptances;
 }
 

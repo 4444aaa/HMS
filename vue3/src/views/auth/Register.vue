@@ -1,9 +1,9 @@
 <template>
   <Auth 
-    :formData="registerForm" 
+    :form-data="registerForm" 
     :rules="rules" 
     :loading="loading"
-    submitText="完成注册"
+    submit-text="完成注册"
     @submit="handleSubmit"
   >
     <template #form-items>
@@ -22,24 +22,24 @@
           <el-input 
             v-model="registerForm.user.username"
             :prefix-icon="User"
-            placeholder="请输入用户名（用于登录）">
-          </el-input>
+            placeholder="请输入用户名（用于登录）"
+          />
         </el-form-item>
         <el-form-item prop="user.password">
           <el-input 
             v-model="registerForm.user.password"
             :prefix-icon="Lock"
             type="password"
-            placeholder="请输入密码">
-          </el-input>
+            placeholder="请输入密码"
+          />
         </el-form-item>
         <el-form-item prop="confirmPassword">
           <el-input 
             v-model="registerForm.confirmPassword"
             :prefix-icon="Lock"
             type="password"
-            placeholder="请确认密码">
-          </el-input>
+            placeholder="请确认密码"
+          />
         </el-form-item>
       </div>
       
@@ -53,27 +53,43 @@
           <el-input 
             v-model="registerForm.patient.name"
             :prefix-icon="UserFilled"
-            placeholder="请输入真实姓名">
-          </el-input>
+            placeholder="请输入真实姓名"
+          />
         </el-form-item>
         
         <div class="form-row">
-          <el-form-item prop="patient.sex" class="form-item-half">
-            <el-select v-model="registerForm.patient.sex" placeholder="请选择性别" style="width: 100%">
-              <el-option label="男" value="男"></el-option>
-              <el-option label="女" value="女"></el-option>
+          <el-form-item
+            prop="patient.sex"
+            class="form-item-half"
+          >
+            <el-select
+              v-model="registerForm.patient.sex"
+              placeholder="请选择性别"
+              style="width: 100%"
+            >
+              <el-option
+                label="男"
+                value="男"
+              />
+              <el-option
+                label="女"
+                value="女"
+              />
             </el-select>
           </el-form-item>
           
-          <el-form-item prop="patient.birthday" class="form-item-half">
+          <el-form-item
+            prop="patient.birthday"
+            class="form-item-half"
+          >
             <el-date-picker
               v-model="registerForm.patient.birthday"
               type="date"
               placeholder="出生日期"
               style="width: 100%"
               format="YYYY-MM-DD"
-              value-format="YYYY-MM-DD">
-            </el-date-picker>
+              value-format="YYYY-MM-DD"
+            />
           </el-form-item>
         </div>
         
@@ -81,8 +97,8 @@
           <el-input 
             v-model="registerForm.patient.idCard"
             :prefix-icon="Document"
-            placeholder="请输入身份证号">
-          </el-input>
+            placeholder="请输入身份证号"
+          />
         </el-form-item>
       </div>
       
@@ -96,22 +112,22 @@
           <el-input 
             v-model="registerForm.patient.phone"
             :prefix-icon="Phone"
-            placeholder="请输入手机号">
-          </el-input>
+            placeholder="请输入手机号"
+          />
         </el-form-item>
         <el-form-item prop="user.email">
           <el-input 
             v-model="registerForm.user.email"
             :prefix-icon="Message"
-            placeholder="请输入邮箱">
-          </el-input>
+            placeholder="请输入邮箱"
+          />
         </el-form-item>
         <el-form-item prop="patient.address">
           <el-input 
             v-model="registerForm.patient.address"
             :prefix-icon="Location"
-            placeholder="请输入住址">
-          </el-input>
+            placeholder="请输入住址"
+          />
         </el-form-item>
       </div>
       
@@ -126,26 +142,36 @@
             v-model="registerForm.patient.medicalHistory"
             type="textarea"
             :rows="2"
-            placeholder="请简要描述您的病史（如有）">
-          </el-input>
+            placeholder="请简要描述您的病史（如有）"
+          />
         </el-form-item>
         <el-form-item prop="patient.allergies">
           <el-input 
             v-model="registerForm.patient.allergies"
             type="textarea"
             :rows="2"
-            placeholder="请描述您的过敏史（如有）">
-          </el-input>
+            placeholder="请描述您的过敏史（如有）"
+          />
         </el-form-item>
       </div>
       
       <el-form-item prop="agreement">
-        <el-checkbox v-model="registerForm.agreement">我已阅读并同意<a href="javascript:void(0)" @click="showTerms">《用户协议》</a>和<a href="javascript:void(0)" @click="showPrivacy">《隐私政策》</a></el-checkbox>
+        <el-checkbox v-model="registerForm.agreement">
+          我已阅读并同意<a
+            href="javascript:void(0)"
+            @click="showTerms"
+          >《用户协议》</a>和<a
+            href="javascript:void(0)"
+            @click="showPrivacy"
+          >《隐私政策》</a>
+        </el-checkbox>
       </el-form-item>
     </template>
 
     <template #auth-links>
-      已有账号？<router-link to="/login">立即登录</router-link>
+      已有账号？<router-link to="/login">
+        立即登录
+      </router-link>
     </template>
   </Auth>
 </template>

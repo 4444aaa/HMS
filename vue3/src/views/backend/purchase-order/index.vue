@@ -4,75 +4,164 @@
       <template #header>
         <div class="card-header">
           <h3>采购单</h3>
-          <el-button type="primary" @click="openCreate">新增采购单</el-button>
+          <el-button
+            type="primary"
+            @click="openCreate"
+          >
+            新增采购单
+          </el-button>
         </div>
       </template>
 
-      <el-form :model="searchForm" :inline="true" class="search-form">
+      <el-form
+        :model="searchForm"
+        :inline="true"
+        class="search-form"
+      >
         <el-form-item label="采购单号">
-          <el-input v-model="searchForm.orderNo" placeholder="请输入采购单号" clearable />
+          <el-input
+            v-model="searchForm.orderNo"
+            placeholder="请输入采购单号"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="计划ID">
-          <el-input v-model="searchForm.planId" placeholder="可选" clearable />
+          <el-input
+            v-model="searchForm.planId"
+            placeholder="可选"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="供应商ID">
-          <el-input v-model="searchForm.supplierId" placeholder="可选" clearable />
+          <el-input
+            v-model="searchForm.supplierId"
+            placeholder="可选"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable style="width: 140px">
-            <el-option label="草稿" :value="0" />
-            <el-option label="已发送" :value="1" />
-            <el-option label="已验收完成" :value="2" />
+          <el-select
+            v-model="searchForm.status"
+            placeholder="请选择状态"
+            clearable
+            style="width: 140px"
+          >
+            <el-option
+              label="草稿"
+              :value="0"
+            />
+            <el-option
+              label="已发送"
+              :value="1"
+            />
+            <el-option
+              label="已验收完成"
+              :value="2"
+            />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="resetSearch">重置</el-button>
+          <el-button
+            type="primary"
+            @click="handleSearch"
+          >
+            查询
+          </el-button>
+          <el-button @click="resetSearch">
+            重置
+          </el-button>
         </el-form-item>
       </el-form>
 
-      <el-table v-loading="loading" :data="tableData" border style="width: 100%">
-        <el-table-column prop="orderNo" label="采购单号" width="170" />
-        <el-table-column label="计划ID" min-width="150">
+      <el-table
+        v-loading="loading"
+        :data="tableData"
+        border
+        style="width: 100%"
+      >
+        <el-table-column
+          prop="orderNo"
+          label="采购单号"
+          width="170"
+        />
+        <el-table-column
+          label="计划ID"
+          min-width="150"
+        >
           <template #default="scope">
             {{ formatPlanIds(scope.row) }}
           </template>
         </el-table-column>
-        <el-table-column label="供应商" min-width="180">
+        <el-table-column
+          label="供应商"
+          min-width="180"
+        >
           <template #default="scope">
             {{ supplierNameMap[scope.row.supplierId] || scope.row.supplierId }}
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="120">
+        <el-table-column
+          prop="status"
+          label="状态"
+          width="120"
+        >
           <template #default="scope">
-            <el-tag :type="getStatusTagType(scope.row.status)">{{ getStatusText(scope.row.status) }}</el-tag>
+            <el-tag :type="getStatusTagType(scope.row.status)">
+              {{ getStatusText(scope.row.status) }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="totalAmount" label="金额" width="120" />
-        <el-table-column prop="createTime" label="创建时间" width="180">
-          <template #default="scope">{{ formatDate(scope.row.createTime) }}</template>
-        </el-table-column>
-        <el-table-column label="操作" width="380" fixed="right">
+        <el-table-column
+          prop="totalAmount"
+          label="金额"
+          width="120"
+        />
+        <el-table-column
+          prop="createTime"
+          label="创建时间"
+          width="180"
+        >
           <template #default="scope">
-            <el-button size="small" type="primary" @click="openDetail(scope.row)">详情</el-button>
+            {{ formatDate(scope.row.createTime) }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="操作"
+          width="380"
+          fixed="right"
+        >
+          <template #default="scope">
             <el-button
+              size="small"
+              type="primary"
+              @click="openDetail(scope.row)"
+            >
+              详情
+            </el-button>
+            <el-button
+              v-if="scope.row.status === 0"
               size="small"
               type="warning"
-              v-if="scope.row.status === 0"
               @click="openEdit(scope.row)"
-            >编辑</el-button>
+            >
+              编辑
+            </el-button>
             <el-button
+              v-if="scope.row.status === 0"
               size="small"
               type="success"
-              v-if="scope.row.status === 0"
               @click="sendOrder(scope.row)"
-            >发送</el-button>
+            >
+              发送
+            </el-button>
             <el-button
+              v-if="scope.row.status === 0"
               size="small"
               type="danger"
-              v-if="scope.row.status === 0"
               @click="deleteOrder(scope.row)"
-            >删除</el-button>
+            >
+              删除
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -92,10 +181,27 @@
     </el-card>
 
     <!-- 创建采购单 -->
-    <el-dialog v-model="createVisible" :title="isEdit ? '编辑采购单' : '新增采购单'" width="980px" @closed="resetCreate">
-      <el-form :model="createForm" label-width="90px">
+    <el-dialog
+      v-model="createVisible"
+      :title="isEdit ? '编辑采购单' : '新增采购单'"
+      width="980px"
+      @closed="resetCreate"
+    >
+      <el-form
+        :model="createForm"
+        label-width="90px"
+      >
         <el-form-item label="采购计划">
-          <el-select v-model="createForm.planIds" multiple collapse-tags collapse-tags-tooltip placeholder="请选择已提交计划" filterable style="width: 420px" @change="onPlansChange">
+          <el-select
+            v-model="createForm.planIds"
+            multiple
+            collapse-tags
+            collapse-tags-tooltip
+            placeholder="请选择已提交计划"
+            filterable
+            style="width: 420px"
+            @change="onPlansChange"
+          >
             <el-option
               v-for="p in planOptions"
               :key="p.id"
@@ -105,7 +211,13 @@
           </el-select>
         </el-form-item>
         <el-form-item label="供应商">
-          <el-select v-model="createForm.supplierId" placeholder="请选择供应商" filterable style="width: 320px" @change="onSupplierChange">
+          <el-select
+            v-model="createForm.supplierId"
+            placeholder="请选择供应商"
+            filterable
+            style="width: 320px"
+            @change="onSupplierChange"
+          >
             <el-option
               v-for="s in supplierOptions"
               :key="s.id"
@@ -115,7 +227,12 @@
           </el-select>
         </el-form-item>
         <el-form-item label="备注">
-          <el-input v-model="createForm.remark" type="textarea" :rows="2" placeholder="可选" />
+          <el-input
+            v-model="createForm.remark"
+            type="textarea"
+            :rows="2"
+            placeholder="可选"
+          />
         </el-form-item>
       </el-form>
 
@@ -127,49 +244,109 @@
         style="margin-bottom: 10px"
       />
 
-      <el-table :data="createForm.items" border style="width: 100%">
-        <el-table-column label="药品" min-width="160">
+      <el-table
+        :data="createForm.items"
+        border
+        style="width: 100%"
+      >
+        <el-table-column
+          label="药品"
+          min-width="160"
+        >
           <template #default="scope">
             {{ scope.row.medicine?.medicineName || scope.row.medicineId }}
           </template>
         </el-table-column>
-        <el-table-column label="计划总量" width="100">
-          <template #default="scope">{{ scope.row.planQty }}</template>
-        </el-table-column>
-        <el-table-column label="已下单量" width="100">
-          <template #default="scope">{{ scope.row.purchasedQty }}</template>
-        </el-table-column>
-        <el-table-column label="计划剩余" width="100">
-          <template #default="scope">{{ scope.row.remainingQty }}</template>
-        </el-table-column>
-        <el-table-column label="下单数量" width="130">
+        <el-table-column
+          label="计划总量"
+          width="100"
+        >
           <template #default="scope">
-            <el-input-number v-model="scope.row.orderQty" :min="0" :max="scope.row.remainingQty" style="width: 100%" />
+            {{ scope.row.planQty }}
           </template>
         </el-table-column>
-        <el-table-column label="单价" width="100">
-          <template #default="scope">{{ formatMoney(scope.row.unitPrice) }}</template>
-        </el-table-column>
-        <el-table-column label="总价" width="100">
-          <template #default="scope">{{ formatMoney(lineAmount(scope.row)) }}</template>
-        </el-table-column>
-        <el-table-column label="备注" min-width="140">
+        <el-table-column
+          label="已下单量"
+          width="100"
+        >
           <template #default="scope">
-            <el-input v-model="scope.row.remark" placeholder="可选" />
+            {{ scope.row.purchasedQty }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="计划剩余"
+          width="100"
+        >
+          <template #default="scope">
+            {{ scope.row.remainingQty }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="下单数量"
+          width="130"
+        >
+          <template #default="scope">
+            <el-input-number
+              v-model="scope.row.orderQty"
+              :min="0"
+              :max="scope.row.remainingQty"
+              style="width: 100%"
+            />
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="单价"
+          width="100"
+        >
+          <template #default="scope">
+            {{ formatMoney(scope.row.unitPrice) }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="总价"
+          width="100"
+        >
+          <template #default="scope">
+            {{ formatMoney(lineAmount(scope.row)) }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="备注"
+          min-width="140"
+        >
+          <template #default="scope">
+            <el-input
+              v-model="scope.row.remark"
+              placeholder="可选"
+            />
           </template>
         </el-table-column>
       </el-table>
 
       <template #footer>
-        <el-button @click="createVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="saveOrder">{{ isEdit ? '保存' : '创建' }}</el-button>
+        <el-button @click="createVisible = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="saving"
+          @click="saveOrder"
+        >
+          {{ isEdit ? '保存' : '创建' }}
+        </el-button>
       </template>
     </el-dialog>
 
     <!-- 详情 -->
-    <el-dialog v-model="detailVisible" title="采购单详情" width="980px">
+    <el-dialog
+      v-model="detailVisible"
+      title="采购单详情"
+      width="980px"
+    >
       <div class="doc-preview">
-        <div class="doc-preview-title">采购订单单</div>
+        <div class="doc-preview-title">
+          采购订单单
+        </div>
         <div class="doc-preview-meta">
           <span>采购时间：{{ formatDate(detail.createTime) }}</span>
           <span>采购单号：{{ detail.orderNo || '-' }}</span>
@@ -182,22 +359,47 @@
           <span>地址：{{ detail.supplier?.address || '-' }}</span>
         </div>
         <div class="doc-preview-meta">
-          <span>采购计划：{{ detail.planId || '-' }}</span>
+          <span>采购计划：{{ formatPlanIds(detail) }}</span>
           <span>备注：{{ detail.remark || '-' }}</span>
         </div>
       </div>
-      <el-table :data="detail.items || []" border style="width: 100%">
-        <el-table-column label="药品" min-width="240">
+      <el-table
+        :data="detail.items || []"
+        border
+        style="width: 100%"
+      >
+        <el-table-column
+          label="药品"
+          min-width="240"
+        >
           <template #default="scope">
             {{ scope.row.medicine?.medicineName || scope.row.medicineId }}
           </template>
         </el-table-column>
-        <el-table-column prop="orderQty" label="下单数量" width="120" />
-        <el-table-column prop="unitPrice" label="单价" width="120" />
-        <el-table-column prop="amount" label="金额" width="120" />
-        <el-table-column prop="remark" label="备注" min-width="200" />
+        <el-table-column
+          prop="orderQty"
+          label="下单数量"
+          width="120"
+        />
+        <el-table-column
+          prop="unitPrice"
+          label="单价"
+          width="120"
+        />
+        <el-table-column
+          prop="amount"
+          label="金额"
+          width="120"
+        />
+        <el-table-column
+          prop="remark"
+          label="备注"
+          min-width="200"
+        />
       </el-table>
-      <div class="doc-preview-total">总金额：{{ detail.totalAmount || 0 }} 元</div>
+      <div class="doc-preview-total">
+        总金额：{{ detail.totalAmount || 0 }} 元
+      </div>
     </el-dialog>
   </div>
 </template>
@@ -314,11 +516,12 @@ const openEdit = async (row) => {
   isEdit.value = true
   editingOrderId.value = row.id
   createVisible.value = true
-  await fetchPlanOptions()
   await request.get(`/purchaseOrder/${row.id}`, {}, {
     showDefaultMsg: false,
     onSuccess: async (res) => {
-      createForm.planIds = (res?.planIds && res.planIds.length > 0) ? res.planIds : (res?.planId ? [res.planId] : [])
+      const planIds = (res?.planIds && res.planIds.length > 0) ? res.planIds : (res?.planId ? [res.planId] : [])
+      await fetchPlanOptions(planIds)
+      createForm.planIds = planIds
       createForm.supplierId = res?.supplierId || null
       createForm.remark = res?.remark || ''
       await onPlansChange(createForm.planIds, true)
@@ -354,11 +557,14 @@ const openEdit = async (row) => {
   })
 }
 
-const fetchPlanOptions = async () => {
+const fetchPlanOptions = async (alwaysIncludePlanIds = []) => {
+  const include = (alwaysIncludePlanIds || []).filter((id) => id != null)
   await request.get('/purchasePlan/page', {
     status: 1,
     currentPage: 1,
-    size: 999
+    size: 999,
+    onlyWithPurchaseRemaining: true,
+    alwaysIncludePlanIds: include.length ? include.join(',') : undefined
   }, {
     showDefaultMsg: false,
     onSuccess: (res) => {
@@ -415,7 +621,7 @@ const onPlansChange = async (planIds, preserveSupplier = false) => {
   }
   const merged = {}
   planDetails.forEach((plan) => {
-    ;(plan?.items || []).forEach((it) => {
+    (plan?.items || []).forEach((it) => {
       const planQty = it.planQty || 0
       const purchasedQty = it.purchasedQty || 0
       const remainingQty = planQty - purchasedQty

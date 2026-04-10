@@ -4,57 +4,134 @@
       <template #header>
         <div class="card-header">
           <h3>科室管理</h3>
-          <el-button type="primary" @click="handleAdd">新增科室</el-button>
+          <el-button
+            type="primary"
+            @click="handleAdd"
+          >
+            新增科室
+          </el-button>
         </div>
       </template>
 
       <!-- 搜索表单 -->
-      <el-form :model="searchForm" :inline="true" class="search-form">
+      <el-form
+        :model="searchForm"
+        :inline="true"
+        class="search-form"
+      >
         <el-form-item label="科室名称">
-          <el-input v-model="searchForm.deptName" placeholder="请输入科室名称" clearable />
+          <el-input
+            v-model="searchForm.deptName"
+            placeholder="请输入科室名称"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="科室编码">
-          <el-input v-model="searchForm.deptCode" placeholder="请输入科室编码" clearable />
+          <el-input
+            v-model="searchForm.deptCode"
+            placeholder="请输入科室编码"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable>
-            <el-option label="启用" :value="1" />
-            <el-option label="禁用" :value="0" />
+          <el-select
+            v-model="searchForm.status"
+            placeholder="请选择状态"
+            clearable
+          >
+            <el-option
+              label="启用"
+              :value="1"
+            />
+            <el-option
+              label="禁用"
+              :value="0"
+            />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">搜索</el-button>
-          <el-button @click="resetSearch">重置</el-button>
+          <el-button
+            type="primary"
+            @click="handleSearch"
+          >
+            搜索
+          </el-button>
+          <el-button @click="resetSearch">
+            重置
+          </el-button>
         </el-form-item>
       </el-form>
 
       <!-- 科室列表 -->
-      <el-table v-loading="loading" :data="tableData" border style="width: 100%">
-        <el-table-column prop="deptCode" label="科室编码" width="120" />
-        <el-table-column prop="deptName" label="科室名称" width="150" />
-        <el-table-column prop="description" label="科室描述" min-width="250">
+      <el-table
+        v-loading="loading"
+        :data="tableData"
+        border
+        style="width: 100%"
+      >
+        <el-table-column
+          prop="deptCode"
+          label="科室编码"
+          width="120"
+        />
+        <el-table-column
+          prop="deptName"
+          label="科室名称"
+          width="150"
+        />
+        <el-table-column
+          prop="description"
+          label="科室描述"
+          min-width="250"
+        >
           <template #default="scope">
             {{ scope.row.description || '暂无描述' }}
           </template>
         </el-table-column>
-        <el-table-column prop="director" label="负责人" width="150">
+        <el-table-column
+          prop="director"
+          label="负责人"
+          width="150"
+        >
           <template #default="scope">
             {{ scope.row.director ? scope.row.director.name : '暂无负责人' }}
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column
+          prop="status"
+          label="状态"
+          width="100"
+        >
           <template #default="scope">
             <el-tag :type="scope.row.status === 1 ? 'success' : 'danger'">
               {{ scope.row.status === 1 ? '启用' : '禁用' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column
+          label="操作"
+          width="200"
+          fixed="right"
+        >
           <template #default="scope">
-            <el-button type="primary" size="small" @click="handleEdit(scope.row)">编辑</el-button>
-            <el-popconfirm title="确定删除此科室吗？" @confirm="handleDelete(scope.row)">
+            <el-button
+              type="primary"
+              size="small"
+              @click="handleEdit(scope.row)"
+            >
+              编辑
+            </el-button>
+            <el-popconfirm
+              title="确定删除此科室吗？"
+              @confirm="handleDelete(scope.row)"
+            >
               <template #reference>
-                <el-button type="danger" size="small">删除</el-button>
+                <el-button
+                  type="danger"
+                  size="small"
+                >
+                  删除
+                </el-button>
               </template>
             </el-popconfirm>
           </template>
@@ -89,13 +166,28 @@
         :rules="departmentFormRules"
         label-width="100px"
       >
-        <el-form-item label="科室名称" prop="deptName">
-          <el-input v-model="departmentForm.deptName" placeholder="请输入科室名称" />
+        <el-form-item
+          label="科室名称"
+          prop="deptName"
+        >
+          <el-input
+            v-model="departmentForm.deptName"
+            placeholder="请输入科室名称"
+          />
         </el-form-item>
-        <el-form-item label="科室编码" prop="deptCode">
-          <el-input v-model="departmentForm.deptCode" placeholder="请输入科室编码" />
+        <el-form-item
+          label="科室编码"
+          prop="deptCode"
+        >
+          <el-input
+            v-model="departmentForm.deptCode"
+            placeholder="请输入科室编码"
+          />
         </el-form-item>
-        <el-form-item label="科室描述" prop="description">
+        <el-form-item
+          label="科室描述"
+          prop="description"
+        >
           <el-input
             v-model="departmentForm.description"
             type="textarea"
@@ -103,8 +195,16 @@
             placeholder="请输入科室描述"
           />
         </el-form-item>
-        <el-form-item label="负责人" prop="directorId">
-          <el-select v-model="departmentForm.directorId" placeholder="请选择负责人" clearable filterable>
+        <el-form-item
+          label="负责人"
+          prop="directorId"
+        >
+          <el-select
+            v-model="departmentForm.directorId"
+            placeholder="请选择负责人"
+            clearable
+            filterable
+          >
             <el-option
               v-for="doctor in doctorOptions"
               :key="doctor.id"
@@ -113,17 +213,27 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="状态" prop="status">
+        <el-form-item
+          label="状态"
+          prop="status"
+        >
           <el-radio-group v-model="departmentForm.status">
-            <el-radio :label="1">启用</el-radio>
-            <el-radio :label="0">禁用</el-radio>
+            <el-radio :label="1">
+              启用
+            </el-radio>
+            <el-radio :label="0">
+              禁用
+            </el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitForm">确定</el-button>
+          <el-button
+            type="primary"
+            @click="submitForm"
+          >确定</el-button>
         </span>
       </template>
     </el-dialog>

@@ -4,53 +4,132 @@
       <template #header>
         <div class="card-header">
           <h3>药品分类管理</h3>
-          <el-button v-if="!isCategoryReadOnly" type="primary" @click="handleAdd">新增分类</el-button>
+          <el-button
+            v-if="!isCategoryReadOnly"
+            type="primary"
+            @click="handleAdd"
+          >
+            新增分类
+          </el-button>
         </div>
       </template>
 
       <!-- 搜索表单 -->
-      <el-form :model="searchForm" :inline="true" class="search-form">
+      <el-form
+        :model="searchForm"
+        :inline="true"
+        class="search-form"
+      >
         <el-form-item label="分类名称">
-          <el-input v-model="searchForm.categoryName" placeholder="请输入分类名称" clearable />
+          <el-input
+            v-model="searchForm.categoryName"
+            placeholder="请输入分类名称"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="分类编码">
-          <el-input v-model="searchForm.categoryCode" placeholder="请输入分类编码" clearable />
+          <el-input
+            v-model="searchForm.categoryCode"
+            placeholder="请输入分类编码"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable>
-            <el-option label="启用" :value="1" />
-            <el-option label="禁用" :value="0" />
+          <el-select
+            v-model="searchForm.status"
+            placeholder="请选择状态"
+            clearable
+          >
+            <el-option
+              label="启用"
+              :value="1"
+            />
+            <el-option
+              label="禁用"
+              :value="0"
+            />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">搜索</el-button>
-          <el-button @click="resetSearch">重置</el-button>
+          <el-button
+            type="primary"
+            @click="handleSearch"
+          >
+            搜索
+          </el-button>
+          <el-button @click="resetSearch">
+            重置
+          </el-button>
         </el-form-item>
       </el-form>
 
       <!-- 分类列表 -->
-      <el-table v-loading="loading" :data="tableData" border style="width: 100%">
-        <el-table-column prop="categoryCode" label="分类编码" width="120" />
-        <el-table-column prop="categoryName" label="分类名称" width="150" />
-        <el-table-column prop="description" label="分类描述" min-width="200" />
-        <el-table-column prop="status" label="状态" width="80">
+      <el-table
+        v-loading="loading"
+        :data="tableData"
+        border
+        style="width: 100%"
+      >
+        <el-table-column
+          prop="categoryCode"
+          label="分类编码"
+          width="120"
+        />
+        <el-table-column
+          prop="categoryName"
+          label="分类名称"
+          width="150"
+        />
+        <el-table-column
+          prop="description"
+          label="分类描述"
+          min-width="200"
+        />
+        <el-table-column
+          prop="status"
+          label="状态"
+          width="80"
+        >
           <template #default="scope">
             <el-tag :type="scope.row.status === 1 ? 'success' : 'info'">
               {{ scope.row.status === 1 ? '启用' : '禁用' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" width="160">
+        <el-table-column
+          prop="createTime"
+          label="创建时间"
+          width="160"
+        >
           <template #default="scope">
             {{ new Date(scope.row.createTime).toLocaleString() }}
           </template>
         </el-table-column>
-        <el-table-column v-if="!isCategoryReadOnly" label="操作" width="200" fixed="right">
+        <el-table-column
+          v-if="!isCategoryReadOnly"
+          label="操作"
+          width="200"
+          fixed="right"
+        >
           <template #default="scope">
-            <el-button type="primary" size="small" @click="handleEdit(scope.row)">编辑</el-button>
-            <el-popconfirm title="确定删除此分类吗？" @confirm="handleDelete(scope.row)">
+            <el-button
+              type="primary"
+              size="small"
+              @click="handleEdit(scope.row)"
+            >
+              编辑
+            </el-button>
+            <el-popconfirm
+              title="确定删除此分类吗？"
+              @confirm="handleDelete(scope.row)"
+            >
               <template #reference>
-                <el-button type="danger" size="small">删除</el-button>
+                <el-button
+                  type="danger"
+                  size="small"
+                >
+                  删除
+                </el-button>
               </template>
             </el-popconfirm>
           </template>
@@ -85,15 +164,30 @@
         :rules="categoryFormRules"
         label-width="100px"
       >
-        <el-form-item label="分类名称" prop="categoryName">
-          <el-input v-model="categoryForm.categoryName" placeholder="请输入分类名称" />
+        <el-form-item
+          label="分类名称"
+          prop="categoryName"
+        >
+          <el-input
+            v-model="categoryForm.categoryName"
+            placeholder="请输入分类名称"
+          />
         </el-form-item>
         
-        <el-form-item label="分类编码" prop="categoryCode">
-          <el-input v-model="categoryForm.categoryCode" placeholder="请输入分类编码" />
+        <el-form-item
+          label="分类编码"
+          prop="categoryCode"
+        >
+          <el-input
+            v-model="categoryForm.categoryCode"
+            placeholder="请输入分类编码"
+          />
         </el-form-item>
         
-        <el-form-item label="分类描述" prop="description">
+        <el-form-item
+          label="分类描述"
+          prop="description"
+        >
           <el-input
             v-model="categoryForm.description"
             type="textarea"
@@ -102,17 +196,27 @@
           />
         </el-form-item>
         
-        <el-form-item label="状态" prop="status">
+        <el-form-item
+          label="状态"
+          prop="status"
+        >
           <el-radio-group v-model="categoryForm.status">
-            <el-radio :label="1">启用</el-radio>
-            <el-radio :label="0">禁用</el-radio>
+            <el-radio :label="1">
+              启用
+            </el-radio>
+            <el-radio :label="0">
+              禁用
+            </el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitForm">确定</el-button>
+          <el-button
+            type="primary"
+            @click="submitForm"
+          >确定</el-button>
         </span>
       </template>
     </el-dialog>

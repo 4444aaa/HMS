@@ -4,59 +4,152 @@
       <template #header>
         <div class="card-header">
           <h3>患者管理</h3>
-          <el-button type="primary" @click="handleAdd">新增患者</el-button>
+          <el-button
+            type="primary"
+            @click="handleAdd"
+          >
+            新增患者
+          </el-button>
         </div>
       </template>
 
       <!-- 搜索表单 -->
-      <el-form :model="searchForm" :inline="true" class="search-form">
+      <el-form
+        :model="searchForm"
+        :inline="true"
+        class="search-form"
+      >
         <el-form-item label="姓名">
-          <el-input v-model="searchForm.name" placeholder="请输入姓名" clearable />
+          <el-input
+            v-model="searchForm.name"
+            placeholder="请输入姓名"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="身份证号">
-          <el-input v-model="searchForm.idCard" placeholder="请输入身份证号" clearable />
+          <el-input
+            v-model="searchForm.idCard"
+            placeholder="请输入身份证号"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="手机号">
-          <el-input v-model="searchForm.phone" placeholder="请输入手机号" clearable />
+          <el-input
+            v-model="searchForm.phone"
+            placeholder="请输入手机号"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="关联用户">
-          <el-input v-model="searchForm.username" placeholder="请输入关联用户名" clearable />
+          <el-input
+            v-model="searchForm.username"
+            placeholder="请输入关联用户名"
+            clearable
+          />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">搜索</el-button>
-          <el-button @click="resetSearch">重置</el-button>
+          <el-button
+            type="primary"
+            @click="handleSearch"
+          >
+            搜索
+          </el-button>
+          <el-button @click="resetSearch">
+            重置
+          </el-button>
         </el-form-item>
       </el-form>
 
       <!-- 患者列表 -->
-      <el-table v-loading="loading" :data="tableData" border style="width: 100%">
-        <el-table-column prop="patientNo" label="患者编号" width="120" />
-        <el-table-column prop="name" label="姓名" width="100" />
-        <el-table-column prop="sex" label="性别" width="60" />
-        <el-table-column prop="idCard" label="身份证号" width="180" />
-        <el-table-column prop="phone" label="联系电话" width="120" />
-        <el-table-column prop="birthday" label="出生日期" width="100">
+      <el-table
+        v-loading="loading"
+        :data="tableData"
+        border
+        style="width: 100%"
+      >
+        <el-table-column
+          prop="patientNo"
+          label="患者编号"
+          width="120"
+        />
+        <el-table-column
+          prop="name"
+          label="姓名"
+          width="100"
+        />
+        <el-table-column
+          prop="sex"
+          label="性别"
+          width="60"
+        />
+        <el-table-column
+          prop="idCard"
+          label="身份证号"
+          width="180"
+        />
+        <el-table-column
+          prop="phone"
+          label="联系电话"
+          width="120"
+        />
+        <el-table-column
+          prop="birthday"
+          label="出生日期"
+          width="100"
+        >
           <template #default="scope">
             {{ scope.row.birthday ? scope.row.birthday : '未设置' }}
           </template>
         </el-table-column>
-        <el-table-column prop="address" label="住址" min-width="200">
+        <el-table-column
+          prop="address"
+          label="住址"
+          min-width="200"
+        >
           <template #default="scope">
             {{ scope.row.address || '未设置' }}
           </template>
         </el-table-column>
-        <el-table-column prop="user" label="关联用户" width="120">
+        <el-table-column
+          prop="user"
+          label="关联用户"
+          width="120"
+        >
           <template #default="scope">
             {{ scope.row.user ? scope.row.user.username : '未关联' }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column
+          label="操作"
+          width="200"
+          fixed="right"
+        >
           <template #default="scope">
-            <el-button type="primary" size="small" @click="handleEdit(scope.row)">编辑</el-button>
-            <el-button type="success" size="small" @click="handleViewDetail(scope.row)">详情</el-button>
-            <el-popconfirm title="确定删除此患者吗？" @confirm="handleDelete(scope.row)">
+            <el-button
+              type="primary"
+              size="small"
+              @click="handleEdit(scope.row)"
+            >
+              编辑
+            </el-button>
+            <el-button
+              type="success"
+              size="small"
+              @click="handleViewDetail(scope.row)"
+            >
+              详情
+            </el-button>
+            <el-popconfirm
+              title="确定删除此患者吗？"
+              @confirm="handleDelete(scope.row)"
+            >
               <template #reference>
-                <el-button type="danger" size="small">删除</el-button>
+                <el-button
+                  type="danger"
+                  size="small"
+                >
+                  删除
+                </el-button>
               </template>
             </el-popconfirm>
           </template>
@@ -91,19 +184,41 @@
         :rules="getPatientFormRules"
         label-width="100px"
       >
-        <el-form-item label="姓名" prop="name">
-          <el-input v-model="patientForm.name" placeholder="请输入姓名" />
+        <el-form-item
+          label="姓名"
+          prop="name"
+        >
+          <el-input
+            v-model="patientForm.name"
+            placeholder="请输入姓名"
+          />
         </el-form-item>
-        <el-form-item label="性别" prop="sex">
+        <el-form-item
+          label="性别"
+          prop="sex"
+        >
           <el-radio-group v-model="patientForm.sex">
-            <el-radio label="男">男</el-radio>
-            <el-radio label="女">女</el-radio>
+            <el-radio label="男">
+              男
+            </el-radio>
+            <el-radio label="女">
+              女
+            </el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="身份证号" prop="idCard">
-          <el-input v-model="patientForm.idCard" placeholder="请输入身份证号" />
+        <el-form-item
+          label="身份证号"
+          prop="idCard"
+        >
+          <el-input
+            v-model="patientForm.idCard"
+            placeholder="请输入身份证号"
+          />
         </el-form-item>
-        <el-form-item label="出生日期" prop="birthday">
+        <el-form-item
+          label="出生日期"
+          prop="birthday"
+        >
           <el-date-picker
             v-model="patientForm.birthday"
             type="date"
@@ -113,10 +228,19 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="联系电话" prop="phone">
-          <el-input v-model="patientForm.phone" placeholder="请输入联系电话" />
+        <el-form-item
+          label="联系电话"
+          prop="phone"
+        >
+          <el-input
+            v-model="patientForm.phone"
+            placeholder="请输入联系电话"
+          />
         </el-form-item>
-        <el-form-item label="住址" prop="address">
+        <el-form-item
+          label="住址"
+          prop="address"
+        >
           <el-input
             v-model="patientForm.address"
             type="textarea"
@@ -124,7 +248,10 @@
             placeholder="请输入住址"
           />
         </el-form-item>
-        <el-form-item label="病史" prop="medicalHistory">
+        <el-form-item
+          label="病史"
+          prop="medicalHistory"
+        >
           <el-input
             v-model="patientForm.medicalHistory"
             type="textarea"
@@ -132,7 +259,10 @@
             placeholder="请输入病史"
           />
         </el-form-item>
-        <el-form-item label="过敏史" prop="allergies">
+        <el-form-item
+          label="过敏史"
+          prop="allergies"
+        >
           <el-input
             v-model="patientForm.allergies"
             type="textarea"
@@ -142,16 +272,38 @@
         </el-form-item>
         
         <!-- 关联用户部分 -->
-        <el-form-item label="关联用户" prop="userType">
-          <el-radio-group v-model="userType" @change="handleUserTypeChange">
-            <el-radio :label="'existing'">选择已有用户</el-radio>
-            <el-radio :label="'new'" v-if="dialogType === 'add'">创建新用户</el-radio>
+        <el-form-item
+          label="关联用户"
+          prop="userType"
+        >
+          <el-radio-group
+            v-model="userType"
+            @change="handleUserTypeChange"
+          >
+            <el-radio :label="'existing'">
+              选择已有用户
+            </el-radio>
+            <el-radio
+              v-if="dialogType === 'add'"
+              :label="'new'"
+            >
+              创建新用户
+            </el-radio>
           </el-radio-group>
         </el-form-item>
 
         <!-- 选择已有用户 -->
-        <el-form-item v-if="userType === 'existing'" label="选择用户" prop="userId">
-          <el-select v-model="patientForm.userId" placeholder="请选择关联用户" clearable filterable>
+        <el-form-item
+          v-if="userType === 'existing'"
+          label="选择用户"
+          prop="userId"
+        >
+          <el-select
+            v-model="patientForm.userId"
+            placeholder="请选择关联用户"
+            clearable
+            filterable
+          >
             <el-option
               v-for="user in userOptions"
               :key="user.id"
@@ -170,25 +322,56 @@
         :rules="newUserFormRules"
         label-width="100px"
       >
-        <el-divider content-position="center">新用户信息</el-divider>
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="newUserForm.username" placeholder="请输入用户名" />
+        <el-divider content-position="center">
+          新用户信息
+        </el-divider>
+        <el-form-item
+          label="用户名"
+          prop="username"
+        >
+          <el-input
+            v-model="newUserForm.username"
+            placeholder="请输入用户名"
+          />
         </el-form-item>
-        <el-form-item label="密码" prop="password">
-          <el-input v-model="newUserForm.password" type="password" placeholder="请输入密码" show-password />
+        <el-form-item
+          label="密码"
+          prop="password"
+        >
+          <el-input
+            v-model="newUserForm.password"
+            type="password"
+            placeholder="请输入密码"
+            show-password
+          />
         </el-form-item>
-        <el-form-item label="邮箱" prop="email">
-          <el-input v-model="newUserForm.email" placeholder="请输入邮箱" />
+        <el-form-item
+          label="邮箱"
+          prop="email"
+        >
+          <el-input
+            v-model="newUserForm.email"
+            placeholder="请输入邮箱"
+          />
         </el-form-item>
-        <el-form-item label="手机号" prop="phone">
-          <el-input v-model="newUserForm.phone" placeholder="请输入手机号" />
+        <el-form-item
+          label="手机号"
+          prop="phone"
+        >
+          <el-input
+            v-model="newUserForm.phone"
+            placeholder="请输入手机号"
+          />
         </el-form-item>
       </el-form>
       
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitForm">确定</el-button>
+          <el-button
+            type="primary"
+            @click="submitForm"
+          >确定</el-button>
         </span>
       </template>
     </el-dialog>
@@ -199,19 +382,49 @@
       title="患者详情"
       width="700px"
     >
-      <el-descriptions :column="2" border>
-        <el-descriptions-item label="患者编号">{{ detailForm.patientNo }}</el-descriptions-item>
-        <el-descriptions-item label="姓名">{{ detailForm.name }}</el-descriptions-item>
-        <el-descriptions-item label="性别">{{ detailForm.sex }}</el-descriptions-item>
-        <el-descriptions-item label="身份证号">{{ detailForm.idCard }}</el-descriptions-item>
-        <el-descriptions-item label="出生日期">{{ detailForm.birthday }}</el-descriptions-item>
-        <el-descriptions-item label="联系电话">{{ detailForm.phone }}</el-descriptions-item>
-        <el-descriptions-item label="住址" :span="2">{{ detailForm.address }}</el-descriptions-item>
-        <el-descriptions-item label="病史" :span="2">
-          <div style="white-space: pre-line">{{ detailForm.medicalHistory || '无' }}</div>
+      <el-descriptions
+        :column="2"
+        border
+      >
+        <el-descriptions-item label="患者编号">
+          {{ detailForm.patientNo }}
         </el-descriptions-item>
-        <el-descriptions-item label="过敏史" :span="2">
-          <div style="white-space: pre-line">{{ detailForm.allergies || '无' }}</div>
+        <el-descriptions-item label="姓名">
+          {{ detailForm.name }}
+        </el-descriptions-item>
+        <el-descriptions-item label="性别">
+          {{ detailForm.sex }}
+        </el-descriptions-item>
+        <el-descriptions-item label="身份证号">
+          {{ detailForm.idCard }}
+        </el-descriptions-item>
+        <el-descriptions-item label="出生日期">
+          {{ detailForm.birthday }}
+        </el-descriptions-item>
+        <el-descriptions-item label="联系电话">
+          {{ detailForm.phone }}
+        </el-descriptions-item>
+        <el-descriptions-item
+          label="住址"
+          :span="2"
+        >
+          {{ detailForm.address }}
+        </el-descriptions-item>
+        <el-descriptions-item
+          label="病史"
+          :span="2"
+        >
+          <div style="white-space: pre-line">
+            {{ detailForm.medicalHistory || '无' }}
+          </div>
+        </el-descriptions-item>
+        <el-descriptions-item
+          label="过敏史"
+          :span="2"
+        >
+          <div style="white-space: pre-line">
+            {{ detailForm.allergies || '无' }}
+          </div>
         </el-descriptions-item>
         <el-descriptions-item label="关联用户">
           {{ detailForm.user ? detailForm.user.username : '未关联' }}

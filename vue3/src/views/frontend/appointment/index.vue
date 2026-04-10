@@ -9,8 +9,14 @@
 
     <el-row :gutter="20">
       <!-- 左侧科室和医生选择 -->
-      <el-col :md="8" :sm="24">
-        <el-card class="selection-card" shadow="hover">
+      <el-col
+        :md="8"
+        :sm="24"
+      >
+        <el-card
+          class="selection-card"
+          shadow="hover"
+        >
           <div class="card-header-custom">
             <div class="header-icon">
               <el-icon><OfficeBuilding /></el-icon>
@@ -23,19 +29,22 @@
             <el-scrollbar height="180px">
               <div class="dept-buttons">
                 <el-button 
-                v-for="dept in departmentList" 
-                :key="dept.id" 
+                  v-for="dept in departmentList" 
+                  :key="dept.id" 
                   :class="['dept-button', selectedDepartmentId === dept.id ? 'dept-active' : '']"
                   @click="handleDepartmentChange(dept.id)"
-              >
-                {{ dept.deptName }}
+                >
+                  {{ dept.deptName }}
                 </el-button>
               </div>
             </el-scrollbar>
           </div>
           
           <!-- 医生列表 -->
-          <div class="card-header-custom" style="margin-top: 30px;">
+          <div
+            class="card-header-custom"
+            style="margin-top: 30px;"
+          >
             <div class="header-icon">
               <el-icon><User /></el-icon>
             </div>
@@ -43,54 +52,91 @@
           </div>
           
           <div class="doctor-list">
-            <el-empty v-if="!selectedDepartmentId" description="请先选择科室" />
-            <el-empty v-else-if="doctorList.length === 0" description="该科室暂无可预约医生" />
-            <el-scrollbar v-else height="320px">
+            <el-empty
+              v-if="!selectedDepartmentId"
+              description="请先选择科室"
+            />
+            <el-empty
+              v-else-if="doctorList.length === 0"
+              description="该科室暂无可预约医生"
+            />
+            <el-scrollbar
+              v-else
+              height="320px"
+            >
               <div class="doctor-cards">
                 <div 
-                v-for="doctor in doctorList" 
-                :key="doctor.id"
+                  v-for="doctor in doctorList" 
+                  :key="doctor.id"
                   :class="['doctor-card', selectedDoctorId === doctor.id ? 'doctor-active' : '']"
-                @click="handleDoctorSelect(doctor)"
-              >
+                  @click="handleDoctorSelect(doctor)"
+                >
                   <div class="doctor-avatar">
-                    <el-avatar :size="60" :src="getDoctorAvatarUrl(doctor.user?.avatar) || '/img/default_avatar.png'" />
+                    <el-avatar
+                      :size="60"
+                      :src="getDoctorAvatarUrl(doctor.user?.avatar) || '/img/default_avatar.png'"
+                    />
                   </div>
                   <div class="doctor-details">
                     <h4>{{ doctor.name }}</h4>
-                    <div class="doctor-title">{{ doctor.title || '医师' }}</div>
-                    <p class="doctor-expertise">{{ doctor.expertise || '擅长：全科医疗' }}</p>
+                    <div class="doctor-title">
+                      {{ doctor.title || '医师' }}
+                    </div>
+                    <p class="doctor-expertise">
+                      {{ doctor.expertise || '擅长：全科医疗' }}
+                    </p>
                   </div>
                 </div>
-            </div>
+              </div>
             </el-scrollbar>
           </div>
         </el-card>
       </el-col>
       
       <!-- 右侧排班和预约 -->
-      <el-col :md="16" :sm="24">
-        <el-card class="schedule-card" shadow="hover">
+      <el-col
+        :md="16"
+        :sm="24"
+      >
+        <el-card
+          class="schedule-card"
+          shadow="hover"
+        >
           <template #header>
             <div class="schedule-header">
               <div class="step-indicator">
                 <div class="step completed">
-                  <div class="step-number">1</div>
-                  <div class="step-name">选择科室</div>
+                  <div class="step-number">
+                    1
+                  </div>
+                  <div class="step-name">
+                    选择科室
+                  </div>
                 </div>
-                <div class="step-line"></div>
+                <div class="step-line" />
                 <div :class="['step', selectedDoctorId ? 'completed' : '']">
-                  <div class="step-number">2</div>
-                  <div class="step-name">选择医生</div>
+                  <div class="step-number">
+                    2
+                  </div>
+                  <div class="step-name">
+                    选择医生
+                  </div>
                 </div>
-                <div class="step-line"></div>
+                <div class="step-line" />
                 <div class="step">
-                  <div class="step-number">3</div>
-                  <div class="step-name">选择时间</div>
+                  <div class="step-number">
+                    3
+                  </div>
+                  <div class="step-name">
+                    选择时间
+                  </div>
                 </div>
               </div>
               
-              <div class="date-selector" v-if="selectedDoctorId">
+              <div
+                v-if="selectedDoctorId"
+                class="date-selector"
+              >
                 <span class="date-label">选择日期范围：</span>
                 <el-date-picker
                   v-model="selectedDate"
@@ -99,63 +145,104 @@
                   start-placeholder="开始日期"
                   end-placeholder="结束日期"
                   :disabled-date="disabledDate"
-                  @change="handleDateRangeChange"
                   size="large"
                   style="width: 320px;"
+                  @change="handleDateRangeChange"
                 />
               </div>
             </div>
           </template>
           
-          <div v-if="!selectedDoctorId" class="empty-schedule-prompt">
-            <el-icon :size="100" color="#a8d8ea"><User /></el-icon>
+          <div
+            v-if="!selectedDoctorId"
+            class="empty-schedule-prompt"
+          >
+            <el-icon
+              :size="100"
+              color="#a8d8ea"
+            >
+              <User />
+            </el-icon>
             <p>请先在左侧选择科室和医生</p>
-            <p class="help-text">我们将为您展示可预约的时间</p>
+            <p class="help-text">
+              我们将为您展示可预约的时间
+            </p>
           </div>
           
           <!-- 排班日历 -->
-          <div v-else class="schedule-calendar">
-            <el-empty v-if="scheduleList.length === 0" description="该医生暂无可预约时间">
+          <div
+            v-else
+            class="schedule-calendar"
+          >
+            <el-empty
+              v-if="scheduleList.length === 0"
+              description="该医生暂无可预约时间"
+            >
               <template #image>
-                <el-icon :size="60" color="#a8d8ea"><Calendar /></el-icon>
+                <el-icon
+                  :size="60"
+                  color="#a8d8ea"
+                >
+                  <Calendar />
+                </el-icon>
               </template>
-              <p class="empty-schedule-text">您可以尝试选择其他日期范围或其他医生</p>
+              <p class="empty-schedule-text">
+                您可以尝试选择其他日期范围或其他医生
+              </p>
             </el-empty>
             
-            <div v-else class="schedule-list">
+            <div
+              v-else
+              class="schedule-list"
+            >
               <div 
                 v-for="schedule in scheduleList" 
-                :key="schedule.id"
                 :id="`schedule-${schedule.id}`"
+                :key="schedule.id"
                 class="schedule-item"
               >
                 <div class="schedule-date-info">
-                  <div class="schedule-date">{{ formatDate(schedule.scheduleDate) }}</div>
-                  <div class="schedule-day">{{ getDayOfWeek(schedule.scheduleDate) }}</div>
+                  <div class="schedule-date">
+                    {{ formatDate(schedule.scheduleDate) }}
                   </div>
-                
-                <div class="schedule-time-info">
-                  <el-tag :type="getTimeSlotType(schedule.timeSlot)" effect="light" round>{{ schedule.timeSlot }}</el-tag>
-                  <div class="schedule-quota">剩余名额: {{ schedule.maxPatients - schedule.currentPatients }}</div>
-                  </div>
-                
-                  <div class="schedule-action">
-                    <el-button 
-                    :type="schedule.maxPatients <= schedule.currentPatients ? 'info' : 'primary'"
-                      :disabled="schedule.maxPatients <= schedule.currentPatients"
-                      @click="handleAppointment(schedule)"
-                    round
-                    >
-                    {{ schedule.maxPatients <= schedule.currentPatients ? '已满' : '预约' }}
-                    </el-button>
+                  <div class="schedule-day">
+                    {{ getDayOfWeek(schedule.scheduleDate) }}
                   </div>
                 </div>
+                
+                <div class="schedule-time-info">
+                  <el-tag
+                    :type="getTimeSlotType(schedule.timeSlot)"
+                    effect="light"
+                    round
+                  >
+                    {{ schedule.timeSlot }}
+                  </el-tag>
+                  <div class="schedule-quota">
+                    剩余名额: {{ schedule.maxPatients - schedule.currentPatients }}
+                  </div>
+                </div>
+                
+                <div class="schedule-action">
+                  <el-button 
+                    :type="schedule.maxPatients <= schedule.currentPatients ? 'info' : 'primary'"
+                    :disabled="schedule.maxPatients <= schedule.currentPatients"
+                    round
+                    @click="handleAppointment(schedule)"
+                  >
+                    {{ schedule.maxPatients <= schedule.currentPatients ? '已满' : '预约' }}
+                  </el-button>
+                </div>
+              </div>
             </div>
           </div>
         </el-card>
         
         <!-- 健康提示 -->
-        <el-card class="health-tips-card" shadow="hover">
+        <el-card
+          class="health-tips-card"
+          shadow="hover"
+        >
           <div class="tips-header">
             <el-icon><InfoFilled /></el-icon>
             <h4>挂号小贴士</h4>
@@ -182,38 +269,59 @@
           <div class="summary-icon">
             <el-icon><Calendar /></el-icon>
           </div>
-          <h3 class="summary-title">预约详情</h3>
+          <h3 class="summary-title">
+            预约详情
+          </h3>
         </div>
         
         <el-divider />
         
-      <el-form
-        ref="appointmentFormRef"
-        :model="appointmentForm"
-        :rules="appointmentFormRules"
-        label-width="100px"
-      >
-        <el-form-item label="就诊日期">
-            <el-input v-model="appointmentInfo.date" disabled class="custom-disabled-input" />
-        </el-form-item>
-        <el-form-item label="就诊时间">
-            <el-input v-model="appointmentInfo.timeSlot" disabled class="custom-disabled-input" />
-        </el-form-item>
-        <el-form-item label="科室">
-            <el-input v-model="appointmentInfo.department" disabled class="custom-disabled-input" />
-        </el-form-item>
-        <el-form-item label="医生">
-            <el-input v-model="appointmentInfo.doctor" disabled class="custom-disabled-input" />
-        </el-form-item>
-        <el-form-item label="症状描述" prop="symptoms">
-          <el-input
-            v-model="appointmentForm.symptoms"
-            type="textarea"
-            :rows="4"
+        <el-form
+          ref="appointmentFormRef"
+          :model="appointmentForm"
+          :rules="appointmentFormRules"
+          label-width="100px"
+        >
+          <el-form-item label="就诊日期">
+            <el-input
+              v-model="appointmentInfo.date"
+              disabled
+              class="custom-disabled-input"
+            />
+          </el-form-item>
+          <el-form-item label="就诊时间">
+            <el-input
+              v-model="appointmentInfo.timeSlot"
+              disabled
+              class="custom-disabled-input"
+            />
+          </el-form-item>
+          <el-form-item label="科室">
+            <el-input
+              v-model="appointmentInfo.department"
+              disabled
+              class="custom-disabled-input"
+            />
+          </el-form-item>
+          <el-form-item label="医生">
+            <el-input
+              v-model="appointmentInfo.doctor"
+              disabled
+              class="custom-disabled-input"
+            />
+          </el-form-item>
+          <el-form-item
+            label="症状描述"
+            prop="symptoms"
+          >
+            <el-input
+              v-model="appointmentForm.symptoms"
+              type="textarea"
+              :rows="4"
               placeholder="请简要描述您的症状和就诊需求，帮助医生更好地了解您的情况"
-          />
-        </el-form-item>
-      </el-form>
+            />
+          </el-form-item>
+        </el-form>
         
         <div class="notice-box">
           <el-icon><Warning /></el-icon>
@@ -223,8 +331,16 @@
       
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="appointmentDialogVisible = false" plain round>取消</el-button>
-          <el-button type="primary" @click="submitAppointment" round>确认预约</el-button>
+          <el-button
+            plain
+            round
+            @click="appointmentDialogVisible = false"
+          >取消</el-button>
+          <el-button
+            type="primary"
+            round
+            @click="submitAppointment"
+          >确认预约</el-button>
         </span>
       </template>
     </el-dialog>

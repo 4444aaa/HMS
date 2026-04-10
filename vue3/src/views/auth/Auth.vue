@@ -1,35 +1,57 @@
 <template>
   <div class="auth-container">
     <div class="auth-background">
-      <div class="bg-circle circle-1"></div>
-      <div class="bg-circle circle-2"></div>
-      <div class="bg-circle circle-3"></div>
-      <div class="bg-shape shape-1"></div>
-      <div class="bg-shape shape-2"></div>
-      <div class="bg-shape shape-3"></div>
-      <div class="bg-pattern"></div>
+      <div class="bg-circle circle-1" />
+      <div class="bg-circle circle-2" />
+      <div class="bg-circle circle-3" />
+      <div class="bg-shape shape-1" />
+      <div class="bg-shape shape-2" />
+      <div class="bg-shape shape-3" />
+      <div class="bg-pattern" />
     </div>
     
     <div class="auth-box">
-      <div class="auth-header" v-if="showHeader">
+      <div
+        v-if="showHeader"
+        class="auth-header"
+      >
         <div class="logo">
-          <el-icon size="42" color="#68a86d"><FirstAidKit /></el-icon>
+          <el-icon
+            size="42"
+            color="#68a86d"
+          >
+            <FirstAidKit />
+          </el-icon>
         </div>
-        <h1 class="title">医疗</h1>
-        <div class="subtitle">专业服务 · 悉心照料</div>
+        <h1 class="title">
+          医疗
+        </h1>
+        <div class="subtitle">
+          专业服务 · 悉心照料
+        </div>
       </div>
       
-      <el-form :model="formData" :rules="rules" ref="formRef" class="auth-form">
-        <slot name="form-items"></slot>
+      <el-form
+        ref="formRef"
+        :model="formData"
+        :rules="rules"
+        class="auth-form"
+      >
+        <slot name="form-items" />
         
         <el-form-item>
-          <el-button type="primary" :loading="loading" @click="handleSubmit" class="auth-button">
+          <el-button
+            type="primary"
+            :loading="loading"
+            class="auth-button"
+            @click="handleSubmit"
+          >
             {{ submitText }}
           </el-button>
         </el-form-item>
         
         <div class="auth-links">
-          <slot name="auth-links"></slot>
+          <slot name="auth-links" />
         </div>
       </el-form>
       
@@ -75,7 +97,7 @@ const emit = defineEmits(['submit'])
 const handleSubmit = () => {
   formRef.value.validate(valid => {
     if (valid) {
-      emit('submit', formRef)
+      emit('submit', formRef.value)
     }
   })
 }

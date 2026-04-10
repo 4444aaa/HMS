@@ -4,69 +4,153 @@
       <template #header>
         <div class="card-header">
           <h3>验收单</h3>
-          <el-button type="primary" @click="openCreate">新增验收单</el-button>
+          <el-button
+            type="primary"
+            @click="openCreate"
+          >
+            新增验收单
+          </el-button>
         </div>
       </template>
 
-      <el-form :model="searchForm" :inline="true" class="search-form">
+      <el-form
+        :model="searchForm"
+        :inline="true"
+        class="search-form"
+      >
         <el-form-item label="验收单号">
-          <el-input v-model="searchForm.acceptanceNo" placeholder="请输入验收单号" clearable />
+          <el-input
+            v-model="searchForm.acceptanceNo"
+            placeholder="请输入验收单号"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="采购单ID">
-          <el-input v-model="searchForm.purchaseOrderId" placeholder="可选" clearable />
+          <el-input
+            v-model="searchForm.purchaseOrderId"
+            placeholder="可选"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable style="width: 140px">
-            <el-option label="草稿" :value="0" />
-            <el-option label="已完成" :value="1" />
+          <el-select
+            v-model="searchForm.status"
+            placeholder="请选择状态"
+            clearable
+            style="width: 140px"
+          >
+            <el-option
+              label="草稿"
+              :value="0"
+            />
+            <el-option
+              label="已完成"
+              :value="1"
+            />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="resetSearch">重置</el-button>
+          <el-button
+            type="primary"
+            @click="handleSearch"
+          >
+            查询
+          </el-button>
+          <el-button @click="resetSearch">
+            重置
+          </el-button>
         </el-form-item>
       </el-form>
 
-      <el-table v-loading="loading" :data="tableData" border style="width: 100%">
-        <el-table-column prop="acceptanceNo" label="验收单号" width="170" />
-        <el-table-column prop="purchaseOrderId" label="采购单ID" width="110" />
-        <el-table-column label="供应商" min-width="180">
+      <el-table
+        v-loading="loading"
+        :data="tableData"
+        border
+        style="width: 100%"
+      >
+        <el-table-column
+          prop="acceptanceNo"
+          label="验收单号"
+          width="170"
+        />
+        <el-table-column
+          prop="purchaseOrderId"
+          label="采购单ID"
+          width="110"
+        />
+        <el-table-column
+          label="供应商"
+          min-width="180"
+        >
           <template #default="scope">
             {{ scope.row.purchaseOrder?.supplier?.name || '-' }}
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="110">
+        <el-table-column
+          prop="status"
+          label="状态"
+          width="110"
+        >
           <template #default="scope">
-            <el-tag :type="getStatusTagType(scope.row.status)">{{ getStatusText(scope.row.status) }}</el-tag>
+            <el-tag :type="getStatusTagType(scope.row.status)">
+              {{ getStatusText(scope.row.status) }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="acceptanceTime" label="验收时间" width="180">
-          <template #default="scope">{{ formatDate(scope.row.acceptanceTime) }}</template>
-        </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" width="180">
-          <template #default="scope">{{ formatDate(scope.row.createTime) }}</template>
-        </el-table-column>
-        <el-table-column label="操作" width="260">
+        <el-table-column
+          prop="acceptanceTime"
+          label="验收时间"
+          width="180"
+        >
           <template #default="scope">
-            <el-button size="small" type="primary" @click="openDetail(scope.row)">详情</el-button>
+            {{ formatDate(scope.row.acceptanceTime) }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="createTime"
+          label="创建时间"
+          width="180"
+        >
+          <template #default="scope">
+            {{ formatDate(scope.row.createTime) }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="操作"
+          width="260"
+        >
+          <template #default="scope">
             <el-button
+              size="small"
+              type="primary"
+              @click="openDetail(scope.row)"
+            >
+              详情
+            </el-button>
+            <el-button
+              v-if="scope.row.status === 0"
               size="small"
               type="warning"
-              v-if="scope.row.status === 0"
               @click="openEdit(scope.row)"
-            >编辑</el-button>
+            >
+              编辑
+            </el-button>
             <el-button
+              v-if="scope.row.status === 0"
               size="small"
               type="success"
-              v-if="scope.row.status === 0"
               @click="complete(scope.row)"
-            >完成</el-button>
+            >
+              完成
+            </el-button>
             <el-button
+              v-if="scope.row.status === 0"
               size="small"
               type="danger"
-              v-if="scope.row.status === 0"
               @click="deleteAcceptance(scope.row)"
-            >删除</el-button>
+            >
+              删除
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -86,10 +170,24 @@
     </el-card>
 
     <!-- 创建验收单 -->
-    <el-dialog v-model="createVisible" :title="isEdit ? '编辑验收单' : '新增验收单'" width="980px" @closed="resetCreate">
-      <el-form :model="createForm" label-width="90px">
+    <el-dialog
+      v-model="createVisible"
+      :title="isEdit ? '编辑验收单' : '新增验收单'"
+      width="980px"
+      @closed="resetCreate"
+    >
+      <el-form
+        :model="createForm"
+        label-width="90px"
+      >
         <el-form-item label="采购单">
-          <el-select v-model="createForm.purchaseOrderId" placeholder="请选择已发送采购单" filterable style="width: 360px" @change="onOrderChange">
+          <el-select
+            v-model="createForm.purchaseOrderId"
+            placeholder="请选择已发送采购单"
+            filterable
+            style="width: 360px"
+            @change="onOrderChange"
+          >
             <el-option
               v-for="o in orderOptions"
               :key="o.id"
@@ -99,7 +197,12 @@
           </el-select>
         </el-form-item>
         <el-form-item label="备注">
-          <el-input v-model="createForm.remark" type="textarea" :rows="2" placeholder="可选" />
+          <el-input
+            v-model="createForm.remark"
+            type="textarea"
+            :rows="2"
+            placeholder="可选"
+          />
         </el-form-item>
       </el-form>
 
@@ -110,8 +213,13 @@
         show-icon
         style="margin-bottom: 10px"
       />
-      <div v-if="sourceOrderDetail?.id" class="doc-preview">
-        <div class="doc-preview-title">来源采购订单单</div>
+      <div
+        v-if="sourceOrderDetail?.id"
+        class="doc-preview"
+      >
+        <div class="doc-preview-title">
+          来源采购订单单
+        </div>
         <div class="doc-preview-meta">
           <span>采购单号：{{ sourceOrderDetail.orderNo || '-' }}</span>
           <span>状态：{{ sourceOrderDetail.status === 1 ? '已发送' : sourceOrderDetail.status }}</span>
@@ -122,64 +230,157 @@
           <span>联系电话：{{ sourceOrderDetail.supplier?.contactPhone || '-' }}</span>
           <span>地址：{{ sourceOrderDetail.supplier?.address || '-' }}</span>
         </div>
-        <el-table :data="sourceOrderDetail.items || []" border size="small" style="width: 100%">
-          <el-table-column type="index" label="序号" width="60" />
-          <el-table-column label="产品名称" min-width="180">
+        <el-table
+          :data="sourceOrderDetail.items || []"
+          border
+          size="small"
+          style="width: 100%"
+        >
+          <el-table-column
+            type="index"
+            label="序号"
+            width="60"
+          />
+          <el-table-column
+            label="产品名称"
+            min-width="180"
+          >
             <template #default="scope">
               {{ scope.row.medicine?.medicineName || scope.row.medicineId }}
             </template>
           </el-table-column>
-          <el-table-column prop="orderQty" label="数量" width="90" />
-          <el-table-column prop="unitPrice" label="单价" width="100" />
-          <el-table-column prop="amount" label="金额" width="110" />
-          <el-table-column prop="remark" label="备注" min-width="140" />
+          <el-table-column
+            prop="orderQty"
+            label="数量"
+            width="90"
+          />
+          <el-table-column
+            prop="unitPrice"
+            label="单价"
+            width="100"
+          />
+          <el-table-column
+            prop="amount"
+            label="金额"
+            width="110"
+          />
+          <el-table-column
+            prop="remark"
+            label="备注"
+            min-width="140"
+          />
         </el-table>
       </div>
 
-      <el-table :data="createForm.items" border style="width: 100%">
-        <el-table-column label="药品" min-width="220">
+      <el-table
+        :data="createForm.items"
+        border
+        style="width: 100%"
+      >
+        <el-table-column
+          label="药品"
+          min-width="220"
+        >
           <template #default="scope">
             {{ scope.row.medicine?.medicineName || scope.row.medicineId }}
           </template>
         </el-table-column>
-        <el-table-column prop="orderedQty" label="下单数量" width="120" />
-        <el-table-column label="到货数量" width="160">
+        <el-table-column
+          prop="orderedQty"
+          label="下单数量"
+          width="120"
+        />
+        <el-table-column
+          label="到货数量"
+          width="160"
+        >
           <template #default="scope">
-            <el-input-number v-model="scope.row.receivedQty" :min="0" :max="scope.row.orderedQty" style="width: 100%" />
+            <el-input-number
+              v-model="scope.row.receivedQty"
+              :min="0"
+              :max="scope.row.orderedQty"
+              style="width: 100%"
+            />
           </template>
         </el-table-column>
-        <el-table-column label="合格数量" width="160">
+        <el-table-column
+          label="合格数量"
+          width="160"
+        >
           <template #default="scope">
-            <el-input-number v-model="scope.row.qualifiedQty" :min="0" :max="scope.row.receivedQty" style="width: 100%" />
+            <el-input-number
+              v-model="scope.row.qualifiedQty"
+              :min="0"
+              :max="scope.row.receivedQty"
+              style="width: 100%"
+            />
           </template>
         </el-table-column>
-        <el-table-column label="批号" width="160">
+        <el-table-column
+          label="批号"
+          width="160"
+        >
           <template #default="scope">
-            <el-input v-model="scope.row.batchNo" placeholder="可选" />
+            <el-input
+              v-model="scope.row.batchNo"
+              placeholder="可选"
+            />
           </template>
         </el-table-column>
-        <el-table-column label="生产日期" width="140">
+        <el-table-column
+          label="生产日期"
+          width="140"
+        >
           <template #default="scope">
-            <el-date-picker v-model="scope.row.productionDate" type="date" value-format="YYYY-MM-DD" placeholder="可选" style="width: 100%" />
+            <el-date-picker
+              v-model="scope.row.productionDate"
+              type="date"
+              value-format="YYYY-MM-DD"
+              placeholder="可选"
+              style="width: 100%"
+            />
           </template>
         </el-table-column>
-        <el-table-column label="有效期" width="140">
+        <el-table-column
+          label="有效期"
+          width="140"
+        >
           <template #default="scope">
-            <el-date-picker v-model="scope.row.expiryDate" type="date" value-format="YYYY-MM-DD" placeholder="可选" style="width: 100%" />
+            <el-date-picker
+              v-model="scope.row.expiryDate"
+              type="date"
+              value-format="YYYY-MM-DD"
+              placeholder="可选"
+              style="width: 100%"
+            />
           </template>
         </el-table-column>
       </el-table>
 
       <template #footer>
-        <el-button @click="createVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="saveAcceptance">{{ isEdit ? '保存' : '创建' }}</el-button>
+        <el-button @click="createVisible = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="saving"
+          @click="saveAcceptance"
+        >
+          {{ isEdit ? '保存' : '创建' }}
+        </el-button>
       </template>
     </el-dialog>
 
     <!-- 详情 -->
-    <el-dialog v-model="detailVisible" title="验收单详情" width="980px">
+    <el-dialog
+      v-model="detailVisible"
+      title="验收单详情"
+      width="980px"
+    >
       <div class="doc-preview">
-        <div class="doc-preview-title">采购核验单</div>
+        <div class="doc-preview-title">
+          采购核验单
+        </div>
         <div class="doc-preview-meta">
           <span>验收时间：{{ formatDate(detail.acceptanceTime || detail.createTime) }}</span>
           <span>核验单号：{{ detail.acceptanceNo || '-' }}</span>
@@ -196,18 +397,49 @@
           <span>备注：{{ detail.remark || '-' }}</span>
         </div>
       </div>
-      <el-table :data="detail.items || []" border style="width: 100%">
-        <el-table-column label="药品" min-width="220">
+      <el-table
+        :data="detail.items || []"
+        border
+        style="width: 100%"
+      >
+        <el-table-column
+          label="药品"
+          min-width="220"
+        >
           <template #default="scope">
             {{ scope.row.medicine?.medicineName || scope.row.medicineId }}
           </template>
         </el-table-column>
-        <el-table-column prop="orderedQty" label="下单数量" width="120" />
-        <el-table-column prop="receivedQty" label="到货数量" width="120" />
-        <el-table-column prop="qualifiedQty" label="合格数量" width="120" />
-        <el-table-column prop="batchNo" label="批号" width="140" />
-        <el-table-column prop="productionDate" label="生产日期" width="140" />
-        <el-table-column prop="expiryDate" label="有效期" width="140" />
+        <el-table-column
+          prop="orderedQty"
+          label="下单数量"
+          width="120"
+        />
+        <el-table-column
+          prop="receivedQty"
+          label="到货数量"
+          width="120"
+        />
+        <el-table-column
+          prop="qualifiedQty"
+          label="合格数量"
+          width="120"
+        />
+        <el-table-column
+          prop="batchNo"
+          label="批号"
+          width="140"
+        />
+        <el-table-column
+          prop="productionDate"
+          label="生产日期"
+          width="140"
+        />
+        <el-table-column
+          prop="expiryDate"
+          label="有效期"
+          width="140"
+        />
       </el-table>
     </el-dialog>
   </div>

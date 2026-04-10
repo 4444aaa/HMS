@@ -1,105 +1,137 @@
 <template>
-    <div class="frontend-layout">
-      <!-- 顶部导航栏 -->
-      <el-header class="header">
-        <div class="container">
-          <div class="logo-container">
-            <div class="logo">
-              <el-icon color="#76c893" :size="32"><FirstAidKit /></el-icon>
-              <span class="logo-text">医疗</span>
-            </div>
-            <div class="slogan">专业服务 · 悉心照料</div>
+  <div class="frontend-layout">
+    <!-- 顶部导航栏 -->
+    <el-header class="header">
+      <div class="container">
+        <div class="logo-container">
+          <div class="logo">
+            <el-icon
+              color="#76c893"
+              :size="32"
+            >
+              <FirstAidKit />
+            </el-icon>
+            <span class="logo-text">医疗</span>
           </div>
+          <div class="slogan">
+            专业服务 · 悉心照料
+          </div>
+        </div>
           
-          <el-menu
-            :default-active="activeIndex"
-            mode="horizontal"
-            :ellipsis="false"
-            class="nav-menu"
-            background-color="transparent"
-            text-color="#5a7385"
-            active-text-color="#76c893"
-            router
+        <el-menu
+          :default-active="activeIndex"
+          mode="horizontal"
+          :ellipsis="false"
+          class="nav-menu"
+          background-color="transparent"
+          text-color="#5a7385"
+          active-text-color="#76c893"
+          router
+        >
+          <el-menu-item index="/">
+            <el-icon><HomeFilled /></el-icon>
+            <span>首页</span>
+          </el-menu-item>
+          <el-menu-item index="/department">
+            <el-icon><OfficeBuilding /></el-icon>
+            <span>科室介绍</span>
+          </el-menu-item>
+          <el-menu-item index="/doctor">
+            <el-icon><User /></el-icon>
+            <span>医生介绍</span>
+          </el-menu-item>
+          <el-menu-item
+            v-if="isLoggedIn"
+            index="/appointment"
           >
-            <el-menu-item index="/">
-              <el-icon><HomeFilled /></el-icon>
-              <span>首页</span>
-            </el-menu-item>
-            <el-menu-item index="/department">
-              <el-icon><OfficeBuilding /></el-icon>
-              <span>科室介绍</span>
-            </el-menu-item>
-            <el-menu-item index="/doctor">
-              <el-icon><User /></el-icon>
-              <span>医生介绍</span>
-            </el-menu-item>
-            <el-menu-item index="/appointment" v-if="isLoggedIn">
-              <el-icon><Calendar /></el-icon>
-              <span>预约挂号</span>
-            </el-menu-item>
-            <el-menu-item index="/my-appointments" v-if="isLoggedIn">
-              <el-icon><Tickets /></el-icon>
-              <span>我的预约</span>
-            </el-menu-item>
-            <el-menu-item index="/medical-record" v-if="isLoggedIn">
-              <el-icon><DocumentChecked /></el-icon>
-              <span>就诊记录</span>
-            </el-menu-item>
-            <el-menu-item index="/profile" v-if="isLoggedIn">
-              <el-icon><UserFilled /></el-icon>
-              <span>个人中心</span>
-            </el-menu-item>
-          </el-menu>
+            <el-icon><Calendar /></el-icon>
+            <span>预约挂号</span>
+          </el-menu-item>
+          <el-menu-item
+            v-if="isLoggedIn"
+            index="/my-appointments"
+          >
+            <el-icon><Tickets /></el-icon>
+            <span>我的预约</span>
+          </el-menu-item>
+          <el-menu-item
+            v-if="isLoggedIn"
+            index="/medical-record"
+          >
+            <el-icon><DocumentChecked /></el-icon>
+            <span>就诊记录</span>
+          </el-menu-item>
+          <el-menu-item
+            v-if="isLoggedIn"
+            index="/profile"
+          >
+            <el-icon><UserFilled /></el-icon>
+            <span>个人中心</span>
+          </el-menu-item>
+        </el-menu>
           
-          <div class="user-actions">
-            <template v-if="isLoggedIn">
-              <el-dropdown trigger="click">
-                <span class="user-profile">
-                  <el-avatar :size="36" :src="userAvatar" />
-                  <span class="username">{{ userName }}</span>
-                  <el-icon><CaretBottom /></el-icon>
-                </span>
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item @click="router.push('/profile')">
-                      <el-icon><User /></el-icon>个人中心
-                    </el-dropdown-item>
-                    <el-dropdown-item divided @click="handleLogout">
-                      <el-icon><SwitchButton /></el-icon>退出登录
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
-            </template>
-            <template v-else>
-              <el-button type="primary" round @click="router.push('/login')">
-                <el-icon><Key /></el-icon>登录
-              </el-button>
-              <el-button round @click="router.push('/register')">
-                <el-icon><User /></el-icon>注册
-              </el-button>
-            </template>
-          </div>
+        <div class="user-actions">
+          <template v-if="isLoggedIn">
+            <el-dropdown trigger="click">
+              <span class="user-profile">
+                <el-avatar
+                  :size="36"
+                  :src="userAvatar"
+                />
+                <span class="username">{{ userName }}</span>
+                <el-icon><CaretBottom /></el-icon>
+              </span>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item @click="router.push('/profile')">
+                    <el-icon><User /></el-icon>个人中心
+                  </el-dropdown-item>
+                  <el-dropdown-item
+                    divided
+                    @click="handleLogout"
+                  >
+                    <el-icon><SwitchButton /></el-icon>退出登录
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </template>
+          <template v-else>
+            <el-button
+              type="primary"
+              round
+              @click="router.push('/login')"
+            >
+              <el-icon><Key /></el-icon>登录
+            </el-button>
+            <el-button
+              round
+              @click="router.push('/register')"
+            >
+              <el-icon><User /></el-icon>注册
+            </el-button>
+          </template>
         </div>
-      </el-header>
+      </div>
+    </el-header>
   
-      <!-- 主要内容区域 -->
-      <el-main class="main-content">
-        <div class="container">
+    <!-- 主要内容区域 -->
+    <el-main class="main-content">
+      <div class="container">
         <router-view />
-        </div>
-      </el-main>
+      </div>
+    </el-main>
   
-      <!-- 页脚 -->
-      <el-footer class="footer">
-        <div class="container">
-          <div class="copyright">
-            <p>&copy; {{ new Date().getFullYear() }} 医疗信息系统 版权所有</p>
-          </div>
+    <!-- 页脚 -->
+    <el-footer class="footer">
+      <div class="container">
+        <div class="copyright">
+          <p>&copy; {{ new Date().getFullYear() }} 医疗信息系统 版权所有</p>
         </div>
-      </el-footer>
-    </div>
-  </template>
+      </div>
+    </el-footer>
+  </div>
+</template>
   
   <script setup>
   import { computed, ref, watchEffect } from 'vue'

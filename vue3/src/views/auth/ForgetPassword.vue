@@ -1,9 +1,9 @@
 <template>
   <Auth 
-    :formData="forgetForm" 
+    :form-data="forgetForm" 
     :rules="rules" 
     :loading="loading"
-    submitText="重置密码"
+    submit-text="重置密码"
     @submit="handleSubmit"
   >
     <template #form-items>
@@ -13,10 +13,14 @@
       </div>
       
       <div class="reset-steps">
-        <el-steps :active="activeStep" finish-status="success" simple>
-          <el-step title="填写邮箱"></el-step>
-          <el-step title="重置密码"></el-step>
-          <el-step title="完成"></el-step>
+        <el-steps
+          :active="activeStep"
+          finish-status="success"
+          simple
+        >
+          <el-step title="填写邮箱" />
+          <el-step title="重置密码" />
+          <el-step title="完成" />
         </el-steps>
       </div>
       
@@ -29,42 +33,55 @@
         <el-input 
           v-model="forgetForm.email"
           :prefix-icon="Message"
-          placeholder="请输入注册邮箱">
-        </el-input>
+          placeholder="请输入注册邮箱"
+        />
       </el-form-item>
       <el-form-item prop="newPassword">
         <el-input 
           v-model="forgetForm.newPassword"
           :prefix-icon="Lock"
           type="password"
-          placeholder="请输入新密码">
-        </el-input>
+          placeholder="请输入新密码"
+        />
       </el-form-item>
       <el-form-item prop="confirmPassword">
         <el-input 
           v-model="forgetForm.confirmPassword"
           :prefix-icon="Lock"
           type="password"
-          placeholder="请确认新密码">
-        </el-input>
+          placeholder="请确认新密码"
+        />
       </el-form-item>
       
-      <div class="password-strength" v-if="forgetForm.newPassword">
-        <div class="strength-label">密码强度:</div>
+      <div
+        v-if="forgetForm.newPassword"
+        class="password-strength"
+      >
+        <div class="strength-label">
+          密码强度:
+        </div>
         <div class="strength-meter">
           <div 
             class="strength-value" 
             :class="passwordStrengthClass"
             :style="{ width: passwordStrength + '%' }"
-          ></div>
+          />
         </div>
-        <div class="strength-text" :class="passwordStrengthClass">{{ passwordStrengthText }}</div>
+        <div
+          class="strength-text"
+          :class="passwordStrengthClass"
+        >
+          {{ passwordStrengthText }}
+        </div>
       </div>
     </template>
 
     <template #auth-links>
       <div class="auth-links-row">
-        <router-link to="/login" class="back-link">
+        <router-link
+          to="/login"
+          class="back-link"
+        >
           <el-icon><ArrowLeft /></el-icon>
           <span>返回登录</span>
         </router-link>

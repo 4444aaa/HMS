@@ -6,13 +6,24 @@
         <h2><el-icon><User /></el-icon> 医生介绍</h2>
         <p>了解我院优秀医生团队，为您提供专业医疗服务</p>
       </div>
-        </div>
+    </div>
 
-    <el-card class="box-card" shadow="hover">
+    <el-card
+      class="box-card"
+      shadow="hover"
+    >
       <div class="filter-container">
-        <el-form :inline="true" :model="searchForm" class="search-form">
+        <el-form
+          :inline="true"
+          :model="searchForm"
+          class="search-form"
+        >
           <el-form-item label="科室">
-            <el-select v-model="searchForm.departmentId" placeholder="选择科室" clearable>
+            <el-select
+              v-model="searchForm.departmentId"
+              placeholder="选择科室"
+              clearable
+            >
               <el-option
                 v-for="dept in departments"
                 :key="dept.id"
@@ -22,21 +33,48 @@
             </el-select>
           </el-form-item>
           <el-form-item label="医生姓名">
-            <el-input v-model="searchForm.name" placeholder="请输入医生姓名" clearable />
+            <el-input
+              v-model="searchForm.name"
+              placeholder="请输入医生姓名"
+              clearable
+            />
           </el-form-item>
           <el-form-item label="职称">
-            <el-select v-model="searchForm.title" placeholder="选择职称" clearable>
-              <el-option label="主任医师" value="主任医师" />
-              <el-option label="副主任医师" value="副主任医师" />
-              <el-option label="主治医师" value="主治医师" />
-              <el-option label="住院医师" value="住院医师" />
+            <el-select
+              v-model="searchForm.title"
+              placeholder="选择职称"
+              clearable
+            >
+              <el-option
+                label="主任医师"
+                value="主任医师"
+              />
+              <el-option
+                label="副主任医师"
+                value="副主任医师"
+              />
+              <el-option
+                label="主治医师"
+                value="主治医师"
+              />
+              <el-option
+                label="住院医师"
+                value="住院医师"
+              />
             </el-select>
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" @click="handleSearch" round>
+            <el-button
+              type="primary"
+              round
+              @click="handleSearch"
+            >
               <el-icon><Search /></el-icon> 搜索
             </el-button>
-            <el-button @click="resetSearch" round>
+            <el-button
+              round
+              @click="resetSearch"
+            >
               <el-icon><RefreshRight /></el-icon> 重置
             </el-button>
           </el-form-item>
@@ -44,27 +82,64 @@
       </div>
 
       <!-- 医生列表 -->
-      <div v-if="!selectedDoctor" class="doctor-list">
+      <div
+        v-if="!selectedDoctor"
+        class="doctor-list"
+      >
         <el-row :gutter="24">
-          <el-col :span="8" v-for="doctor in doctors" :key="doctor.id">
-            <el-card class="doctor-card" shadow="hover" @click="viewDoctorDetail(doctor)">
+          <el-col
+            v-for="doctor in doctors"
+            :key="doctor.id"
+            :span="8"
+          >
+            <el-card
+              class="doctor-card"
+              shadow="hover"
+              @click="viewDoctorDetail(doctor)"
+            >
               <div class="doctor-card-content">
                 <div class="doctor-avatar">
-                  <el-avatar :size="80" :src="getAvatarUrl(doctor.user?.avatar)" />
+                  <el-avatar
+                    :size="80"
+                    :src="getAvatarUrl(doctor.user?.avatar)"
+                  />
                 </div>
                 <div class="doctor-info">
-                  <h3>{{ doctor.name }}
-                    <el-tag size="small" :type="getTagType(doctor.title)">{{ doctor.title }}</el-tag>
+                  <h3>
+                    {{ doctor.name }}
+                    <el-tag
+                      size="small"
+                      :type="getTagType(doctor.title)"
+                    >
+                      {{ doctor.title }}
+                    </el-tag>
                   </h3>
-                  <p class="department">{{ doctor.department?.deptName || '未知科室' }}</p>
-                  <p class="expertise" v-if="doctor.expertise">专长：{{ doctor.expertise }}</p>
+                  <p class="department">
+                    {{ doctor.department?.deptName || '未知科室' }}
+                  </p>
+                  <p
+                    v-if="doctor.expertise"
+                    class="expertise"
+                  >
+                    专长：{{ doctor.expertise }}
+                  </p>
                 </div>
               </div>
               <div class="doctor-action">
-                <el-button type="primary" size="small" round @click.stop="goToAppointment(doctor)" v-if="isLoggedIn">
+                <el-button
+                  v-if="isLoggedIn"
+                  type="primary"
+                  size="small"
+                  round
+                  @click.stop="goToAppointment(doctor)"
+                >
                   <el-icon><Calendar /></el-icon> 预约挂号
                 </el-button>
-                <el-button size="small" round @click.stop="viewDoctorDetail(doctor)">
+                <el-button
+                  size="small"
+                  round
+                  @click.stop="viewDoctorDetail(doctor)"
+                >
                   <el-icon><View /></el-icon> 查看详情
                 </el-button>
               </div>
@@ -73,7 +148,10 @@
         </el-row>
 
         <!-- 分页 -->
-        <div class="pagination-container" v-if="total > 0">
+        <div
+          v-if="total > 0"
+          class="pagination-container"
+        >
           <el-pagination
             :current-page="currentPage"
             :page-size="pageSize"
@@ -86,17 +164,31 @@
           />
         </div>
 
-        <el-empty v-if="doctors.length === 0" description="暂无医生信息">
+        <el-empty
+          v-if="doctors.length === 0"
+          description="暂无医生信息"
+        >
           <template #image>
-            <el-icon class="empty-icon"><User /></el-icon>
+            <el-icon class="empty-icon">
+              <User />
+            </el-icon>
           </template>
         </el-empty>
       </div>
 
       <!-- 医生详情 -->
-      <div v-else class="doctor-detail">
+      <div
+        v-else
+        class="doctor-detail"
+      >
         <div class="detail-header">
-          <el-button icon="ArrowLeft" @click="backToList" round>返回列表</el-button>
+          <el-button
+            icon="ArrowLeft"
+            round
+            @click="backToList"
+          >
+            返回列表
+          </el-button>
         </div>
 
         <el-row :gutter="30">
@@ -104,11 +196,21 @@
           <el-col :span="8">
             <div class="doctor-profile">
               <div class="doctor-avatar">
-                <el-avatar :size="120" :src="getAvatarUrl(selectedDoctor.user?.avatar)" />
+                <el-avatar
+                  :size="120"
+                  :src="getAvatarUrl(selectedDoctor.user?.avatar)"
+                />
               </div>
               <h2>{{ selectedDoctor.name }}</h2>
-              <el-tag size="large" :type="getTagType(selectedDoctor.title)">{{ selectedDoctor.title }}</el-tag>
-              <p class="department">{{ selectedDoctor.department?.deptName }}</p>
+              <el-tag
+                size="large"
+                :type="getTagType(selectedDoctor.title)"
+              >
+                {{ selectedDoctor.title }}
+              </el-tag>
+              <p class="department">
+                {{ selectedDoctor.department?.deptName }}
+              </p>
               
               <div class="doctor-stats">
                 <div class="stat-item">
@@ -129,7 +231,12 @@
               
               <el-divider />
               
-              <el-button type="primary" round @click="goToAppointment(selectedDoctor)" v-if="isLoggedIn">
+              <el-button
+                v-if="isLoggedIn"
+                type="primary"
+                round
+                @click="goToAppointment(selectedDoctor)"
+              >
                 <el-icon><Calendar /></el-icon> 预约挂号
               </el-button>
             </div>
@@ -143,22 +250,34 @@
                   <div class="info-section">
                     <div class="section-header">
                       <el-icon><InfoFilled /></el-icon>
-                  <h4>个人简介</h4>
+                      <h4>个人简介</h4>
                     </div>
                     <div class="section-content">
-                  <p v-if="selectedDoctor.introduction">{{ selectedDoctor.introduction }}</p>
-                  <el-empty v-else description="暂无简介信息" :image-size="60" />
+                      <p v-if="selectedDoctor.introduction">
+                        {{ selectedDoctor.introduction }}
+                      </p>
+                      <el-empty
+                        v-else
+                        description="暂无简介信息"
+                        :image-size="60"
+                      />
                     </div>
                   </div>
                   
                   <div class="info-section">
                     <div class="section-header">
                       <el-icon><Aim /></el-icon>
-                  <h4>专业特长</h4>
+                      <h4>专业特长</h4>
                     </div>
                     <div class="section-content">
-                  <p v-if="selectedDoctor.expertise">{{ selectedDoctor.expertise }}</p>
-                  <el-empty v-else description="暂无专业特长信息" :image-size="60" />
+                      <p v-if="selectedDoctor.expertise">
+                        {{ selectedDoctor.expertise }}
+                      </p>
+                      <el-empty
+                        v-else
+                        description="暂无专业特长信息"
+                        :image-size="60"
+                      />
                     </div>
                   </div>
                 </div>
@@ -168,26 +287,52 @@
                 <div class="doctor-schedule">
                   <div class="schedule-legend">
                     <div class="legend-item">
-                      <el-tag type="success" size="small">可预约</el-tag>
+                      <el-tag
+                        type="success"
+                        size="small"
+                      >
+                        可预约
+                      </el-tag>
                       <span>有号源可预约</span>
                     </div>
                     <div class="legend-item">
-                      <el-tag type="warning" size="small">即将满员</el-tag>
+                      <el-tag
+                        type="warning"
+                        size="small"
+                      >
+                        即将满员
+                      </el-tag>
                       <span>剩余号源较少</span>
                     </div>
                     <div class="legend-item">
-                      <el-tag type="info" size="small">停诊</el-tag>
+                      <el-tag
+                        type="info"
+                        size="small"
+                      >
+                        停诊
+                      </el-tag>
                       <span>暂停接诊</span>
                     </div>
                     <div class="legend-item">
-                      <el-tag type="danger" size="small">已满</el-tag>
+                      <el-tag
+                        type="danger"
+                        size="small"
+                      >
+                        已满
+                      </el-tag>
                       <span>号源已满</span>
                     </div>
                   </div>
                   
-                  <el-empty v-if="schedules.length === 0" description="暂无排班信息" />
+                  <el-empty
+                    v-if="schedules.length === 0"
+                    description="暂无排班信息"
+                  />
                   
-                  <div v-else class="schedule-cards">
+                  <div
+                    v-else
+                    class="schedule-cards"
+                  >
                     <el-card 
                       v-for="schedule in schedules" 
                       :key="schedule.id" 
@@ -200,8 +345,12 @@
                       }"
                     >
                       <div class="schedule-card-header">
-                        <div class="schedule-date">{{ formatDisplayDate(schedule.scheduleDate) }}</div>
-                        <div class="schedule-time">{{ schedule.timeSlot }}</div>
+                        <div class="schedule-date">
+                          {{ formatDisplayDate(schedule.scheduleDate) }}
+                        </div>
+                        <div class="schedule-time">
+                          {{ schedule.timeSlot }}
+                        </div>
                       </div>
                       <div class="schedule-card-body">
                         <div class="schedule-status">
@@ -218,17 +367,19 @@
                             :status="getProgressStatus(schedule)"
                             :stroke-width="10"
                             :show-text="false"
-                          ></el-progress>
-                          <div class="count-text">{{ schedule.currentPatients }}/{{ schedule.maxPatients }}</div>
+                          />
+                          <div class="count-text">
+                            {{ schedule.currentPatients }}/{{ schedule.maxPatients }}
+                          </div>
                         </div>
                         <div class="schedule-action">
                           <el-button 
+                            v-if="isLoggedIn" 
                             type="primary" 
                             size="small" 
-                            round 
+                            round
                             :disabled="!canBook(schedule)"
                             @click="goToAppointmentWithSchedule(schedule)"
-                            v-if="isLoggedIn"
                           >
                             <el-icon><Calendar /></el-icon> 立即预约
                           </el-button>
@@ -245,7 +396,11 @@
                     <div class="rating">
                       <span class="rating-score">4.8</span>
                       <div class="rating-stars">
-                        <el-icon v-for="i in 5" :key="i" class="star-icon">
+                        <el-icon
+                          v-for="i in 5"
+                          :key="i"
+                          class="star-icon"
+                        >
                           <Star :fill="i <= 4 ? '#FFB800' : '#E0E0E0'" />
                         </el-icon>
                       </div>
@@ -255,7 +410,10 @@
                   
                   <div class="review-list">
                     <div class="empty-reviews">
-                      <el-empty description="暂无患者评价" :image-size="80" />
+                      <el-empty
+                        description="暂无患者评价"
+                        :image-size="80"
+                      />
                     </div>
                   </div>
                 </div>

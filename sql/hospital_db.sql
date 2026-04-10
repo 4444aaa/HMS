@@ -577,70 +577,29 @@ CREATE TABLE `supplier`  (
   `update_time` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_supplier_code`(`supplier_code` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '供应商表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 12 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '供应商表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of supplier
+-- Records of supplier（11 家：每 5 个药品对应 1 家，54 种药 → ceil(54/5)=11）
 -- ----------------------------
-INSERT INTO `supplier` VALUES (1, 'SUP-001', '华东医药供应链有限公司', '张磊', '13800000001', '上海市浦东新区张江路88号', 'hd-med-scm@demo.com', 1, '2026-04-07 14:50:00', '2026-04-07 14:50:00');
-INSERT INTO `supplier` VALUES (2, 'SUP-002', '国药器械（华北）配送中心', '李娜', '13800000002', '北京市大兴区医药园区66号', 'gyqx-north@demo.com', 1, '2026-04-07 14:50:00', '2026-04-07 14:50:00');
-INSERT INTO `supplier` VALUES (3, 'SUP-003', '康源生物制药原料供应商', '王强', '13800000003', '广州市黄埔区科学城12号', 'ky-bio@demo.com', 1, '2026-04-07 14:50:00', '2026-04-07 14:50:00');
-INSERT INTO `supplier` VALUES (4, 'SUP-004', '安泰耗材与试剂供应', '赵敏', '13800000004', '成都市高新区天府大道199号', 'at-consumables@demo.com', 1, '2026-04-07 14:50:00', '2026-04-07 14:50:00');
-INSERT INTO `supplier` VALUES (5, 'SUP-005', '联康冷链药品物流', '陈杰', '13800000005', '武汉市东西湖区物流大道9号', 'lk-coldchain@demo.com', 1, '2026-04-07 14:50:00', '2026-04-07 14:50:00');
+INSERT INTO `supplier` VALUES (1, 'SUP-001', '华东康达医药有限公司', '周文轩', '13810001001', '浙江省杭州市滨江区江南大道3688号康达大厦7层', 'zhou@kangda-east.demo.com', 1, '2026-04-10 10:00:00', '2026-04-10 10:00:00');
+INSERT INTO `supplier` VALUES (2, 'SUP-002', '北方九州药品经销', '韩沐阳', '13810001002', '天津市滨海新区黄海路156号九州物流园B2', 'han@jz-north.demo.com', 1, '2026-04-10 10:00:00', '2026-04-10 10:00:00');
+INSERT INTO `supplier` VALUES (3, 'SUP-003', '岭南本草供应链', '林若溪', '13810001003', '广东省佛山市顺德区乐从镇医药大道22号', 'lin@lingnan-bc.demo.com', 1, '2026-04-10 10:00:00', '2026-04-10 10:00:00');
+INSERT INTO `supplier` VALUES (4, 'SUP-004', '川渝惠民药业配送', '唐思远', '13810001004', '重庆市渝北区金开大道990号惠民仓储中心', 'tang@cy-huimin.demo.com', 1, '2026-04-10 10:00:00', '2026-04-10 10:00:00');
+INSERT INTO `supplier` VALUES (5, 'SUP-005', '江汉明泽医药贸易', '彭雨晴', '13810001005', '湖北省武汉市江夏区光谷大道1888号明泽园', 'peng@mingze-jh.demo.com', 1, '2026-04-10 10:00:00', '2026-04-10 10:00:00');
+INSERT INTO `supplier` VALUES (6, 'SUP-006', '齐鲁明德制药渠道', '孙宇航', '13810001006', '山东省济南市高新区舜华路2006号明德广场', 'sun@mingde-ql.demo.com', 1, '2026-04-10 10:00:00', '2026-04-10 10:00:00');
+INSERT INTO `supplier` VALUES (7, 'SUP-007', '闽台海峡健康商贸', '蔡佳宁', '13810001007', '福建省厦门市湖里区港中路518号海峡医药港', 'cai@strait-mn.demo.com', 1, '2026-04-10 10:00:00', '2026-04-10 10:00:00');
+INSERT INTO `supplier` VALUES (8, 'SUP-008', '云滇绿野药材集散', '段清扬', '13810001008', '云南省昆明市官渡区珥季路333号绿野园区3栋', 'duan@luye-yn.demo.com', 1, '2026-04-10 10:00:00', '2026-04-10 10:00:00');
+INSERT INTO `supplier` VALUES (9, 'SUP-009', '关中秦川医疗供应', '冯子墨', '13810001009', '陕西省西安市未央区尚稷路899号秦川产业园', 'feng@qin-chuan.demo.com', 1, '2026-04-10 10:00:00', '2026-04-10 10:00:00');
+INSERT INTO `supplier` VALUES (10, 'SUP-010', '辽东瑞丰冷链物流药业', '高景行', '13810001010', '辽宁省沈阳市铁西区建设大路77号瑞丰冷库4区', 'gao@ruifeng-ld.demo.com', 1, '2026-04-10 10:00:00', '2026-04-10 10:00:00');
+INSERT INTO `supplier` VALUES (11, 'SUP-011', '琼海蓝天医药服务', '符安然', '13810001011', '海南省海口市秀英区长滨路66号蓝天医药园', 'fu@lantian-qh.demo.com', 1, '2026-04-10 10:00:00', '2026-04-10 10:00:00');
 
 -- medicine 改造：制造商保留兼容，新增 supplier_id 作为采购主关联
 ALTER TABLE `medicine` ADD COLUMN `supplier_id` bigint(20) NULL DEFAULT NULL COMMENT '供应商ID' AFTER `manufacturer`;
 ALTER TABLE `medicine` ADD INDEX `idx_medicine_supplier_id`(`supplier_id` ASC);
--- 增加供应商数据：把药品制造商补充为可选供应商（去重）
-INSERT INTO `supplier` (`supplier_code`, `name`, `contact_name`, `contact_phone`, `address`, `email`, `status`, `create_time`, `update_time`)
-SELECT
-  CONCAT('SUP-AUTO-', LPAD(ROW_NUMBER() OVER (ORDER BY t.manufacturer), 3, '0')),
-  t.manufacturer,
-  '系统初始化',
-  '13800000000',
-  '待维护',
-  NULL,
-  1,
-  '2026-04-07 15:00:00',
-  '2026-04-07 15:00:00'
-FROM (
-  SELECT DISTINCT `manufacturer`
-  FROM `medicine`
-  WHERE `manufacturer` IS NOT NULL AND `manufacturer` <> ''
-) t
-LEFT JOIN `supplier` s ON s.`name` = t.`manufacturer`
-WHERE s.`id` IS NULL;
-
--- 回填所有药品供应商，不允许 NULL
-UPDATE `medicine` m
-JOIN `supplier` s ON s.`name` = m.`manufacturer`
-SET m.`supplier_id` = s.`id`
-WHERE m.`supplier_id` IS NULL;
-
--- 兜底：如果还有空值，统一归属到供应商ID=1
+-- 按药品 ID 每 5 个绑定一家供应商：M001–M005→1，M006–M010→2，…，M051–M054→11
+UPDATE `medicine` SET `supplier_id` = FLOOR((`id` - 1) / 5) + 1 WHERE `id` BETWEEN 1 AND 54;
 UPDATE `medicine` SET `supplier_id` = 1 WHERE `supplier_id` IS NULL;
-
--- 统一补全供应商信息（联系人/电话/地址/邮箱/编码）
--- 说明：仅对空值或初始化占位值进行回填，不覆盖已维护的真实数据
-UPDATE `supplier`
-SET `supplier_code` = CONCAT('SUP-FIX-', LPAD(`id`, 3, '0'))
-WHERE `supplier_code` IS NULL OR `supplier_code` = '';
-
-UPDATE `supplier`
-SET `contact_name` = CONCAT('供应联系人', LPAD(`id`, 2, '0'))
-WHERE `contact_name` IS NULL OR `contact_name` = '' OR `contact_name` = '系统初始化';
-
-UPDATE `supplier`
-SET `contact_phone` = CONCAT('1390001', LPAD(`id`, 4, '0'))
-WHERE `contact_phone` IS NULL OR `contact_phone` = '' OR `contact_phone` = '13800000000';
-
-UPDATE `supplier`
-SET `address` = CONCAT('待完善地址-供应商', `id`)
-WHERE `address` IS NULL OR `address` = '' OR `address` = '待维护';
-
-UPDATE `supplier`
-SET `email` = CONCAT('supplier', `id`, '@demo.com')
-WHERE `email` IS NULL OR `email` = '';
 
 -- 强制非空 + 外键约束
 ALTER TABLE `medicine` MODIFY COLUMN `supplier_id` bigint(20) NOT NULL COMMENT '供应商ID';
@@ -661,27 +620,15 @@ CREATE TABLE `supplier_medicine`  (
   INDEX `idx_sm_medicine_id`(`medicine_id` ASC) USING BTREE,
   CONSTRAINT `fk_sm_supplier` FOREIGN KEY (`supplier_id`) REFERENCES `supplier` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
   CONSTRAINT `fk_sm_medicine` FOREIGN KEY (`medicine_id`) REFERENCES `medicine` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 16 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '供应商与药品对应关系表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB AUTO_INCREMENT = 55 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '供应商与药品对应关系表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- Records of supplier_medicine
+-- Records of supplier_medicine（与 medicine.supplier_id 一致：每供应商 5 个药品，末家 4 个）
 -- ----------------------------
--- 关键限制：M001(阿司匹林, medicine_id=1) 仅由国药(供应商id=2)供应
-INSERT INTO `supplier_medicine` VALUES (1, 2, 1, '2026-04-08 10:00:00');
-INSERT INTO `supplier_medicine` VALUES (2, 2, 2, '2026-04-08 10:00:00');
-INSERT INTO `supplier_medicine` VALUES (3, 2, 3, '2026-04-08 10:00:00');
-INSERT INTO `supplier_medicine` VALUES (4, 1, 4, '2026-04-08 10:00:00');
-INSERT INTO `supplier_medicine` VALUES (5, 1, 5, '2026-04-08 10:00:00');
-INSERT INTO `supplier_medicine` VALUES (6, 1, 6, '2026-04-08 10:00:00');
-INSERT INTO `supplier_medicine` VALUES (7, 3, 7, '2026-04-08 10:00:00');
-INSERT INTO `supplier_medicine` VALUES (8, 3, 8, '2026-04-08 10:00:00');
-INSERT INTO `supplier_medicine` VALUES (9, 3, 9, '2026-04-08 10:00:00');
-INSERT INTO `supplier_medicine` VALUES (10, 4, 10, '2026-04-08 10:00:00');
-INSERT INTO `supplier_medicine` VALUES (11, 4, 11, '2026-04-08 10:00:00');
-INSERT INTO `supplier_medicine` VALUES (12, 4, 12, '2026-04-08 10:00:00');
-INSERT INTO `supplier_medicine` VALUES (13, 5, 13, '2026-04-08 10:00:00');
-INSERT INTO `supplier_medicine` VALUES (14, 5, 14, '2026-04-08 10:00:00');
-INSERT INTO `supplier_medicine` VALUES (15, 5, 15, '2026-04-08 10:00:00');
+INSERT INTO `supplier_medicine` (`supplier_id`, `medicine_id`, `create_time`)
+SELECT FLOOR((m.`id` - 1) / 5) + 1, m.`id`, '2026-04-10 10:00:00'
+FROM `medicine` m
+WHERE m.`id` BETWEEN 1 AND 54;
 
 -- ----------------------------
 -- Table structure for purchase_plan
@@ -854,7 +801,7 @@ DROP TABLE IF EXISTS `stock_in_order`;
 CREATE TABLE `stock_in_order`  (
   `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '入库单ID',
   `stock_in_no` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '入库单号',
-  `acceptance_id` bigint(20) NOT NULL COMMENT '来源验收单ID',
+  `acceptance_id` bigint(20) NULL DEFAULT NULL COMMENT '来源验收单ID(多核验单合并入库时为空)',
   `operator_user_id` bigint(20) NULL DEFAULT NULL COMMENT '入库操作人用户ID',
   `stock_in_time` datetime NULL DEFAULT NULL COMMENT '入库时间',
   `status` tinyint(4) NULL DEFAULT 0 COMMENT '状态(0:草稿,1:已过账)',

@@ -8,12 +8,24 @@
       </template>
 
       <!-- 搜索表单 -->
-      <el-form :model="searchForm" :inline="true" class="search-form">
+      <el-form
+        :model="searchForm"
+        :inline="true"
+        class="search-form"
+      >
         <el-form-item label="患者姓名">
-          <el-input v-model="searchForm.patientName" placeholder="请输入患者姓名" clearable />
+          <el-input
+            v-model="searchForm.patientName"
+            placeholder="请输入患者姓名"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="医生姓名">
-          <el-input v-model="searchForm.doctorName" placeholder="请输入医生姓名" clearable />
+          <el-input
+            v-model="searchForm.doctorName"
+            placeholder="请输入医生姓名"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="预约日期">
           <el-date-picker
@@ -27,53 +39,126 @@
           />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable>
-            <el-option label="待就诊" :value="1" />
-            <el-option label="已就诊" :value="2" />
-            <el-option label="已取消" :value="0" />
+          <el-select
+            v-model="searchForm.status"
+            placeholder="请选择状态"
+            clearable
+          >
+            <el-option
+              label="待就诊"
+              :value="1"
+            />
+            <el-option
+              label="已就诊"
+              :value="2"
+            />
+            <el-option
+              label="已取消"
+              :value="0"
+            />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">搜索</el-button>
-          <el-button @click="resetSearch">重置</el-button>
+          <el-button
+            type="primary"
+            @click="handleSearch"
+          >
+            搜索
+          </el-button>
+          <el-button @click="resetSearch">
+            重置
+          </el-button>
         </el-form-item>
       </el-form>
 
       <!-- 预约列表 -->
-      <el-table v-loading="loading" :data="tableData" border style="width: 100%">
-        <el-table-column prop="appointmentNo" label="预约编号" width="180" />
-        <el-table-column label="患者信息" width="150">
+      <el-table
+        v-loading="loading"
+        :data="tableData"
+        border
+        style="width: 100%"
+      >
+        <el-table-column
+          prop="appointmentNo"
+          label="预约编号"
+          width="180"
+        />
+        <el-table-column
+          label="患者信息"
+          width="150"
+        >
           <template #default="scope">
             {{ scope.row.patient?.name || '未知' }}
-            <el-tag size="small" type="info">{{ scope.row.patient?.sex || '未知' }}</el-tag>
+            <el-tag
+              size="small"
+              type="info"
+            >
+              {{ scope.row.patient?.sex || '未知' }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="医生信息" width="150">
+        <el-table-column
+          label="医生信息"
+          width="150"
+        >
           <template #default="scope">
             {{ scope.row.doctor?.name || '未知' }}
-            <el-tag size="small">{{ scope.row.doctor?.title || '未知' }}</el-tag>
+            <el-tag size="small">
+              {{ scope.row.doctor?.title || '未知' }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="科室" width="120">
+        <el-table-column
+          label="科室"
+          width="120"
+        >
           <template #default="scope">
             {{ scope.row.doctor?.department?.deptName || '未知科室' }}
           </template>
         </el-table-column>
-        <el-table-column prop="appointmentDate" label="预约日期" width="120" sortable />
-        <el-table-column prop="timeSlot" label="时间段" width="80" />
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column
+          prop="appointmentDate"
+          label="预约日期"
+          width="120"
+          sortable
+        />
+        <el-table-column
+          prop="timeSlot"
+          label="时间段"
+          width="80"
+        />
+        <el-table-column
+          prop="status"
+          label="状态"
+          width="100"
+        >
           <template #default="scope">
             <el-tag :type="getStatusTagType(scope.row.status)">
               {{ getStatusText(scope.row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" sortable />
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column
+          prop="createTime"
+          label="创建时间"
+          sortable
+        />
+        <el-table-column
+          label="操作"
+          width="220"
+          fixed="right"
+        >
           <template #default="scope">
             <div class="action-group">
               <div class="action-row">
-                <el-button class="action-btn" type="primary" size="small" @click="handleViewDetail(scope.row)">详情</el-button>
+                <el-button
+                  class="action-btn"
+                  type="primary"
+                  size="small"
+                  @click="handleViewDetail(scope.row)"
+                >
+                  详情
+                </el-button>
                 <el-button
                   v-if="scope.row.status === 1"
                   class="action-btn"
@@ -84,7 +169,10 @@
                   完成就诊
                 </el-button>
               </div>
-              <div class="action-row" v-if="scope.row.status === 1">
+              <div
+                v-if="scope.row.status === 1"
+                class="action-row"
+              >
                 <el-button
                   class="action-btn"
                   type="danger"
@@ -120,37 +208,64 @@
       title="预约详情"
       width="600px"
     >
-      <el-descriptions :column="1" border>
-        <el-descriptions-item label="预约编号">{{ currentAppointment.appointmentNo }}</el-descriptions-item>
+      <el-descriptions
+        :column="1"
+        border
+      >
+        <el-descriptions-item label="预约编号">
+          {{ currentAppointment.appointmentNo }}
+        </el-descriptions-item>
         <el-descriptions-item label="预约状态">
           <el-tag :type="getStatusTagType(currentAppointment.status)">
             {{ getStatusText(currentAppointment.status) }}
           </el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="就诊日期">{{ currentAppointment.appointmentDate }}</el-descriptions-item>
-        <el-descriptions-item label="就诊时间">{{ currentAppointment.timeSlot }}</el-descriptions-item>
+        <el-descriptions-item label="就诊日期">
+          {{ currentAppointment.appointmentDate }}
+        </el-descriptions-item>
+        <el-descriptions-item label="就诊时间">
+          {{ currentAppointment.timeSlot }}
+        </el-descriptions-item>
         <el-descriptions-item label="患者信息">
           {{ currentAppointment.patient?.name || '未知' }}，
           {{ currentAppointment.patient?.sex || '未知' }}，
           {{ currentAppointment.patient?.age || '未知' }}岁，
           {{ currentAppointment.patient?.phone || '未知' }}
         </el-descriptions-item>
-        <el-descriptions-item label="科室">{{ currentAppointment.doctor?.department?.deptName || '未知科室' }}</el-descriptions-item>
+        <el-descriptions-item label="科室">
+          {{ currentAppointment.doctor?.department?.deptName || '未知科室' }}
+        </el-descriptions-item>
         <el-descriptions-item label="医生">
           {{ currentAppointment.doctor?.name || '未知' }} {{ currentAppointment.doctor?.title || '' }}
         </el-descriptions-item>
-        <el-descriptions-item label="症状描述">{{ currentAppointment.symptoms || '无' }}</el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{ currentAppointment.createTime }}</el-descriptions-item>
-        <el-descriptions-item v-if="currentAppointment.status !== 1" label="更新时间">
+        <el-descriptions-item label="症状描述">
+          {{ currentAppointment.symptoms || '无' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="创建时间">
+          {{ currentAppointment.createTime }}
+        </el-descriptions-item>
+        <el-descriptions-item
+          v-if="currentAppointment.status !== 1"
+          label="更新时间"
+        >
           {{ currentAppointment.updateTime }}
         </el-descriptions-item>
       </el-descriptions>
       
-      <div v-if="currentAppointment.status === 1" class="dialog-footer">
-        <el-button type="success" @click="handleComplete(currentAppointment, true)">
+      <div
+        v-if="currentAppointment.status === 1"
+        class="dialog-footer"
+      >
+        <el-button
+          type="success"
+          @click="handleComplete(currentAppointment, true)"
+        >
           完成就诊
         </el-button>
-        <el-button type="danger" @click="handleCancel(currentAppointment, true)">
+        <el-button
+          type="danger"
+          @click="handleCancel(currentAppointment, true)"
+        >
           取消预约
         </el-button>
       </div>

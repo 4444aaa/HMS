@@ -2,13 +2,21 @@
   <div class="navbar">
     <div class="left-menu">
       <el-breadcrumb separator="/">
-        <el-breadcrumb-item :to="{ path: '/dashboard' }">首页</el-breadcrumb-item>
-        <el-breadcrumb-item v-if="route.meta.title">{{ route.meta.title }}</el-breadcrumb-item>
+        <el-breadcrumb-item :to="{ path: '/dashboard' }">
+          首页
+        </el-breadcrumb-item>
+        <el-breadcrumb-item v-if="route.meta.title">
+          {{ route.meta.title }}
+        </el-breadcrumb-item>
       </el-breadcrumb>
     </div>
     
     <div class="right-menu">
-      <div class="right-menu-item" @click="toggleFullScreen" title="全屏切换">
+      <div
+        class="right-menu-item"
+        title="全屏切换"
+        @click="toggleFullScreen"
+      >
         <el-icon :size="20">
           <component :is="isFullscreen ? Aim : FullScreen" />
         </el-icon>
@@ -16,7 +24,11 @@
       
       <el-dropdown trigger="click">
         <div class="avatar-wrapper">
-          <el-avatar :size="32" :src="avatarUrl" class="user-avatar">
+          <el-avatar
+            :size="32"
+            :src="avatarUrl"
+            class="user-avatar"
+          >
             {{ userInfo?.name?.charAt(0)?.toUpperCase() || userInfo?.username?.charAt(0)?.toUpperCase() || 'U' }}
           </el-avatar>
           <span class="user-name">{{ userInfo?.name || userInfo?.username || '用户' }}</span>
@@ -30,7 +42,10 @@
               <el-icon><UserFilled /></el-icon>
               个人信息
             </el-dropdown-item>
-            <el-dropdown-item divided @click="handleLogout">
+            <el-dropdown-item
+              divided
+              @click="handleLogout"
+            >
               <el-icon><SwitchButton /></el-icon>
               退出登录
             </el-dropdown-item>

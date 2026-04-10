@@ -24,8 +24,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -169,7 +172,9 @@ public class PurchasePlanService {
     }
 
     public Page<PurchasePlan> getPlansByPage(String planNo, String title, Integer status,
-                                            Integer currentPage, Integer size) {
+                                            Integer currentPage, Integer size,
+                                            Boolean onlyWithPurchaseRemaining,
+                                            List<Long> alwaysIncludePlanIds) {
         LambdaQueryWrapper<PurchasePlan> qw = new LambdaQueryWrapper<>();
         if (StringUtils.isNotBlank(planNo)) {
             qw.like(PurchasePlan::getPlanNo, planNo);
@@ -181,9 +186,84 @@ public class PurchasePlanService {
             qw.eq(PurchasePlan::getStatus, status);
         }
         qw.orderByDesc(PurchasePlan::getUpdateTime);
-        Page<PurchasePlan> page = purchasePlanMapper.selectPage(new Page<>(currentPage, size), qw);
-        // 列表不强制填充 items，避免 N+1；前端查看详情时再拉详情
+        if (!Boolean.TRUE.equals(onlyWithPurchaseRemaining)) {
+            Page<PurchasePlan> page = purchasePlanMapper.selectPage(new Page<>(currentPage, size), qw);
+            return page;
+        }
+        List<PurchasePlan> all = purchasePlanMapper.selectList(qw);
+        if (all.isEmpty()) {
+            return new Page<>(currentPage, size, 0);
+        }
+        List<Long> allIds = all.stream().map(PurchasePlan::getId).filter(Objects::nonNull).toList();
+        Set<Long> withRemaining = planIdsWithPurchaseRemaining(allIds);
+        Set<Long> always = alwaysIncludePlanIds == null ? Set.of() : alwaysIncludePlanIds.stream()
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        List<PurchasePlan> filtered = all.stream()
+                .filter(p -> withRemaining.contains(p.getId()) || always.contains(p.getId()))
+                .collect(Collectors.toCollection(ArrayList::new));
+        Set<Long> seen = filtered.stream().map(PurchasePlan::getId).collect(Collectors.toSet());
+        for (Long id : always) {
+            if (id != null && !seen.contains(id)) {
+                PurchasePlan p = purchasePlanMapper.selectById(id);
+                if (p != null && matchesPlanListFilters(p, planNo, title, status)) {
+                    filtered.add(p);
+                    seen.add(id);
+                }
+            }
+        }
+        filtered.sort((a, b) -> {
+            LocalDateTime ta = a.getUpdateTime();
+            LocalDateTime tb = b.getUpdateTime();
+            if (ta == null && tb == null) {
+                return 0;
+            }
+            if (ta == null) {
+                return 1;
+            }
+            if (tb == null) {
+                return -1;
+            }
+            return tb.compareTo(ta);
+        });
+        long total = filtered.size();
+        int from = Math.max(0, (currentPage - 1) * size);
+        int to = Math.min(from + size, filtered.size());
+        List<PurchasePlan> slice = from < filtered.size() ? filtered.subList(from, to) : List.of();
+        Page<PurchasePlan> page = new Page<>(currentPage, size, total);
+        page.setRecords(slice);
         return page;
+    }
+
+    private boolean matchesPlanListFilters(PurchasePlan p, String planNo, String title, Integer status) {
+        if (status != null && !Objects.equals(p.getStatus(), status)) {
+            return false;
+        }
+        if (StringUtils.isNotBlank(planNo) && (p.getPlanNo() == null || !p.getPlanNo().contains(planNo.trim()))) {
+            return false;
+        }
+        if (StringUtils.isNotBlank(title) && (p.getTitle() == null || !p.getTitle().contains(title.trim()))) {
+            return false;
+        }
+        return true;
+    }
+
+    /** 仍存在「计划量大于已下单量」的明细的计划 ID */
+    private Set<Long> planIdsWithPurchaseRemaining(List<Long> planIds) {
+        if (planIds == null || planIds.isEmpty()) {
+            return Set.of();
+        }
+        List<PurchasePlanItem> items = purchasePlanItemMapper.selectList(
+                new LambdaQueryWrapper<PurchasePlanItem>().in(PurchasePlanItem::getPlanId, planIds));
+        Set<Long> result = new HashSet<>();
+        for (PurchasePlanItem it : items) {
+            int planQty = it.getPlanQty() == null ? 0 : it.getPlanQty();
+            int purchased = it.getPurchasedQty() == null ? 0 : it.getPurchasedQty();
+            if (planQty > purchased) {
+                result.add(it.getPlanId());
+            }
+        }
+        return result;
     }
 
     private String generatePlanNo() {

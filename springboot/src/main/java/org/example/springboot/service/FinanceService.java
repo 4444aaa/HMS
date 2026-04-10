@@ -37,6 +37,8 @@ public class FinanceService {
     @Resource
     private PurchaseAcceptanceMapper purchaseAcceptanceMapper;
     @Resource
+    private PurchaseAcceptanceItemMapper purchaseAcceptanceItemMapper;
+    @Resource
     private PurchaseOrderMapper purchaseOrderMapper;
     @Resource
     private SupplierMapper supplierMapper;
@@ -198,20 +200,23 @@ public class FinanceService {
         );
         LocalDateTime now = LocalDateTime.now();
         for (StockInOrder stockInOrder : postedStockInOrders) {
-            PurchaseAcceptance acceptance = purchaseAcceptanceMapper.selectById(stockInOrder.getAcceptanceId());
-            if (acceptance == null) {
-                continue;
-            }
-            PurchaseOrder purchaseOrder = purchaseOrderMapper.selectById(acceptance.getPurchaseOrderId());
-            if (purchaseOrder == null) {
-                continue;
-            }
-            Long supplierId = purchaseOrder.getSupplierId();
-
             List<StockInOrderItem> items = stockInOrderItemMapper.selectList(
                     new LambdaQueryWrapper<StockInOrderItem>().eq(StockInOrderItem::getStockInId, stockInOrder.getId())
             );
             for (StockInOrderItem item : items) {
+                PurchaseAcceptanceItem accItem = purchaseAcceptanceItemMapper.selectById(item.getAcceptanceItemId());
+                if (accItem == null) {
+                    continue;
+                }
+                PurchaseAcceptance acceptance = purchaseAcceptanceMapper.selectById(accItem.getAcceptanceId());
+                if (acceptance == null) {
+                    continue;
+                }
+                PurchaseOrder purchaseOrder = purchaseOrderMapper.selectById(acceptance.getPurchaseOrderId());
+                if (purchaseOrder == null) {
+                    continue;
+                }
+                Long supplierId = purchaseOrder.getSupplierId();
                 Long exists = purchaseSettlementDetailMapper.selectCount(
                         new LambdaQueryWrapper<PurchaseSettlementDetail>()
                                 .eq(PurchaseSettlementDetail::getStockInItemId, item.getId())

@@ -8,10 +8,17 @@
       </template>
       
       <el-tabs v-model="activeTab">
-        <el-tab-pane label="用户列表" name="users">
+        <el-tab-pane
+          label="用户列表"
+          name="users"
+        >
           <UserList />
         </el-tab-pane>
-        <el-tab-pane label="角色管理" name="roles" v-if="hasRoleManagementPermission">
+        <el-tab-pane
+          v-if="hasRoleManagementPermission"
+          label="角色管理"
+          name="roles"
+        >
           <RoleList />
         </el-tab-pane>
       </el-tabs>

@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Tag(name = "采购计划接口")
@@ -67,9 +68,30 @@ public class PurchasePlanController {
                           @RequestParam(required = false) String title,
                           @RequestParam(required = false) Integer status,
                           @RequestParam(defaultValue = "1") Integer currentPage,
-                          @RequestParam(defaultValue = "10") Integer size) {
-        Page<PurchasePlan> page = purchasePlanService.getPlansByPage(planNo, title, status, currentPage, size);
+                          @RequestParam(defaultValue = "10") Integer size,
+                          @RequestParam(required = false) Boolean onlyWithPurchaseRemaining,
+                          @RequestParam(required = false) String alwaysIncludePlanIds) {
+        Page<PurchasePlan> page = purchasePlanService.getPlansByPage(planNo, title, status, currentPage, size,
+                onlyWithPurchaseRemaining, parseCommaLongs(alwaysIncludePlanIds));
         return Result.success(page);
+    }
+
+    private static List<Long> parseCommaLongs(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return List.of();
+        }
+        List<Long> out = new ArrayList<>();
+        for (String part : raw.split(",")) {
+            String t = part.trim();
+            if (t.isEmpty()) {
+                continue;
+            }
+            try {
+                out.add(Long.parseLong(t));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return out;
     }
 
     @Operation(summary = "删除采购计划")

@@ -5,16 +5,35 @@
         <div class="card-header">
           <h3>医生排班管理</h3>
           <div class="header-buttons">
-            <el-button type="primary" @click="handleBatchAdd">批量排班</el-button>
-            <el-button type="success" @click="handleAdd">新增排班</el-button>
+            <el-button
+              type="primary"
+              @click="handleBatchAdd"
+            >
+              批量排班
+            </el-button>
+            <el-button
+              type="success"
+              @click="handleAdd"
+            >
+              新增排班
+            </el-button>
           </div>
         </div>
       </template>
 
       <!-- 搜索表单 -->
-      <el-form :model="searchForm" :inline="true" class="search-form">
+      <el-form
+        :model="searchForm"
+        :inline="true"
+        class="search-form"
+      >
         <el-form-item label="医生">
-          <el-select v-model="searchForm.doctorId" placeholder="请选择医生" clearable filterable>
+          <el-select
+            v-model="searchForm.doctorId"
+            placeholder="请选择医生"
+            clearable
+            filterable
+          >
             <el-option
               v-for="doctor in doctorOptions"
               :key="doctor.id"
@@ -35,58 +54,138 @@
           />
         </el-form-item>
         <el-form-item label="时间段">
-          <el-select v-model="searchForm.timeSlot" placeholder="请选择时间段" clearable>
-            <el-option label="上午" value="上午" />
-            <el-option label="下午" value="下午" />
-            <el-option label="晚上" value="晚上" />
+          <el-select
+            v-model="searchForm.timeSlot"
+            placeholder="请选择时间段"
+            clearable
+          >
+            <el-option
+              label="上午"
+              value="上午"
+            />
+            <el-option
+              label="下午"
+              value="下午"
+            />
+            <el-option
+              label="晚上"
+              value="晚上"
+            />
           </el-select>
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable>
-            <el-option label="正常" :value="1" />
-            <el-option label="停诊" :value="0" />
+          <el-select
+            v-model="searchForm.status"
+            placeholder="请选择状态"
+            clearable
+          >
+            <el-option
+              label="正常"
+              :value="1"
+            />
+            <el-option
+              label="停诊"
+              :value="0"
+            />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">搜索</el-button>
-          <el-button @click="resetSearch">重置</el-button>
+          <el-button
+            type="primary"
+            @click="handleSearch"
+          >
+            搜索
+          </el-button>
+          <el-button @click="resetSearch">
+            重置
+          </el-button>
         </el-form-item>
       </el-form>
 
       <!-- 排班列表 -->
-      <el-table v-loading="loading" :data="tableData" border style="width: 100%">
-        <el-table-column prop="scheduleDate" label="排班日期"  sortable>
+      <el-table
+        v-loading="loading"
+        :data="tableData"
+        border
+        style="width: 100%"
+      >
+        <el-table-column
+          prop="scheduleDate"
+          label="排班日期"
+          sortable
+        >
           <template #default="scope">
             {{ scope.row.scheduleDate }}
           </template>
         </el-table-column>
-        <el-table-column prop="timeSlot" label="时间段" width="80" />
-        <el-table-column prop="doctor.name" label="医生姓名" width="120" />
-        <el-table-column prop="doctor.title" label="职称" width="120" />
-        <el-table-column prop="doctor.department.deptName" label="科室" width="120" />
-        <el-table-column prop="maxPatients" label="最大接诊人数" width="120" />
-        <el-table-column prop="currentPatients" label="当前预约人数" width="120" />
-        <el-table-column label="剩余名额" width="100">
+        <el-table-column
+          prop="timeSlot"
+          label="时间段"
+          width="80"
+        />
+        <el-table-column
+          prop="doctor.name"
+          label="医生姓名"
+          width="120"
+        />
+        <el-table-column
+          prop="doctor.title"
+          label="职称"
+          width="120"
+        />
+        <el-table-column
+          prop="doctor.department.deptName"
+          label="科室"
+          width="120"
+        />
+        <el-table-column
+          prop="maxPatients"
+          label="最大接诊人数"
+          width="120"
+        />
+        <el-table-column
+          prop="currentPatients"
+          label="当前预约人数"
+          width="120"
+        />
+        <el-table-column
+          label="剩余名额"
+          width="100"
+        >
           <template #default="scope">
             {{ scope.row.maxPatients - scope.row.currentPatients }}
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column
+          prop="status"
+          label="状态"
+          width="100"
+        >
           <template #default="scope">
             <el-tag :type="scope.row.status === 1 ? 'success' : 'danger'">
               {{ scope.row.status === 1 ? '正常' : '停诊' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="250" fixed="right">
+        <el-table-column
+          label="操作"
+          width="250"
+          fixed="right"
+        >
           <template #default="scope">
-            <el-button type="primary" size="small" @click="handleEdit(scope.row)">编辑</el-button>
+            <el-button
+              type="primary"
+              size="small"
+              @click="handleEdit(scope.row)"
+            >
+              编辑
+            </el-button>
             <el-button
               v-if="scope.row.status === 1"
               type="danger"
               size="small"
-              @click="handleChangeStatus(scope.row.id, 0)"
               :disabled="scope.row.currentPatients > 0"
+              @click="handleChangeStatus(scope.row.id, 0)"
             >
               停诊
             </el-button>
@@ -100,8 +199,8 @@
             </el-button>
             <el-popconfirm
               title="确定删除此排班吗？"
-              @confirm="handleDelete(scope.row)"
               :disabled="scope.row.currentPatients > 0"
+              @confirm="handleDelete(scope.row)"
             >
               <template #reference>
                 <el-button
@@ -145,8 +244,16 @@
         :rules="scheduleFormRules"
         label-width="100px"
       >
-        <el-form-item label="医生" prop="doctorId">
-          <el-select v-model="scheduleForm.doctorId" placeholder="请选择医生" filterable style="width: 100%">
+        <el-form-item
+          label="医生"
+          prop="doctorId"
+        >
+          <el-select
+            v-model="scheduleForm.doctorId"
+            placeholder="请选择医生"
+            filterable
+            style="width: 100%"
+          >
             <el-option
               v-for="doctor in doctorOptions"
               :key="doctor.id"
@@ -155,7 +262,10 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="排班日期" prop="scheduleDate">
+        <el-form-item
+          label="排班日期"
+          prop="scheduleDate"
+        >
           <el-date-picker
             v-model="scheduleForm.scheduleDate"
             type="date"
@@ -165,27 +275,61 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="时间段" prop="timeSlot">
-          <el-select v-model="scheduleForm.timeSlot" placeholder="请选择时间段" style="width: 100%">
-            <el-option label="上午" value="上午" />
-            <el-option label="下午" value="下午" />
-            <el-option label="晚上" value="晚上" />
+        <el-form-item
+          label="时间段"
+          prop="timeSlot"
+        >
+          <el-select
+            v-model="scheduleForm.timeSlot"
+            placeholder="请选择时间段"
+            style="width: 100%"
+          >
+            <el-option
+              label="上午"
+              value="上午"
+            />
+            <el-option
+              label="下午"
+              value="下午"
+            />
+            <el-option
+              label="晚上"
+              value="晚上"
+            />
           </el-select>
         </el-form-item>
-        <el-form-item label="最大接诊人数" prop="maxPatients">
-          <el-input-number v-model="scheduleForm.maxPatients" :min="1" :max="100" style="width: 100%" />
+        <el-form-item
+          label="最大接诊人数"
+          prop="maxPatients"
+        >
+          <el-input-number
+            v-model="scheduleForm.maxPatients"
+            :min="1"
+            :max="100"
+            style="width: 100%"
+          />
         </el-form-item>
-        <el-form-item label="状态" prop="status">
+        <el-form-item
+          label="状态"
+          prop="status"
+        >
           <el-radio-group v-model="scheduleForm.status">
-            <el-radio :label="1">正常</el-radio>
-            <el-radio :label="0">停诊</el-radio>
+            <el-radio :label="1">
+              正常
+            </el-radio>
+            <el-radio :label="0">
+              停诊
+            </el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitForm">确定</el-button>
+          <el-button
+            type="primary"
+            @click="submitForm"
+          >确定</el-button>
         </span>
       </template>
     </el-dialog>
@@ -203,8 +347,16 @@
         :rules="batchFormRules"
         label-width="100px"
       >
-        <el-form-item label="医生" prop="doctorId">
-          <el-select v-model="batchForm.doctorId" placeholder="请选择医生" filterable style="width: 100%">
+        <el-form-item
+          label="医生"
+          prop="doctorId"
+        >
+          <el-select
+            v-model="batchForm.doctorId"
+            placeholder="请选择医生"
+            filterable
+            style="width: 100%"
+          >
             <el-option
               v-for="doctor in doctorOptions"
               :key="doctor.id"
@@ -213,7 +365,10 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="日期范围" prop="dateRange">
+        <el-form-item
+          label="日期范围"
+          prop="dateRange"
+        >
           <el-date-picker
             v-model="batchForm.dateRange"
             type="daterange"
@@ -225,32 +380,63 @@
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="排班时间段" prop="timeSlots">
+        <el-form-item
+          label="排班时间段"
+          prop="timeSlots"
+        >
           <el-checkbox-group v-model="batchForm.timeSlots">
             <el-checkbox label="上午" />
             <el-checkbox label="下午" />
             <el-checkbox label="晚上" />
           </el-checkbox-group>
         </el-form-item>
-        <el-form-item label="工作日选择" prop="workDays">
+        <el-form-item
+          label="工作日选择"
+          prop="workDays"
+        >
           <el-checkbox-group v-model="batchForm.workDays">
-            <el-checkbox label="1">周一</el-checkbox>
-            <el-checkbox label="2">周二</el-checkbox>
-            <el-checkbox label="3">周三</el-checkbox>
-            <el-checkbox label="4">周四</el-checkbox>
-            <el-checkbox label="5">周五</el-checkbox>
-            <el-checkbox label="6">周六</el-checkbox>
-            <el-checkbox label="0">周日</el-checkbox>
+            <el-checkbox label="1">
+              周一
+            </el-checkbox>
+            <el-checkbox label="2">
+              周二
+            </el-checkbox>
+            <el-checkbox label="3">
+              周三
+            </el-checkbox>
+            <el-checkbox label="4">
+              周四
+            </el-checkbox>
+            <el-checkbox label="5">
+              周五
+            </el-checkbox>
+            <el-checkbox label="6">
+              周六
+            </el-checkbox>
+            <el-checkbox label="0">
+              周日
+            </el-checkbox>
           </el-checkbox-group>
         </el-form-item>
-        <el-form-item label="最大接诊人数" prop="maxPatients">
-          <el-input-number v-model="batchForm.maxPatients" :min="1" :max="100" style="width: 100%" />
+        <el-form-item
+          label="最大接诊人数"
+          prop="maxPatients"
+        >
+          <el-input-number
+            v-model="batchForm.maxPatients"
+            :min="1"
+            :max="100"
+            style="width: 100%"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="batchDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitBatchForm">确定</el-button>
+          <el-button
+            type="primary"
+            @click="submitBatchForm"
+          >确定</el-button>
         </span>
       </template>
     </el-dialog>

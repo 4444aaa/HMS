@@ -289,7 +289,7 @@ CREATE TABLE IF NOT EXISTS purchase_acceptance_item (
 CREATE TABLE IF NOT EXISTS stock_in_order (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '入库单ID',
     stock_in_no VARCHAR(50) UNIQUE NOT NULL COMMENT '入库单号',
-    acceptance_id BIGINT NOT NULL COMMENT '来源验收单ID',
+    acceptance_id BIGINT COMMENT '来源验收单ID(多核验单合并入库时为空)',
     operator_user_id BIGINT COMMENT '入库操作人用户ID',
     stock_in_time DATETIME COMMENT '入库时间',
     status TINYINT(1) DEFAULT 0 COMMENT '状态: 0-草稿, 1-已过账',

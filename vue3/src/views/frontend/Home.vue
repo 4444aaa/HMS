@@ -2,9 +2,18 @@
   <div class="home-container">
     <!-- 轮播图区域 -->
     <div class="banner-section">
-      <el-carousel height="400px" indicator-position="outside">
-        <el-carousel-item v-for="item in bannerList" :key="item.id">
-          <div class="banner-content" :style="{ backgroundImage: `url(${item.imageUrl})` }">
+      <el-carousel
+        height="400px"
+        indicator-position="outside"
+      >
+        <el-carousel-item
+          v-for="item in bannerList"
+          :key="item.id"
+        >
+          <div
+            class="banner-content"
+            :style="{ backgroundImage: `url(${item.imageUrl})` }"
+          >
             <div class="banner-text">
               <h2>{{ item.title }}</h2>
               <p>{{ item.description }}</p>
@@ -20,10 +29,24 @@
         <h2>快捷服务</h2>
       </div>
       <div class="service-cards">
-        <div class="service-card" v-for="service in quickServices" :key="service.id" @click="handleServiceClick(service.route)">
-          <el-icon class="service-icon" :size="40"><component :is="service.icon" /></el-icon>
-          <div class="service-title">{{ service.title }}</div>
-          <div class="service-desc">{{ service.description }}</div>
+        <div
+          v-for="service in quickServices"
+          :key="service.id"
+          class="service-card"
+          @click="handleServiceClick(service.route)"
+        >
+          <el-icon
+            class="service-icon"
+            :size="40"
+          >
+            <component :is="service.icon" />
+          </el-icon>
+          <div class="service-title">
+            {{ service.title }}
+          </div>
+          <div class="service-desc">
+            {{ service.description }}
+          </div>
         </div>
       </div>
     </div>
@@ -34,15 +57,41 @@
         <h2>预约挂号指南</h2>
       </div>
       <div class="guide-steps">
-        <el-steps :active="1" finish-status="success" simple>
-          <el-step title="注册登录" description="注册账号并完善个人信息"></el-step>
-          <el-step title="选择科室医生" description="根据症状选择合适的科室和医生"></el-step>
-          <el-step title="选择就诊时间" description="选择合适的就诊日期和时间段"></el-step>
-          <el-step title="确认预约信息" description="核对并确认预约信息"></el-step>
-          <el-step title="按时就诊" description="凭预约号在指定时间前往就诊"></el-step>
+        <el-steps
+          :active="1"
+          finish-status="success"
+          simple
+        >
+          <el-step
+            title="注册登录"
+            description="注册账号并完善个人信息"
+          />
+          <el-step
+            title="选择科室医生"
+            description="根据症状选择合适的科室和医生"
+          />
+          <el-step
+            title="选择就诊时间"
+            description="选择合适的就诊日期和时间段"
+          />
+          <el-step
+            title="确认预约信息"
+            description="核对并确认预约信息"
+          />
+          <el-step
+            title="按时就诊"
+            description="凭预约号在指定时间前往就诊"
+          />
         </el-steps>
         <div class="guide-action">
-          <el-button type="primary" size="large" round @click="handleServiceClick('/appointment')">立即预约</el-button>
+          <el-button
+            type="primary"
+            size="large"
+            round
+            @click="handleServiceClick('/appointment')"
+          >
+            立即预约
+          </el-button>
         </div>
       </div>
     </div>

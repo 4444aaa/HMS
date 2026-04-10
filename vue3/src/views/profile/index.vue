@@ -6,15 +6,25 @@
         <h2><el-icon><UserFilled /></el-icon> 个人中心</h2>
         <p>在这里管理您的个人信息，让我们更好地了解您的需求</p>
       </div>
-        </div>
+    </div>
 
-    <el-card class="profile-card" shadow="hover">
+    <el-card
+      class="profile-card"
+      shadow="hover"
+    >
       <el-tabs v-model="activeTab">
         <!-- 基本信息 Tab -->
-        <el-tab-pane label="基本信息" name="basic">
+        <el-tab-pane
+          label="基本信息"
+          name="basic"
+        >
           <div class="profile-info">
             <div class="avatar-container">
-              <el-avatar :size="120" :src="avatarUrl" @error="() => false" />
+              <el-avatar
+                :size="120"
+                :src="avatarUrl"
+                @error="() => false"
+              />
               <el-upload
                 class="avatar-uploader"
                 action="#"
@@ -23,7 +33,11 @@
                 :http-request="customUploadAvatar"
                 :before-upload="beforeAvatarUpload"
               >
-                <el-button size="small" type="primary" round>
+                <el-button
+                  size="small"
+                  type="primary"
+                  round
+                >
                   <el-icon><Upload /></el-icon>
                   更换头像
                 </el-button>
@@ -32,7 +46,9 @@
 
             <div class="info-form">
               <div class="section-header">
-                <el-icon class="section-icon"><User /></el-icon>
+                <el-icon class="section-icon">
+                  <User />
+                </el-icon>
                 <h3>个人资料</h3>
               </div>
               <el-form
@@ -42,31 +58,58 @@
                 label-width="100px"
                 status-icon
               >
-                <el-form-item label="用户名" prop="username">
-                  <el-input v-model="userForm.username" disabled class="custom-disabled-input" />
+                <el-form-item
+                  label="用户名"
+                  prop="username"
+                >
+                  <el-input
+                    v-model="userForm.username"
+                    disabled
+                    class="custom-disabled-input"
+                  />
                 </el-form-item>
 
-                <el-form-item label="姓名" prop="name">
+                <el-form-item
+                  label="姓名"
+                  prop="name"
+                >
                   <el-input v-model="userForm.name" />
                 </el-form-item>
 
-                <el-form-item label="性别" prop="sex">
+                <el-form-item
+                  label="性别"
+                  prop="sex"
+                >
                   <el-radio-group v-model="userForm.sex">
-                    <el-radio label="男">男</el-radio>
-                    <el-radio label="女">女</el-radio>
+                    <el-radio label="男">
+                      男
+                    </el-radio>
+                    <el-radio label="女">
+                      女
+                    </el-radio>
                   </el-radio-group>
                 </el-form-item>
 
-                <el-form-item label="电子邮箱" prop="email">
+                <el-form-item
+                  label="电子邮箱"
+                  prop="email"
+                >
                   <el-input v-model="userForm.email" />
                 </el-form-item>
 
-                <el-form-item label="手机号码" prop="phone">
+                <el-form-item
+                  label="手机号码"
+                  prop="phone"
+                >
                   <el-input v-model="userForm.phone" />
                 </el-form-item>
 
                 <el-form-item>
-                  <el-button type="primary" @click="submitUserInfo" round>
+                  <el-button
+                    type="primary"
+                    round
+                    @click="submitUserInfo"
+                  >
                     <el-icon><Check /></el-icon>
                     保存修改
                   </el-button>
@@ -77,15 +120,30 @@
         </el-tab-pane>
 
         <!-- 患者信息 Tab -->
-        <el-tab-pane label="患者信息" name="patient">
+        <el-tab-pane
+          label="患者信息"
+          name="patient"
+        >
           <div v-loading="patientLoading">
             <!-- 无患者信息时显示 -->
-            <div v-if="!patientInfo && !patientLoading" class="empty-info">
-              <el-empty description="暂无患者信息" :image-size="120">
+            <div
+              v-if="!patientInfo && !patientLoading"
+              class="empty-info"
+            >
+              <el-empty
+                description="暂无患者信息"
+                :image-size="120"
+              >
                 <template #image>
-                  <el-icon class="empty-icon"><FirstAidKit /></el-icon>
+                  <el-icon class="empty-icon">
+                    <FirstAidKit />
+                  </el-icon>
                 </template>
-                <el-button type="primary" @click="handleAddPatient" round>
+                <el-button
+                  type="primary"
+                  round
+                  @click="handleAddPatient"
+                >
                   <el-icon><Plus /></el-icon>
                   添加患者信息
                 </el-button>
@@ -93,19 +151,31 @@
             </div>
 
             <!-- 有患者信息时显示 -->
-            <div v-if="patientInfo" class="patient-info">
+            <div
+              v-if="patientInfo"
+              class="patient-info"
+            >
               <div class="section-header">
-                <el-icon class="section-icon"><User /></el-icon>
+                <el-icon class="section-icon">
+                  <User />
+                </el-icon>
                 <h3>患者信息</h3>
                 <div class="header-actions">
-                  <el-button type="primary" @click="handleEditPatient" round>
+                  <el-button
+                    type="primary"
+                    round
+                    @click="handleEditPatient"
+                  >
                     <el-icon><Edit /></el-icon>
                     编辑信息
                   </el-button>
                 </div>
               </div>
               
-              <el-descriptions :column="2" border>
+              <el-descriptions
+                :column="2"
+                border
+              >
                 <el-descriptions-item label="患者编号">
                   <div class="info-with-icon">
                     <el-icon><Ticket /></el-icon>
@@ -145,26 +215,39 @@
                     {{ patientInfo.phone }}
                   </div>
                 </el-descriptions-item>
-                <el-descriptions-item label="住址" :span="2">
+                <el-descriptions-item
+                  label="住址"
+                  :span="2"
+                >
                   <div class="info-with-icon">
                     <el-icon><Location /></el-icon>
                     {{ patientInfo.address }}
                   </div>
                 </el-descriptions-item>
-                <el-descriptions-item label="病史" :span="2">
+                <el-descriptions-item
+                  label="病史"
+                  :span="2"
+                >
                   <div class="health-info-box">
                     <div class="health-info-icon">
                       <el-icon><Files /></el-icon>
                     </div>
-                    <div style="white-space: pre-line">{{ patientInfo.medicalHistory || '无' }}</div>
+                    <div style="white-space: pre-line">
+                      {{ patientInfo.medicalHistory || '无' }}
+                    </div>
                   </div>
                 </el-descriptions-item>
-                <el-descriptions-item label="过敏史" :span="2">
+                <el-descriptions-item
+                  label="过敏史"
+                  :span="2"
+                >
                   <div class="allergy-info-box">
                     <div class="health-info-icon">
                       <el-icon><Warning /></el-icon>
                     </div>
-                    <div style="white-space: pre-line">{{ patientInfo.allergies || '无' }}</div>
+                    <div style="white-space: pre-line">
+                      {{ patientInfo.allergies || '无' }}
+                    </div>
                   </div>
                 </el-descriptions-item>
               </el-descriptions>
@@ -172,7 +255,11 @@
           </div>
 
           <!-- 健康提示卡片 -->
-          <el-card v-if="patientInfo" class="health-tips-card" shadow="hover">
+          <el-card
+            v-if="patientInfo"
+            class="health-tips-card"
+            shadow="hover"
+          >
             <div class="tips-header">
               <el-icon><InfoFilled /></el-icon>
               <h4>健康小贴士</h4>
@@ -187,9 +274,14 @@
         </el-tab-pane>
 
         <!-- 修改密码 Tab -->
-        <el-tab-pane label="修改密码" name="password">
+        <el-tab-pane
+          label="修改密码"
+          name="password"
+        >
           <div class="section-header">
-            <el-icon class="section-icon"><Lock /></el-icon>
+            <el-icon class="section-icon">
+              <Lock />
+            </el-icon>
             <h3>密码管理</h3>
           </div>
           <el-form
@@ -200,7 +292,10 @@
             class="password-form"
             status-icon
           >
-            <el-form-item label="旧密码" prop="oldPassword">
+            <el-form-item
+              label="旧密码"
+              prop="oldPassword"
+            >
               <el-input
                 v-model="passwordForm.oldPassword"
                 show-password
@@ -208,7 +303,10 @@
               />
             </el-form-item>
 
-            <el-form-item label="新密码" prop="newPassword">
+            <el-form-item
+              label="新密码"
+              prop="newPassword"
+            >
               <el-input
                 v-model="passwordForm.newPassword"
                 show-password
@@ -216,7 +314,10 @@
               />
             </el-form-item>
 
-            <el-form-item label="确认新密码" prop="confirmPassword">
+            <el-form-item
+              label="确认新密码"
+              prop="confirmPassword"
+            >
               <el-input
                 v-model="passwordForm.confirmPassword"
                 show-password
@@ -225,7 +326,11 @@
             </el-form-item>
 
             <el-form-item>
-              <el-button type="primary" @click="submitPassword" round>
+              <el-button
+                type="primary"
+                round
+                @click="submitPassword"
+              >
                 <el-icon><Check /></el-icon>
                 修改密码
               </el-button>
@@ -273,19 +378,41 @@
           :rules="patientFormRules"
           label-width="100px"
         >
-          <el-form-item label="姓名" prop="name">
-            <el-input v-model="patientForm.name" placeholder="请输入姓名" />
+          <el-form-item
+            label="姓名"
+            prop="name"
+          >
+            <el-input
+              v-model="patientForm.name"
+              placeholder="请输入姓名"
+            />
           </el-form-item>
-          <el-form-item label="性别" prop="sex">
+          <el-form-item
+            label="性别"
+            prop="sex"
+          >
             <el-radio-group v-model="patientForm.sex">
-              <el-radio label="男">男</el-radio>
-              <el-radio label="女">女</el-radio>
+              <el-radio label="男">
+                男
+              </el-radio>
+              <el-radio label="女">
+                女
+              </el-radio>
             </el-radio-group>
           </el-form-item>
-          <el-form-item label="身份证号" prop="idCard">
-            <el-input v-model="patientForm.idCard" placeholder="请输入身份证号" />
+          <el-form-item
+            label="身份证号"
+            prop="idCard"
+          >
+            <el-input
+              v-model="patientForm.idCard"
+              placeholder="请输入身份证号"
+            />
           </el-form-item>
-          <el-form-item label="出生日期" prop="birthday">
+          <el-form-item
+            label="出生日期"
+            prop="birthday"
+          >
             <el-date-picker
               v-model="patientForm.birthday"
               type="date"
@@ -295,10 +422,19 @@
               style="width: 100%"
             />
           </el-form-item>
-          <el-form-item label="联系电话" prop="phone">
-            <el-input v-model="patientForm.phone" placeholder="请输入联系电话" />
+          <el-form-item
+            label="联系电话"
+            prop="phone"
+          >
+            <el-input
+              v-model="patientForm.phone"
+              placeholder="请输入联系电话"
+            />
           </el-form-item>
-          <el-form-item label="住址" prop="address">
+          <el-form-item
+            label="住址"
+            prop="address"
+          >
             <el-input
               v-model="patientForm.address"
               type="textarea"
@@ -306,7 +442,10 @@
               placeholder="请输入住址"
             />
           </el-form-item>
-          <el-form-item label="病史" prop="medicalHistory">
+          <el-form-item
+            label="病史"
+            prop="medicalHistory"
+          >
             <el-input
               v-model="patientForm.medicalHistory"
               type="textarea"
@@ -314,7 +453,10 @@
               placeholder="请输入病史"
             />
           </el-form-item>
-          <el-form-item label="过敏史" prop="allergies">
+          <el-form-item
+            label="过敏史"
+            prop="allergies"
+          >
             <el-input
               v-model="patientForm.allergies"
               type="textarea"
@@ -326,8 +468,16 @@
       </div>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="patientDialogVisible = false" plain round>取消</el-button>
-          <el-button type="primary" @click="submitPatientForm" round>确定</el-button>
+          <el-button
+            plain
+            round
+            @click="patientDialogVisible = false"
+          >取消</el-button>
+          <el-button
+            type="primary"
+            round
+            @click="submitPatientForm"
+          >确定</el-button>
         </span>
       </template>
     </el-dialog>

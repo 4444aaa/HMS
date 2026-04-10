@@ -4,67 +4,164 @@
       <template #header>
         <div class="card-header">
           <h3>入库单</h3>
-          <el-button type="primary" @click="openCreate">新增入库单</el-button>
+          <el-button
+            type="primary"
+            @click="openCreate"
+          >
+            新增入库单
+          </el-button>
         </div>
       </template>
 
-      <el-form :model="searchForm" :inline="true" class="search-form">
+      <el-form
+        :model="searchForm"
+        :inline="true"
+        class="search-form"
+      >
         <el-form-item label="入库单号">
-          <el-input v-model="searchForm.stockInNo" placeholder="请输入入库单号" clearable />
+          <el-input
+            v-model="searchForm.stockInNo"
+            placeholder="请输入入库单号"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="验收单ID">
-          <el-input v-model="searchForm.acceptanceId" placeholder="可选" clearable />
+          <el-input
+            v-model="searchForm.acceptanceId"
+            placeholder="可选"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="请选择状态" clearable style="width: 140px">
-            <el-option label="草稿" :value="0" />
-            <el-option label="已过账" :value="1" />
+          <el-select
+            v-model="searchForm.status"
+            placeholder="请选择状态"
+            clearable
+            style="width: 140px"
+          >
+            <el-option
+              label="草稿"
+              :value="0"
+            />
+            <el-option
+              label="已过账"
+              :value="1"
+            />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="resetSearch">重置</el-button>
+          <el-button
+            type="primary"
+            @click="handleSearch"
+          >
+            查询
+          </el-button>
+          <el-button @click="resetSearch">
+            重置
+          </el-button>
         </el-form-item>
       </el-form>
 
-      <el-table v-loading="loading" :data="tableData" border style="width: 100%">
-        <el-table-column prop="stockInNo" label="入库单号" width="170" />
-        <el-table-column prop="acceptanceId" label="验收单ID" width="110" />
-        <el-table-column prop="status" label="状态" width="110">
-          <template #default="scope">
-            <el-tag :type="getStatusTagType(scope.row.status)">{{ getStatusText(scope.row.status) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="stockInTime" label="入库时间" width="180">
-          <template #default="scope">{{ formatDate(scope.row.stockInTime) }}</template>
-        </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" width="180">
-          <template #default="scope">{{ formatDate(scope.row.createTime) }}</template>
-        </el-table-column>
-        <el-table-column label="操作" width="260">
-          <template #default="scope">
-            <el-button size="small" type="primary" @click="openDetail(scope.row)">详情</el-button>
-            <el-button
-              size="small"
-              type="warning"
-              v-if="scope.row.status === 0"
-              @click="openEdit(scope.row)"
-            >编辑</el-button>
-            <el-button
-              size="small"
-              type="success"
-              v-if="scope.row.status === 0"
-              @click="post(scope.row)"
-            >过账</el-button>
-            <el-button
-              size="small"
-              type="danger"
-              v-if="scope.row.status === 0"
-              @click="deleteStockIn(scope.row)"
-            >删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <!-- v-loading 放在表格外层，避免与表头/表体双表格布局冲突导致列错位；保留一列仅用 min-width 便于列宽与 colgroup 对齐 -->
+      <div
+        v-loading="loading"
+        class="stock-in-order-table-wrap"
+      >
+        <el-table
+          :data="tableData"
+          border
+          style="width: 100%"
+          table-layout="fixed"
+          :scrollbar-always-on="true"
+        >
+          <el-table-column
+            label="入库单号"
+            prop="stockInNo"
+            min-width="170"
+            show-overflow-tooltip
+          >
+            <template #default="scope">
+              {{ scope.row.stockInNo ?? '-' }}
+            </template>
+          </el-table-column>
+          <el-table-column
+            label="验收单ID"
+            min-width="160"
+            show-overflow-tooltip
+          >
+            <template #default="scope">
+              {{ formatAcceptanceIds(scope.row) }}
+            </template>
+          </el-table-column>
+          <el-table-column
+            label="状态"
+            prop="status"
+            width="110"
+          >
+            <template #default="scope">
+              <el-tag :type="getStatusTagType(scope.row.status)">
+                {{ getStatusText(scope.row.status) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column
+            label="入库时间"
+            prop="stockInTime"
+            min-width="180"
+          >
+            <template #default="scope">
+              {{ formatDate(scope.row.stockInTime) }}
+            </template>
+          </el-table-column>
+          <el-table-column
+            label="创建时间"
+            prop="createTime"
+            min-width="180"
+          >
+            <template #default="scope">
+              {{ formatDate(scope.row.createTime) }}
+            </template>
+          </el-table-column>
+          <el-table-column
+            label="操作"
+            min-width="260"
+          >
+            <template #default="scope">
+              <el-button
+                size="small"
+                type="primary"
+                @click="openDetail(scope.row)"
+              >
+                详情
+              </el-button>
+              <el-button
+                v-if="scope.row.status === 0"
+                size="small"
+                type="warning"
+                @click="openEdit(scope.row)"
+              >
+                编辑
+              </el-button>
+              <el-button
+                v-if="scope.row.status === 0"
+                size="small"
+                type="success"
+                @click="post(scope.row)"
+              >
+                过账
+              </el-button>
+              <el-button
+                v-if="scope.row.status === 0"
+                size="small"
+                type="danger"
+                @click="deleteStockIn(scope.row)"
+              >
+                删除
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
 
       <div class="pagination-container">
         <el-pagination
@@ -81,10 +178,27 @@
     </el-card>
 
     <!-- 创建入库单 -->
-    <el-dialog v-model="createVisible" :title="isEdit ? '编辑入库单' : '新增入库单'" width="980px" @closed="resetCreate">
-      <el-form :model="createForm" label-width="90px">
+    <el-dialog
+      v-model="createVisible"
+      :title="isEdit ? '编辑入库单' : '新增入库单'"
+      width="980px"
+      @closed="resetCreate"
+    >
+      <el-form
+        :model="createForm"
+        label-width="90px"
+      >
         <el-form-item label="验收单">
-          <el-select v-model="createForm.acceptanceId" placeholder="请选择已完成验收单" filterable style="width: 360px" @change="onAcceptanceChange">
+          <el-select
+            v-model="createForm.acceptanceIds"
+            multiple
+            collapse-tags
+            collapse-tags-tooltip
+            placeholder="请选择已完成验收单（可多选合并入库）"
+            filterable
+            style="width: 420px"
+            @change="onAcceptancesChange"
+          >
             <el-option
               v-for="a in acceptanceOptions"
               :key="a.id"
@@ -94,87 +208,203 @@
           </el-select>
         </el-form-item>
         <el-form-item label="备注">
-          <el-input v-model="createForm.remark" type="textarea" :rows="2" placeholder="可选" />
+          <el-input
+            v-model="createForm.remark"
+            type="textarea"
+            :rows="2"
+            placeholder="可选"
+          />
         </el-form-item>
       </el-form>
 
       <el-alert
-        title="入库明细必须来源验收明细；入库数量不得超过验收合格数量（系统会做校验）。"
+        title="可多选核验单，明细合并为一张入库单；入库数量不得超过各验收明细合格数量（系统会做校验）。"
         type="info"
         :closable="false"
         show-icon
         style="margin-bottom: 10px"
       />
-      <div v-if="sourceAcceptanceDetail?.id" class="doc-preview">
-        <div class="doc-preview-title">来源采购核验单</div>
-        <div class="doc-preview-meta">
-          <span>核验单号：{{ sourceAcceptanceDetail.acceptanceNo || '-' }}</span>
-          <span>采购单号：{{ sourceAcceptanceDetail.purchaseOrder?.orderNo || sourceAcceptanceDetail.purchaseOrderId || '-' }}</span>
-          <span>状态：{{ sourceAcceptanceDetail.status === 1 ? '已完成' : sourceAcceptanceDetail.status }}</span>
+      <template
+        v-for="src in sourceAcceptanceList"
+        :key="src.id"
+      >
+        <div
+          v-if="src?.id"
+          class="doc-preview"
+        >
+          <div class="doc-preview-title">
+            来源采购核验单
+          </div>
+          <div class="doc-preview-meta">
+            <span>核验单号：{{ src.acceptanceNo || '-' }}</span>
+            <span>采购单号：{{ src.purchaseOrder?.orderNo || src.purchaseOrderId || '-' }}</span>
+            <span>状态：{{ src.status === 1 ? '已完成' : src.status }}</span>
+          </div>
+          <el-table
+            :data="src.items || []"
+            border
+            size="small"
+            style="width: 100%"
+          >
+            <el-table-column
+              type="index"
+              label="序号"
+              width="60"
+            />
+            <el-table-column
+              label="产品名称"
+              min-width="180"
+            >
+              <template #default="scope">
+                {{ scope.row.medicine?.medicineName || scope.row.medicineId }}
+              </template>
+            </el-table-column>
+            <el-table-column
+              prop="orderedQty"
+              label="下单数量"
+              width="100"
+            />
+            <el-table-column
+              prop="receivedQty"
+              label="到货数量"
+              width="100"
+            />
+            <el-table-column
+              prop="qualifiedQty"
+              label="合格数量"
+              width="100"
+            />
+            <el-table-column
+              prop="remark"
+              label="备注"
+              min-width="140"
+            />
+          </el-table>
         </div>
-        <el-table :data="sourceAcceptanceDetail.items || []" border size="small" style="width: 100%">
-          <el-table-column type="index" label="序号" width="60" />
-          <el-table-column label="产品名称" min-width="180">
-            <template #default="scope">
-              {{ scope.row.medicine?.medicineName || scope.row.medicineId }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="orderedQty" label="下单数量" width="100" />
-          <el-table-column prop="receivedQty" label="到货数量" width="100" />
-          <el-table-column prop="qualifiedQty" label="合格数量" width="100" />
-          <el-table-column prop="remark" label="备注" min-width="140" />
-        </el-table>
-      </div>
+      </template>
 
-      <el-table :data="createForm.items" border style="width: 100%">
-        <el-table-column label="药品" min-width="220">
+      <el-table
+        :data="createForm.items"
+        border
+        style="width: 100%"
+      >
+        <el-table-column
+          label="核验单"
+          min-width="140"
+          show-overflow-tooltip
+        >
+          <template #default="scope">
+            {{ scope.row.acceptanceNo || scope.row.acceptanceId || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="药品"
+          min-width="200"
+        >
           <template #default="scope">
             {{ scope.row.medicine?.medicineName || scope.row.medicineId }}
           </template>
         </el-table-column>
-        <el-table-column prop="qualifiedQty" label="合格数量" width="120" />
-        <el-table-column label="入库数量" width="160">
+        <el-table-column
+          prop="qualifiedQty"
+          label="合格数量"
+          width="120"
+        />
+        <el-table-column
+          label="入库数量"
+          width="160"
+        >
           <template #default="scope">
-            <el-input-number v-model="scope.row.stockInQty" :min="0" :max="scope.row.qualifiedQty" style="width: 100%" />
+            <el-input-number
+              v-model="scope.row.stockInQty"
+              :min="0"
+              :max="scope.row.qualifiedQty"
+              style="width: 100%"
+            />
           </template>
         </el-table-column>
-        <el-table-column label="单位成本" width="160">
+        <el-table-column
+          label="单位成本"
+          width="160"
+        >
           <template #default="scope">
-            <el-input-number v-model="scope.row.unitCost" :min="0" :precision="2" style="width: 100%" />
+            <el-input-number
+              v-model="scope.row.unitCost"
+              :min="0"
+              :precision="2"
+              style="width: 100%"
+            />
           </template>
         </el-table-column>
       </el-table>
 
       <template #footer>
-        <el-button @click="createVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="saveStockIn">{{ isEdit ? '保存' : '创建' }}</el-button>
+        <el-button @click="createVisible = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="saving"
+          @click="saveStockIn"
+        >
+          {{ isEdit ? '保存' : '创建' }}
+        </el-button>
       </template>
     </el-dialog>
 
     <!-- 详情 -->
-    <el-dialog v-model="detailVisible" title="入库单详情" width="980px">
+    <el-dialog
+      v-model="detailVisible"
+      title="入库单详情"
+      width="980px"
+    >
       <div class="doc-preview">
-        <div class="doc-preview-title">采购入库单</div>
+        <div class="doc-preview-title">
+          采购入库单
+        </div>
         <div class="doc-preview-meta">
           <span>入库时间：{{ formatDate(detail.stockInTime || detail.createTime) }}</span>
           <span>入库单号：{{ detail.stockInNo || '-' }}</span>
           <span>状态：{{ getStatusText(detail.status) }}</span>
         </div>
         <div class="doc-preview-meta">
-          <span>核验单：{{ detail.acceptance?.acceptanceNo || detail.acceptanceId || '-' }}</span>
+          <span>核验单：{{ formatAcceptanceLine(detail) }}</span>
           <span>备注：{{ detail.remark || '-' }}</span>
         </div>
       </div>
-      <el-table :data="detail.items || []" border style="width: 100%">
-        <el-table-column label="药品" min-width="220">
+      <el-table
+        :data="detail.items || []"
+        border
+        style="width: 100%"
+      >
+        <el-table-column
+          label="药品"
+          min-width="220"
+        >
           <template #default="scope">
             {{ scope.row.medicine?.medicineName || scope.row.medicineId }}
           </template>
         </el-table-column>
-        <el-table-column prop="stockInQty" label="入库数量" width="120" />
-        <el-table-column prop="unitCost" label="单位成本" width="120" />
-        <el-table-column prop="amount" label="金额" width="120" />
-        <el-table-column prop="remark" label="备注" min-width="200" />
+        <el-table-column
+          prop="stockInQty"
+          label="入库数量"
+          width="120"
+        />
+        <el-table-column
+          prop="unitCost"
+          label="单位成本"
+          width="120"
+        />
+        <el-table-column
+          prop="amount"
+          label="金额"
+          width="120"
+        />
+        <el-table-column
+          prop="remark"
+          label="备注"
+          min-width="200"
+        />
       </el-table>
     </el-dialog>
   </div>
@@ -204,14 +434,34 @@ const isEdit = ref(false)
 const editingStockInId = ref(null)
 const detailVisible = ref(false)
 const detail = reactive({})
-const sourceAcceptanceDetail = ref(null)
+const sourceAcceptanceList = ref([])
 
 const acceptanceOptions = ref([])
 const createForm = reactive({
-  acceptanceId: null,
+  acceptanceIds: [],
   remark: '',
   items: []
 })
+
+const formatAcceptanceIds = (row) => {
+  if (Array.isArray(row?.acceptanceIds) && row.acceptanceIds.length > 0) {
+    return row.acceptanceIds.join(', ')
+  }
+  return row?.acceptanceId ?? '-'
+}
+
+const formatAcceptanceLine = (d) => {
+  if (d?.sourceAcceptances?.length) {
+    return d.sourceAcceptances.map((a) => `${a.acceptanceNo || ''}(ID:${a.id})`).filter(Boolean).join('、') || '-'
+  }
+  if (Array.isArray(d?.acceptanceIds) && d.acceptanceIds.length > 0) {
+    return d.acceptanceIds.join(', ')
+  }
+  if (d?.acceptance?.acceptanceNo) {
+    return `${d.acceptance.acceptanceNo}(ID:${d.acceptance.id})`
+  }
+  return d?.acceptanceId ?? '-'
+}
 
 const fetchStockIns = async () => {
   loading.value = true
@@ -253,14 +503,14 @@ const handleCurrentChange = (val) => {
   fetchStockIns()
 }
 
-const openCreate = async () => {
-  isEdit.value = false
-  editingStockInId.value = null
-  createVisible.value = true
+const fetchAcceptanceOptions = async (alwaysIncludeAcceptanceIds = []) => {
+  const include = (alwaysIncludeAcceptanceIds || []).filter((id) => id != null)
   await request.get('/purchaseAcceptance/page', {
     status: 1,
     currentPage: 1,
-    size: 999
+    size: 999,
+    excludeFullyStockPosted: true,
+    alwaysIncludeAcceptanceIds: include.length ? include.join(',') : undefined
   }, {
     showDefaultMsg: false,
     onSuccess: (res) => {
@@ -269,26 +519,27 @@ const openCreate = async () => {
   })
 }
 
+const openCreate = async () => {
+  isEdit.value = false
+  editingStockInId.value = null
+  createVisible.value = true
+  await fetchAcceptanceOptions()
+}
+
 const openEdit = async (row) => {
   isEdit.value = true
   editingStockInId.value = row.id
   createVisible.value = true
-  await request.get('/purchaseAcceptance/page', {
-    status: 1,
-    currentPage: 1,
-    size: 999
-  }, {
-    showDefaultMsg: false,
-    onSuccess: (res) => {
-      acceptanceOptions.value = res.records || []
-    }
-  })
   await request.get(`/stockInOrder/${row.id}`, {}, {
     showDefaultMsg: false,
     onSuccess: async (res) => {
-      createForm.acceptanceId = res?.acceptanceId || null
+      const ids = (res?.acceptanceIds && res.acceptanceIds.length > 0)
+        ? [...res.acceptanceIds]
+        : (res?.acceptanceId ? [res.acceptanceId] : [])
+      await fetchAcceptanceOptions(ids)
+      createForm.acceptanceIds = ids
       createForm.remark = res?.remark || ''
-      await onAcceptanceChange(createForm.acceptanceId)
+      await onAcceptancesChange(ids)
       const itemMap = {}
       ;(res?.items || []).forEach(it => {
         itemMap[it.acceptanceItemId] = it
@@ -306,50 +557,74 @@ const openEdit = async (row) => {
   })
 }
 
-const onAcceptanceChange = async (acceptanceId) => {
-  if (!acceptanceId) return
-  await request.get(`/purchaseAcceptance/${acceptanceId}`, {}, {
-    showDefaultMsg: false,
-    onSuccess: async (res) => {
-      sourceAcceptanceDetail.value = res || null
-      let orderPriceMap = {}
+const fetchOrderPriceMap = async (orderId) => {
+  if (!orderId) return {}
+  try {
+    const orderRes = await request.get(`/purchaseOrder/${orderId}`, {}, { showDefaultMsg: false })
+    const map = {}
+    ;(orderRes?.items || []).forEach((oi) => {
+      map[oi.medicineId] = Number(oi.unitPrice || 0)
+    })
+    return map
+  } catch {
+    return {}
+  }
+}
+
+const onAcceptancesChange = async (acceptanceIds) => {
+  if (!acceptanceIds || acceptanceIds.length === 0) {
+    sourceAcceptanceList.value = []
+    createForm.items = []
+    return
+  }
+  try {
+    const details = await Promise.all(
+      acceptanceIds.map((id) =>
+        request.get(`/purchaseAcceptance/${id}`, {}, { showDefaultMsg: false })
+      )
+    )
+    sourceAcceptanceList.value = details.filter((d) => d && d.id)
+    const orderPriceCache = {}
+    const merged = []
+    for (const res of sourceAcceptanceList.value) {
       const orderId = res?.purchaseOrder?.id || res?.purchaseOrderId
-      if (orderId) {
-        await request.get(`/purchaseOrder/${orderId}`, {}, {
-          showDefaultMsg: false,
-          onSuccess: (orderRes) => {
-            const map = {}
-            ;(orderRes?.items || []).forEach(oi => {
-              map[oi.medicineId] = Number(oi.unitPrice || 0)
-            })
-            orderPriceMap = map
-          }
+      let orderPriceMap = orderPriceCache[orderId]
+      if (orderId && orderPriceMap === undefined) {
+        orderPriceMap = await fetchOrderPriceMap(orderId)
+        orderPriceCache[orderId] = orderPriceMap
+      }
+      orderPriceMap = orderPriceMap || {}
+      for (const it of res.items || []) {
+        merged.push({
+          acceptanceId: res.id,
+          acceptanceNo: res.acceptanceNo,
+          acceptanceItemId: it.id,
+          medicineId: it.medicineId,
+          medicine: it.medicine,
+          qualifiedQty: it.qualifiedQty || 0,
+          stockInQty: it.qualifiedQty || 0,
+          unitCost: Number(orderPriceMap[it.medicineId] || it.medicine?.price || 0)
         })
       }
-      const items = (res.items || []).map(it => ({
-        acceptanceItemId: it.id,
-        medicineId: it.medicineId,
-        medicine: it.medicine,
-        qualifiedQty: it.qualifiedQty || 0,
-        stockInQty: it.qualifiedQty || 0,
-        unitCost: Number(orderPriceMap[it.medicineId] || it.medicine?.price || 0)
-      }))
-      createForm.items = items
     }
-  })
+    createForm.items = merged
+  } catch {
+    sourceAcceptanceList.value = []
+    createForm.items = []
+  }
 }
 
 const resetCreate = () => {
   isEdit.value = false
   editingStockInId.value = null
-  createForm.acceptanceId = null
+  createForm.acceptanceIds = []
   createForm.remark = ''
   createForm.items = []
-  sourceAcceptanceDetail.value = null
+  sourceAcceptanceList.value = []
 }
 
 const saveStockIn = async () => {
-  if (!createForm.acceptanceId) return
+  if (!createForm.acceptanceIds?.length) return
   const items = (createForm.items || [])
     .filter(i => i.stockInQty && i.stockInQty > 0)
     .map(i => ({
@@ -362,7 +637,6 @@ const saveStockIn = async () => {
   saving.value = true
   try {
     const payload = {
-      acceptanceId: createForm.acceptanceId,
       remark: createForm.remark,
       items
     }
@@ -448,6 +722,9 @@ onMounted(() => {
     display: flex;
     justify-content: flex-end;
     margin-top: 16px;
+  }
+  .stock-in-order-table-wrap {
+    min-height: 120px;
   }
   .doc-preview {
     border: 1px solid #dcdfe6;

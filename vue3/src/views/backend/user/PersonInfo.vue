@@ -4,14 +4,24 @@
       <template #header>
         <div class="card-header">
           <span>个人信息</span>
-          <el-button type="primary" @click="handleEdit" v-if="!isEditing">
+          <el-button
+            v-if="!isEditing"
+            type="primary"
+            @click="handleEdit"
+          >
             编辑信息
           </el-button>
           <div v-else>
-            <el-button type="primary" @click="handleSave" :loading="saving">
+            <el-button
+              type="primary"
+              :loading="saving"
+              @click="handleSave"
+            >
               保存
             </el-button>
-            <el-button @click="handleCancel">取消</el-button>
+            <el-button @click="handleCancel">
+              取消
+            </el-button>
           </div>
         </div>
       </template>
@@ -19,7 +29,11 @@
       <div class="info-content">
         <!-- 添加头像上传部分 -->
         <div class="avatar-container">
-          <el-avatar :size="100" :src="avatarUrl" @error="() => false" />
+          <el-avatar
+            :size="100"
+            :src="avatarUrl"
+            @error="() => false"
+          />
           <el-upload
             class="avatar-uploader"
             action="#"
@@ -29,7 +43,13 @@
             :before-upload="beforeAvatarUpload"
             :disabled="!isEditing"
           >
-            <el-button size="small" type="primary" :disabled="!isEditing">更换头像</el-button>
+            <el-button
+              size="small"
+              type="primary"
+              :disabled="!isEditing"
+            >
+              更换头像
+            </el-button>
           </el-upload>
         </div>
 
@@ -41,28 +61,59 @@
           :disabled="!isEditing"
           class="info-form"
         >
-          <el-form-item label="用户名" prop="username">
-            <el-input v-model="form.username" disabled />
+          <el-form-item
+            label="用户名"
+            prop="username"
+          >
+            <el-input
+              v-model="form.username"
+              disabled
+            />
           </el-form-item>
 
-          <el-form-item label="姓名" prop="name">
-            <el-input v-model="form.name" placeholder="请输入姓名" />
+          <el-form-item
+            label="姓名"
+            prop="name"
+          >
+            <el-input
+              v-model="form.name"
+              placeholder="请输入姓名"
+            />
           </el-form-item>
 
           <!-- 添加性别选择 -->
-          <el-form-item label="性别" prop="sex">
+          <el-form-item
+            label="性别"
+            prop="sex"
+          >
             <el-radio-group v-model="form.sex">
-              <el-radio label="男">男</el-radio>
-              <el-radio label="女">女</el-radio>
+              <el-radio label="男">
+                男
+              </el-radio>
+              <el-radio label="女">
+                女
+              </el-radio>
             </el-radio-group>
           </el-form-item>
 
-          <el-form-item label="邮箱" prop="email">
-            <el-input v-model="form.email" placeholder="请输入邮箱" />
+          <el-form-item
+            label="邮箱"
+            prop="email"
+          >
+            <el-input
+              v-model="form.email"
+              placeholder="请输入邮箱"
+            />
           </el-form-item>
 
-          <el-form-item label="手机号" prop="phone">
-            <el-input v-model="form.phone" placeholder="请输入手机号" />
+          <el-form-item
+            label="手机号"
+            prop="phone"
+          >
+            <el-input
+              v-model="form.phone"
+              placeholder="请输入手机号"
+            />
           </el-form-item>
         </el-form>
       </div>
@@ -81,7 +132,10 @@
         :rules="passwordRules"
         label-width="100px"
       >
-        <el-form-item label="原密码" prop="oldPassword">
+        <el-form-item
+          label="原密码"
+          prop="oldPassword"
+        >
           <el-input 
             v-model="passwordForm.oldPassword" 
             type="password"
@@ -90,7 +144,10 @@
           />
         </el-form-item>
 
-        <el-form-item label="新密码" prop="newPassword">
+        <el-form-item
+          label="新密码"
+          prop="newPassword"
+        >
           <el-input 
             v-model="passwordForm.newPassword" 
             type="password"
@@ -99,7 +156,10 @@
           />
         </el-form-item>
 
-        <el-form-item label="确认密码" prop="confirmPassword">
+        <el-form-item
+          label="确认密码"
+          prop="confirmPassword"
+        >
           <el-input 
             v-model="passwordForm.confirmPassword" 
             type="password"
@@ -111,8 +171,8 @@
         <el-form-item>
           <el-button 
             type="primary" 
-            @click="handleChangePassword"
             :loading="changingPassword"
+            @click="handleChangePassword"
           >
             修改密码
           </el-button>

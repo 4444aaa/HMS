@@ -15,7 +15,14 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.TreeSet;
 
 @Service
 public class StockInOrderService {
@@ -31,26 +38,22 @@ public class StockInOrderService {
     private MedicineMapper medicineMapper;
     @Resource
     private MedicineService medicineService;
+    @Resource
+    private PurchaseOrderMapper purchaseOrderMapper;
 
     @Transactional
     public StockInOrder createStockInOrder(StockInOrder stockIn) {
         if (stockIn == null) {
             throw new ServiceException("入库单不能为空");
         }
-        if (stockIn.getAcceptanceId() == null) {
-            throw new ServiceException("来源验收单不能为空");
-        }
         if (stockIn.getItems() == null || stockIn.getItems().isEmpty()) {
             throw new ServiceException("入库明细不能为空");
         }
 
-        PurchaseAcceptance acceptance = purchaseAcceptanceMapper.selectById(stockIn.getAcceptanceId());
-        if (acceptance == null) {
-            throw new ServiceException("来源验收单不存在");
-        }
-        if (acceptance.getStatus() == null || acceptance.getStatus() != 1) {
-            throw new ServiceException("仅已完成的验收单允许创建入库单");
-        }
+        Set<Long> headerAcceptanceIds = resolveAcceptanceIdsFromItems(stockIn.getItems());
+        validateAcceptancesCompleted(headerAcceptanceIds);
+        Long headerAcceptanceId = headerAcceptanceIds.size() == 1 ? headerAcceptanceIds.iterator().next() : null;
+        stockIn.setAcceptanceId(headerAcceptanceId);
 
         LocalDateTime now = LocalDateTime.now();
         stockIn.setStockInNo(generateStockInNo());
@@ -66,7 +69,6 @@ public class StockInOrderService {
             throw new ServiceException("入库单创建失败");
         }
 
-        BigDecimal total = BigDecimal.ZERO;
         for (StockInOrderItem item : stockIn.getItems()) {
             if (item.getAcceptanceItemId() == null) {
                 throw new ServiceException("入库明细来源验收明细不能为空");
@@ -75,8 +77,8 @@ public class StockInOrderService {
                 throw new ServiceException("入库数量必须大于0");
             }
             PurchaseAcceptanceItem accItem = purchaseAcceptanceItemMapper.selectById(item.getAcceptanceItemId());
-            if (accItem == null || !stockIn.getAcceptanceId().equals(accItem.getAcceptanceId())) {
-                throw new ServiceException("来源验收明细不存在或不匹配");
+            if (accItem == null) {
+                throw new ServiceException("来源验收明细不存在");
             }
 
             int qualified = accItem.getQualifiedQty() == null ? 0 : accItem.getQualifiedQty();
@@ -98,7 +100,6 @@ public class StockInOrderService {
             if (stockInOrderItemMapper.insert(item) <= 0) {
                 throw new ServiceException("入库明细创建失败");
             }
-            total = total.add(amount);
         }
 
         return getStockInOrderById(stockIn.getId());
@@ -165,27 +166,18 @@ public class StockInOrderService {
         if (existing.getStatus() == null || existing.getStatus() != 0) {
             throw new ServiceException("入库单已过账，不能编辑");
         }
-        if (stockIn.getAcceptanceId() == null) {
-            throw new ServiceException("来源验收单不能为空");
-        }
         if (stockIn.getItems() == null || stockIn.getItems().isEmpty()) {
             throw new ServiceException("入库明细不能为空");
         }
 
-        PurchaseAcceptance acceptance = purchaseAcceptanceMapper.selectById(stockIn.getAcceptanceId());
-        if (acceptance == null || acceptance.getStatus() == null || acceptance.getStatus() != 1) {
-            throw new ServiceException("仅已完成的验收单允许编辑入库单");
-        }
+        Set<Long> headerAcceptanceIds = resolveAcceptanceIdsFromItems(stockIn.getItems());
+        validateAcceptancesCompleted(headerAcceptanceIds);
+        Long headerAcceptanceId = headerAcceptanceIds.size() == 1 ? headerAcceptanceIds.iterator().next() : null;
 
         LocalDateTime now = LocalDateTime.now();
-        PurchaseAcceptance currentAcceptance = purchaseAcceptanceMapper.selectById(existing.getAcceptanceId());
-        if (currentAcceptance == null || currentAcceptance.getStatus() == null || currentAcceptance.getStatus() != 1) {
-            throw new ServiceException("当前入库单来源验收单状态异常，不能编辑");
-        }
 
         stockInOrderItemMapper.delete(new LambdaQueryWrapper<StockInOrderItem>().eq(StockInOrderItem::getStockInId, existing.getId()));
 
-        BigDecimal total = BigDecimal.ZERO;
         for (StockInOrderItem item : stockIn.getItems()) {
             if (item.getAcceptanceItemId() == null) {
                 throw new ServiceException("入库明细来源验收明细不能为空");
@@ -194,8 +186,8 @@ public class StockInOrderService {
                 throw new ServiceException("入库数量必须大于0");
             }
             PurchaseAcceptanceItem accItem = purchaseAcceptanceItemMapper.selectById(item.getAcceptanceItemId());
-            if (accItem == null || !stockIn.getAcceptanceId().equals(accItem.getAcceptanceId())) {
-                throw new ServiceException("来源验收明细不存在或不匹配");
+            if (accItem == null) {
+                throw new ServiceException("来源验收明细不存在");
             }
             int qualified = accItem.getQualifiedQty() == null ? 0 : accItem.getQualifiedQty();
             int already = getAlreadyStockedInQty(accItem.getId());
@@ -216,12 +208,11 @@ public class StockInOrderService {
             if (stockInOrderItemMapper.insert(item) <= 0) {
                 throw new ServiceException("入库明细更新失败");
             }
-            total = total.add(amount);
         }
 
         StockInOrder update = new StockInOrder();
         update.setId(existing.getId());
-        update.setAcceptanceId(stockIn.getAcceptanceId());
+        update.setAcceptanceId(headerAcceptanceId);
         update.setRemark(stockIn.getRemark());
         update.setUpdateTime(now);
         if (stockInOrderMapper.updateById(update) <= 0) {
@@ -236,8 +227,6 @@ public class StockInOrderService {
         if (stockIn == null) {
             throw new ServiceException("入库单不存在");
         }
-        PurchaseAcceptance acceptance = purchaseAcceptanceMapper.selectById(stockIn.getAcceptanceId());
-        stockIn.setAcceptance(acceptance);
 
         List<StockInOrderItem> items = stockInOrderItemMapper.selectList(
                 new LambdaQueryWrapper<StockInOrderItem>().eq(StockInOrderItem::getStockInId, stockInId)
@@ -247,6 +236,32 @@ public class StockInOrderService {
             item.setMedicine(medicine);
         }
         stockIn.setItems(items);
+
+        Set<Long> accIds = new TreeSet<>();
+        for (StockInOrderItem item : items) {
+            PurchaseAcceptanceItem pai = purchaseAcceptanceItemMapper.selectById(item.getAcceptanceItemId());
+            if (pai != null && pai.getAcceptanceId() != null) {
+                accIds.add(pai.getAcceptanceId());
+            }
+        }
+        stockIn.setAcceptanceIds(new ArrayList<>(accIds));
+        if (accIds.size() == 1) {
+            PurchaseAcceptance acceptance = purchaseAcceptanceMapper.selectById(accIds.iterator().next());
+            stockIn.setAcceptance(acceptance);
+            stockIn.setSourceAcceptances(null);
+        } else if (accIds.isEmpty()) {
+            stockIn.setAcceptance(stockIn.getAcceptanceId() != null
+                    ? purchaseAcceptanceMapper.selectById(stockIn.getAcceptanceId()) : null);
+            stockIn.setSourceAcceptances(null);
+        } else {
+            stockIn.setAcceptance(null);
+            List<PurchaseAcceptance> src = purchaseAcceptanceMapper.selectBatchIds(accIds);
+            for (PurchaseAcceptance a : src) {
+                PurchaseOrder order = purchaseOrderMapper.selectById(a.getPurchaseOrderId());
+                a.setPurchaseOrder(order);
+            }
+            stockIn.setSourceAcceptances(src);
+        }
         return stockIn;
     }
 
@@ -257,13 +272,91 @@ public class StockInOrderService {
             qw.like(StockInOrder::getStockInNo, stockInNo);
         }
         if (acceptanceId != null) {
-            qw.eq(StockInOrder::getAcceptanceId, acceptanceId);
+            qw.and(w -> w.eq(StockInOrder::getAcceptanceId, acceptanceId)
+                    .or()
+                    .apply("EXISTS (SELECT 1 FROM stock_in_order_item si INNER JOIN purchase_acceptance_item pai ON si.acceptance_item_id = pai.id WHERE si.stock_in_id = stock_in_order.id AND pai.acceptance_id = {0})",
+                            acceptanceId));
         }
         if (status != null) {
             qw.eq(StockInOrder::getStatus, status);
         }
         qw.orderByDesc(StockInOrder::getUpdateTime);
-        return stockInOrderMapper.selectPage(new Page<>(currentPage, size), qw);
+        Page<StockInOrder> page = stockInOrderMapper.selectPage(new Page<>(currentPage, size), qw);
+        fillAcceptanceIdsForStockIns(page.getRecords());
+        return page;
+    }
+
+    private Set<Long> resolveAcceptanceIdsFromItems(List<StockInOrderItem> items) {
+        Set<Long> ids = new HashSet<>();
+        for (StockInOrderItem item : items) {
+            if (item.getAcceptanceItemId() == null) {
+                continue;
+            }
+            PurchaseAcceptanceItem accItem = purchaseAcceptanceItemMapper.selectById(item.getAcceptanceItemId());
+            if (accItem == null || accItem.getAcceptanceId() == null) {
+                throw new ServiceException("来源验收明细不存在");
+            }
+            ids.add(accItem.getAcceptanceId());
+        }
+        if (ids.isEmpty()) {
+            throw new ServiceException("无法解析来源验收单");
+        }
+        return ids;
+    }
+
+    private void validateAcceptancesCompleted(Set<Long> acceptanceIds) {
+        for (Long acceptanceId : acceptanceIds) {
+            PurchaseAcceptance acceptance = purchaseAcceptanceMapper.selectById(acceptanceId);
+            if (acceptance == null) {
+                throw new ServiceException("来源验收单不存在");
+            }
+            if (acceptance.getStatus() == null || acceptance.getStatus() != 1) {
+                throw new ServiceException("仅已完成的验收单允许入库");
+            }
+        }
+    }
+
+    private void fillAcceptanceIdsForStockIns(List<StockInOrder> orders) {
+        if (orders == null || orders.isEmpty()) {
+            return;
+        }
+        List<Long> orderIds = orders.stream().map(StockInOrder::getId).filter(Objects::nonNull).distinct().toList();
+        if (orderIds.isEmpty()) {
+            return;
+        }
+        List<StockInOrderItem> rows = stockInOrderItemMapper.selectList(
+                new LambdaQueryWrapper<StockInOrderItem>().in(StockInOrderItem::getStockInId, orderIds));
+        if (rows.isEmpty()) {
+            for (StockInOrder o : orders) {
+                if (o.getAcceptanceId() != null) {
+                    o.setAcceptanceIds(List.of(o.getAcceptanceId()));
+                }
+            }
+            return;
+        }
+        List<Long> accItemIds = rows.stream().map(StockInOrderItem::getAcceptanceItemId).filter(Objects::nonNull).distinct().toList();
+        Map<Long, Long> accItemToAcc = new HashMap<>();
+        if (!accItemIds.isEmpty()) {
+            List<PurchaseAcceptanceItem> accItems = purchaseAcceptanceItemMapper.selectBatchIds(accItemIds);
+            for (PurchaseAcceptanceItem pai : accItems) {
+                accItemToAcc.put(pai.getId(), pai.getAcceptanceId());
+            }
+        }
+        Map<Long, Set<Long>> byOrder = new HashMap<>();
+        for (StockInOrderItem row : rows) {
+            Long accId = accItemToAcc.get(row.getAcceptanceItemId());
+            if (accId != null) {
+                byOrder.computeIfAbsent(row.getStockInId(), k -> new TreeSet<>()).add(accId);
+            }
+        }
+        for (StockInOrder o : orders) {
+            Set<Long> set = byOrder.get(o.getId());
+            if (set != null && !set.isEmpty()) {
+                o.setAcceptanceIds(new ArrayList<>(set));
+            } else if (o.getAcceptanceId() != null) {
+                o.setAcceptanceIds(List.of(o.getAcceptanceId()));
+            }
+        }
     }
 
     private int getAlreadyStockedInQty(Long acceptanceItemId) {

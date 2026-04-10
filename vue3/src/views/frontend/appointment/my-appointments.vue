@@ -7,7 +7,10 @@
       </div>
     </div>
 
-    <el-card class="appointments-card" shadow="hover">
+    <el-card
+      class="appointments-card"
+      shadow="hover"
+    >
       <!-- 筛选条件 -->
       <div class="filter-container">
         <div class="filter-header">
@@ -16,33 +19,56 @@
           </div>
           <h4>筛选预约</h4>
         </div>
-        <el-radio-group v-model="statusFilter" @change="filterAppointments" size="large">
-          <el-radio-button :label="null">全部预约</el-radio-button>
-          <el-radio-button :label="1">待就诊</el-radio-button>
-          <el-radio-button :label="2">已就诊</el-radio-button>
-          <el-radio-button :label="0">已取消</el-radio-button>
+        <el-radio-group
+          v-model="statusFilter"
+          size="large"
+          @change="filterAppointments"
+        >
+          <el-radio-button :label="null">
+            全部预约
+          </el-radio-button>
+          <el-radio-button :label="1">
+            待就诊
+          </el-radio-button>
+          <el-radio-button :label="2">
+            已就诊
+          </el-radio-button>
+          <el-radio-button :label="0">
+            已取消
+          </el-radio-button>
         </el-radio-group>
         <el-button 
           type="primary" 
           class="new-appointment-btn"
-          @click="goToAppointment" 
-          round
+          round 
+          @click="goToAppointment"
         >
           <el-icon><Plus /></el-icon>新预约
         </el-button>
       </div>
 
       <!-- 预约列表 -->
-      <div v-loading="loading" class="appointment-list">
+      <div
+        v-loading="loading"
+        class="appointment-list"
+      >
         <el-empty 
           v-if="filteredAppointments.length === 0" 
           description="暂无预约记录"
           :image-size="120"
         >
           <template #image>
-            <el-icon class="empty-icon"><Calendar /></el-icon>
+            <el-icon class="empty-icon">
+              <Calendar />
+            </el-icon>
           </template>
-          <el-button type="primary" @click="goToAppointment" round>立即预约</el-button>
+          <el-button
+            type="primary"
+            round
+            @click="goToAppointment"
+          >
+            立即预约
+          </el-button>
         </el-empty>
         
         <el-timeline v-else>
@@ -54,7 +80,10 @@
             :timestamp="formatDate(appointment.appointmentDate) + ' ' + appointment.timeSlot"
             placement="top"
           >
-            <el-card class="appointment-card" shadow="hover">
+            <el-card
+              class="appointment-card"
+              shadow="hover"
+            >
               <div class="appointment-info">
                 <div class="appointment-header">
                   <div class="appointment-title">
@@ -96,16 +125,16 @@
                   <el-button 
                     v-if="appointment.status === 1" 
                     type="danger" 
-                    @click="handleCancelAppointment(appointment)"
                     round
                     plain
+                    @click="handleCancelAppointment(appointment)"
                   >
                     <el-icon><Close /></el-icon>取消预约
                   </el-button>
                   <el-button 
                     type="primary" 
-                    @click="handleViewDetail(appointment)"
                     round
+                    @click="handleViewDetail(appointment)"
                   >
                     <el-icon><View /></el-icon>查看详情
                   </el-button>
@@ -118,7 +147,10 @@
     </el-card>
 
     <!-- 预约提示卡片 -->
-    <el-card class="health-tips-card" shadow="hover">
+    <el-card
+      class="health-tips-card"
+      shadow="hover"
+    >
       <div class="tips-header">
         <el-icon><InfoFilled /></el-icon>
         <h4>就诊小贴士</h4>
@@ -147,9 +179,15 @@
       
       <el-divider />
       
-      <el-descriptions :column="1" border class="detail-descriptions">
+      <el-descriptions
+        :column="1"
+        border
+        class="detail-descriptions"
+      >
         <el-descriptions-item label="预约编号">
-          <div class="description-content">{{ currentAppointment.appointmentNo }}</div>
+          <div class="description-content">
+            {{ currentAppointment.appointmentNo }}
+          </div>
         </el-descriptions-item>
         <el-descriptions-item label="预约状态">
           <div class="description-content">
@@ -164,13 +202,19 @@
           </div>
         </el-descriptions-item>
         <el-descriptions-item label="就诊日期">
-          <div class="description-content">{{ formatDate(currentAppointment.appointmentDate) }}</div>
+          <div class="description-content">
+            {{ formatDate(currentAppointment.appointmentDate) }}
+          </div>
         </el-descriptions-item>
         <el-descriptions-item label="就诊时间">
-          <div class="description-content">{{ currentAppointment.timeSlot }}</div>
+          <div class="description-content">
+            {{ currentAppointment.timeSlot }}
+          </div>
         </el-descriptions-item>
         <el-descriptions-item label="科室">
-          <div class="description-content">{{ currentAppointment.doctor?.department?.deptName || '未知科室' }}</div>
+          <div class="description-content">
+            {{ currentAppointment.doctor?.department?.deptName || '未知科室' }}
+          </div>
         </el-descriptions-item>
         <el-descriptions-item label="医生">
           <div class="description-content">
@@ -178,24 +222,49 @@
           </div>
         </el-descriptions-item>
         <el-descriptions-item label="症状描述">
-          <div class="description-content">{{ currentAppointment.symptoms || '无' }}</div>
+          <div class="description-content">
+            {{ currentAppointment.symptoms || '无' }}
+          </div>
         </el-descriptions-item>
         <el-descriptions-item label="创建时间">
-          <div class="description-content">{{ formatDateTime(currentAppointment.createTime) }}</div>
+          <div class="description-content">
+            {{ formatDateTime(currentAppointment.createTime) }}
+          </div>
         </el-descriptions-item>
-        <el-descriptions-item v-if="currentAppointment.status !== 1" label="更新时间">
-          <div class="description-content">{{ formatDateTime(currentAppointment.updateTime) }}</div>
+        <el-descriptions-item
+          v-if="currentAppointment.status !== 1"
+          label="更新时间"
+        >
+          <div class="description-content">
+            {{ formatDateTime(currentAppointment.updateTime) }}
+          </div>
         </el-descriptions-item>
       </el-descriptions>
       
-      <div class="notice-box" v-if="currentAppointment.status === 1">
+      <div
+        v-if="currentAppointment.status === 1"
+        class="notice-box"
+      >
         <el-icon><Warning /></el-icon>
         <p>如需取消预约，请提前24小时操作，谢谢配合。</p>
       </div>
       
-      <div v-if="currentAppointment.status === 1" class="dialog-footer">
-        <el-button @click="detailDialogVisible = false" plain round>返回</el-button>
-        <el-button type="danger" @click="handleCancelAppointment(currentAppointment, true)" round>
+      <div
+        v-if="currentAppointment.status === 1"
+        class="dialog-footer"
+      >
+        <el-button
+          plain
+          round
+          @click="detailDialogVisible = false"
+        >
+          返回
+        </el-button>
+        <el-button
+          type="danger"
+          round
+          @click="handleCancelAppointment(currentAppointment, true)"
+        >
           取消预约
         </el-button>
       </div>

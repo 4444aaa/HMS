@@ -1,9 +1,9 @@
 <template>
   <Auth 
-    :formData="loginForm" 
+    :form-data="loginForm" 
     :rules="rules" 
     :loading="loading"
-    submitText="登录"
+    submit-text="登录"
     @submit="handleSubmit"
   >
     <template #form-items>
@@ -15,26 +15,37 @@
         <el-input 
           v-model="loginForm.username"
           :prefix-icon="User"
-          placeholder="请输入用户名">
-        </el-input>
+          placeholder="请输入用户名"
+        />
       </el-form-item>
       <el-form-item prop="password">
         <el-input 
           v-model="loginForm.password"
           :prefix-icon="Lock"
           type="password"
-          placeholder="请输入密码">
-        </el-input>
+          placeholder="请输入密码"
+        />
       </el-form-item>
       <div class="remember-forgot">
-        <el-checkbox v-model="rememberMe">记住我</el-checkbox>
-        <router-link to="/forget" class="forget-link">忘记密码？</router-link>
+        <el-checkbox v-model="rememberMe">
+          记住我
+        </el-checkbox>
+        <router-link
+          to="/forget"
+          class="forget-link"
+        >
+          忘记密码？
+        </router-link>
       </div>
     </template>
 
     <template #auth-links>
       <div class="auth-links-row">
-        <a href="javascript:void(0)" @click="handleRegister" class="register-link">
+        <a
+          href="javascript:void(0)"
+          class="register-link"
+          @click="handleRegister"
+        >
           <el-icon><ArrowRight /></el-icon>
           <span>立即注册</span>
         </a>
