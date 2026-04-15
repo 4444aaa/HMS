@@ -7,6 +7,7 @@ import jakarta.annotation.Resource;
 import org.example.springboot.entity.*;
 import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.*;
+import org.example.springboot.util.DocumentNoHelper;
 import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,7 +57,17 @@ public class StockInOrderService {
         stockIn.setAcceptanceId(headerAcceptanceId);
 
         LocalDateTime now = LocalDateTime.now();
-        stockIn.setStockInNo(generateStockInNo());
+        if (StringUtils.isNotBlank(stockIn.getStockInNo())) {
+            if (!DocumentNoHelper.matchesPrefixedDateRandom(stockIn.getStockInNo(), "SI")) {
+                throw new ServiceException("入库单号格式无效");
+            }
+            if (stockInOrderMapper.selectCount(new LambdaQueryWrapper<StockInOrder>()
+                    .eq(StockInOrder::getStockInNo, stockIn.getStockInNo())) > 0) {
+                throw new ServiceException("入库单号已存在");
+            }
+        } else {
+            stockIn.setStockInNo(generateStockInNo());
+        }
         stockIn.setStatus(stockIn.getStatus() == null ? 0 : stockIn.getStatus());
         stockIn.setCreateTime(now);
         stockIn.setUpdateTime(now);

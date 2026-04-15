@@ -186,10 +186,10 @@
                     :title="`处方 ${prescription.prescriptionNo} (${prescription.prescriptionDate})`"
                   >
                     <div class="prescription-info">
-                      <div class="prescription-header">
+                        <div class="prescription-header">
                         <div>
-                          <el-tag :type="prescription.status === 1 ? 'success' : 'warning'">
-                            {{ prescription.status === 1 ? '已取药' : '未取药' }}
+                          <el-tag :type="prescriptionStatusTagType(prescription.status)">
+                            {{ prescriptionStatusLabel(prescription.status) }}
                           </el-tag>
                         </div>
                         <div>
@@ -438,11 +438,11 @@
             >
               <template #default="scope">
                 <el-tag
-                  :type="scope.row.status === 1 ? 'success' : 'warning'"
+                  :type="prescriptionStatusTagType(scope.row.status)"
                   effect="light"
                   round
                 >
-                  {{ scope.row.status === 1 ? '已取药' : '未取药' }}
+                  {{ prescriptionStatusLabel(scope.row.status) }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -524,17 +524,17 @@
           </el-descriptions-item>
           <el-descriptions-item label="状态">
             <el-tag
-              :type="currentPrescription.status === 1 ? 'success' : 'warning'"
+              :type="prescriptionStatusTagType(currentPrescription.status)"
               effect="light"
               round
             >
-              <el-icon v-if="currentPrescription.status === 1">
+              <el-icon v-if="currentPrescription.status === 2">
                 <CircleCheckFilled />
               </el-icon>
               <el-icon v-else>
                 <Clock />
               </el-icon>
-              {{ currentPrescription.status === 1 ? '已取药' : '未取药' }}
+              {{ prescriptionStatusLabel(currentPrescription.status) }}
             </el-tag>
           </el-descriptions-item>
           <el-descriptions-item
@@ -653,6 +653,7 @@ import {
   CircleCheckFilled,
   View
 } from '@element-plus/icons-vue'
+import { prescriptionStatusLabel, prescriptionStatusTagType } from '@/utils/prescriptionStatus'
 
 // 用户信息
 const userStore = useUserStore()

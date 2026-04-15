@@ -17,6 +17,7 @@ import org.example.springboot.mapper.PurchasePlanMapper;
 import org.example.springboot.mapper.PurchaseOrderPlanMapper;
 import org.example.springboot.mapper.PurchaseOrderMapper;
 import org.example.springboot.mapper.SupplierMapper;
+import org.example.springboot.util.DocumentNoHelper;
 import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,7 +60,17 @@ public class PurchasePlanService {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        plan.setPlanNo(generatePlanNo());
+        if (StringUtils.isNotBlank(plan.getPlanNo())) {
+            if (!DocumentNoHelper.matchesPrefixedDateRandom(plan.getPlanNo(), "PP")) {
+                throw new ServiceException("计划编号格式无效");
+            }
+            if (purchasePlanMapper.selectCount(new LambdaQueryWrapper<PurchasePlan>()
+                    .eq(PurchasePlan::getPlanNo, plan.getPlanNo())) > 0) {
+                throw new ServiceException("计划编号已存在");
+            }
+        } else {
+            plan.setPlanNo(generatePlanNo());
+        }
         plan.setStatus(plan.getStatus() == null ? 0 : plan.getStatus());
         plan.setCreateTime(now);
         plan.setUpdateTime(now);

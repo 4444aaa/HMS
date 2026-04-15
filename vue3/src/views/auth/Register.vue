@@ -185,7 +185,6 @@ import Auth from './Auth.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const router = useRouter()
-const formRef = ref(null)
 const registerFormRef = ref(null)
 const loading = ref(false)
 
@@ -315,9 +314,8 @@ const showPrivacy = () => {
   )
 }
 
-const handleSubmit = (form) => {
-  formRef.value = form.value
-  registerFormRef.value = form.value
+const handleSubmit = (formInstance) => {
+  registerFormRef.value = formInstance
   handleRegister()
 }
 

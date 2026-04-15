@@ -176,37 +176,59 @@
       width="980px"
       @closed="resetCreate"
     >
-      <el-form
-        :model="createForm"
-        label-width="90px"
-      >
-        <el-form-item label="采购单">
-          <el-select
-            v-model="createForm.purchaseOrderId"
-            placeholder="请选择已发送采购单"
-            filterable
-            style="width: 360px"
-            @change="onOrderChange"
-          >
-            <el-option
-              v-for="o in orderOptions"
-              :key="o.id"
-              :label="`${o.orderNo}（ID:${o.id}）`"
-              :value="o.id"
+      <div class="create-doc-layout">
+        <div
+          v-if="!isEdit"
+          class="items-header create-basic-header-row"
+        >
+          <div class="items-title">
+            基本信息
+          </div>
+        </div>
+        <div
+          v-if="!isEdit"
+          class="create-meta-strip"
+        >
+          <div class="create-meta-line">
+            <span class="create-meta-item">验收单号：{{ draftPreviewNo }}</span>
+            <span class="create-meta-item">验收时间：{{ draftCreateTime }}</span>
+            <span class="create-meta-item">创建人姓名：{{ currentUserDisplayName }}</span>
+          </div>
+        </div>
+        <el-form
+          :model="createForm"
+          label-position="top"
+          class="create-main-form create-main-form--top"
+        >
+          <el-form-item label="采购单">
+            <el-select
+              v-model="createForm.purchaseOrderId"
+              placeholder="请选择已发送采购单"
+              filterable
+              class="create-field-full"
+              @change="onOrderChange"
+            >
+              <el-option
+                v-for="o in orderOptions"
+                :key="o.id"
+                :label="`${o.orderNo}（ID:${o.id}）`"
+                :value="o.id"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="备注">
+            <el-input
+              v-model="createForm.remark"
+              type="textarea"
+              :rows="2"
+              placeholder="可选"
             />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input
-            v-model="createForm.remark"
-            type="textarea"
-            :rows="2"
-            placeholder="可选"
-          />
-        </el-form-item>
-      </el-form>
+          </el-form-item>
+        </el-form>
+      </div>
 
       <el-alert
+        class="create-dialog-follow"
         title="验收明细必须来源采购单明细；到货数量≤下单数量；合格数量≤到货数量。"
         type="info"
         :closable="false"
@@ -272,11 +294,18 @@
         </el-table>
       </div>
 
-      <el-table
-        :data="createForm.items"
-        border
-        style="width: 100%"
-      >
+      <div class="items-header create-accept-detail-header">
+        <div class="items-title">
+          验收明细
+        </div>
+      </div>
+
+      <div class="create-dialog-table-wrap">
+        <el-table
+          :data="createForm.items"
+          border
+          style="width: 100%"
+        >
         <el-table-column
           label="药品"
           min-width="220"
@@ -355,7 +384,8 @@
             />
           </template>
         </el-table-column>
-      </el-table>
+        </el-table>
+      </div>
 
       <template #footer>
         <el-button @click="createVisible = false">
@@ -382,12 +412,15 @@
           采购核验单
         </div>
         <div class="doc-preview-meta">
-          <span>验收时间：{{ formatDate(detail.acceptanceTime || detail.createTime) }}</span>
           <span>核验单号：{{ detail.acceptanceNo || '-' }}</span>
-          <span>状态：{{ getStatusText(detail.status) }}</span>
+          <span>验收时间：{{ formatDate(detail.acceptanceTime || detail.createTime) }}</span>
+          <span>创建人姓名：{{ currentUserDisplayName }}</span>
         </div>
         <div class="doc-preview-meta">
           <span>采购单号：{{ detail.purchaseOrder?.orderNo || detail.purchaseOrderId || '-' }}</span>
+          <span>状态：{{ getStatusText(detail.status) }}</span>
+        </div>
+        <div class="doc-preview-meta">
           <span>供应商名称：{{ detail.purchaseOrder?.supplier?.name || '-' }}</span>
           <span>联系人：{{ detail.purchaseOrder?.supplier?.contactName || '-' }}</span>
           <span>联系电话：{{ detail.purchaseOrder?.supplier?.contactPhone || '-' }}</span>
@@ -446,10 +479,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
+import { useUserStore } from '@/store/user'
 import request from '@/utils/request'
 import { ElMessageBox } from 'element-plus'
 import { formatDate } from '@/utils/dateUtils'
+import { previewDocumentNo, formatDraftCreateTime } from '@/utils/draftDocumentPreview'
+
+const userStore = useUserStore()
+const currentUserDisplayName = computed(() => userStore.userInfo?.name || userStore.userInfo?.username || '-')
 
 const loading = ref(false)
 const saving = ref(false)
@@ -477,6 +515,9 @@ const createForm = reactive({
   remark: '',
   items: []
 })
+
+const draftPreviewNo = ref('')
+const draftCreateTime = ref('')
 
 const fetchAcceptances = async () => {
   loading.value = true
@@ -521,6 +562,8 @@ const handleCurrentChange = (val) => {
 const openCreate = async () => {
   isEdit.value = false
   editingAcceptanceId.value = null
+  draftPreviewNo.value = previewDocumentNo('PA')
+  draftCreateTime.value = formatDraftCreateTime()
   createVisible.value = true
   await request.get('/purchaseOrder/page', {
     status: 1,
@@ -593,6 +636,8 @@ const onOrderChange = async (orderId) => {
 const resetCreate = () => {
   isEdit.value = false
   editingAcceptanceId.value = null
+  draftPreviewNo.value = ''
+  draftCreateTime.value = ''
   createForm.purchaseOrderId = null
   createForm.remark = ''
   createForm.items = []
@@ -625,7 +670,7 @@ const saveAcceptance = async () => {
         }
       })
     } else {
-      await request.post('/purchaseAcceptance', payload, {
+      await request.post('/purchaseAcceptance', { ...payload, acceptanceNo: draftPreviewNo.value }, {
         successMsg: '创建验收单成功',
         onSuccess: () => {
           createVisible.value = false
@@ -705,6 +750,82 @@ onMounted(() => {
     padding: 10px 12px;
     margin-bottom: 12px;
     background: #fafafa;
+  }
+  .create-doc-layout {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0 12px;
+  }
+  .create-meta-strip {
+    margin-bottom: 12px;
+  }
+  .create-meta-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px 24px;
+    align-items: center;
+  }
+  .create-meta-item {
+    font-size: var(--el-form-label-font-size, 14px);
+    line-height: var(--el-form-line-height, 22px);
+    color: var(--el-text-color-regular);
+  }
+  .items-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 10px 0;
+    padding: 0 12px;
+    box-sizing: border-box;
+    .items-title {
+      font-weight: 600;
+      font-size: 14px;
+      line-height: 22px;
+      color: var(--el-text-color-primary);
+      text-align: left;
+    }
+  }
+  .create-doc-layout > .items-header.create-basic-header-row {
+    padding-left: 0;
+    padding-right: 0;
+    margin-top: 0;
+    margin-bottom: 8px;
+    justify-content: flex-start;
+  }
+  .create-accept-detail-header {
+    justify-content: flex-start;
+  }
+  .create-dialog-table-wrap {
+    padding: 0 12px;
+    box-sizing: border-box;
+  }
+  .create-main-form {
+    width: 100%;
+    :deep(.el-form-item__content) {
+      flex: 1;
+      min-width: 0;
+    }
+    :deep(.el-input),
+    :deep(.el-textarea) {
+      width: 100%;
+    }
+    .create-field-full {
+      width: 100%;
+    }
+    &.create-main-form--top {
+      :deep(.el-form-item) {
+        margin-bottom: 14px;
+      }
+      :deep(.el-form-item__label) {
+        padding-bottom: 4px;
+        line-height: 1.4;
+      }
+    }
+  }
+  .create-dialog-follow {
+    margin-left: 12px;
+    margin-right: 12px;
+    box-sizing: border-box;
   }
   .doc-preview-title {
     font-weight: 700;

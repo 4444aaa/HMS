@@ -58,12 +58,16 @@
             clearable
           >
             <el-option
-              label="未取药"
+              label="待提交"
               :value="0"
             />
             <el-option
-              label="已取药"
+              label="待取药"
               :value="1"
+            />
+            <el-option
+              label="已取药"
+              :value="2"
             />
           </el-select>
         </el-form-item>
@@ -167,8 +171,8 @@
           width="100"
         >
           <template #default="scope">
-            <el-tag :type="scope.row.status === 1 ? 'success' : 'warning'">
-              {{ scope.row.status === 1 ? '已取药' : '未取药' }}
+            <el-tag :type="prescriptionStatusTagType(scope.row.status)">
+              {{ prescriptionStatusLabel(scope.row.status) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -194,9 +198,9 @@
               v-if="scope.row.status === 0" 
               type="success" 
               size="small" 
-              @click="handleUpdateStatus(scope.row.id)"
+              @click="handleSubmitPrescription(scope.row.id)"
             >
-              标记已取药
+              提交
             </el-button>
           </template>
         </el-table-column>
@@ -567,6 +571,7 @@ import { ref, reactive, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import request from '@/utils/request'
 import { ElMessage } from 'element-plus'
+import { prescriptionStatusLabel, prescriptionStatusTagType } from '@/utils/prescriptionStatus'
 
 // 列表数据
 const tableData = ref([])
@@ -791,17 +796,17 @@ const handleView = async (row) => {
   }
 }
 
-// 更新处方状态
-const handleUpdateStatus = async (id) => {
+// 提交处方（进入待取药，同步至处方取药）
+const handleSubmitPrescription = async (id) => {
   try {
-    await request.put(`/prescription/status/${id}?status=1`, {}, {
-      successMsg: '已标记为已取药',
+    await request.put(`/prescription/submit/${id}`, {}, {
+      successMsg: '提交成功，已同步至处方取药',
       onSuccess: () => {
         fetchPrescriptions()
       }
     })
   } catch (error) {
-    console.error('更新处方状态失败:', error)
+    console.error('提交处方失败:', error)
   }
 }
 

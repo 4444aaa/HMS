@@ -34,7 +34,15 @@ public class PrescriptionController {
         return Result.success(newPrescription);
     }
     
-    @Operation(summary = "更新处方状态")
+    @Operation(summary = "提交处方（待提交→待取药，同步至处方取药）")
+    @PutMapping("/submit/{id}")
+    public Result<?> submitPrescription(@PathVariable Long id) {
+        LOGGER.info("提交处方: id={}", id);
+        prescriptionService.submitPrescription(id);
+        return Result.success();
+    }
+
+    @Operation(summary = "标记已取药（待取药→已取药，药房使用）")
     @PutMapping("/status/{id}")
     public Result<?> updatePrescriptionStatus(@PathVariable Long id, @RequestParam Integer status) {
         LOGGER.info("更新处方状态: id={}, status={}", id, status);

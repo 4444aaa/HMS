@@ -374,7 +374,7 @@ CREATE TABLE `prescription`  (
   `prescription_date` date NOT NULL COMMENT '处方日期',
   `diagnosis` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '诊断',
   `notes` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '备注',
-  `status` tinyint(4) NULL DEFAULT 0 COMMENT '状态(0:未取药,1:已取药)',
+  `status` tinyint(4) NULL DEFAULT 0 COMMENT '状态(0:待提交,1:待取药,2:已取药)',
   `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`) USING BTREE,

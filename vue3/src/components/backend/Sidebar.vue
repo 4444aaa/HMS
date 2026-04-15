@@ -130,6 +130,14 @@
             <el-icon><List /></el-icon>
             <span>处方管理</span>
           </el-menu-item>
+
+          <el-menu-item
+            v-if="canSeePrescriptionPickup"
+            index="/back/prescription-pickup"
+          >
+            <el-icon><Goods /></el-icon>
+            <span>处方取药</span>
+          </el-menu-item>
         </el-sub-menu>
 
         <el-sub-menu
@@ -199,7 +207,8 @@ import {
   Menu,
   ShoppingCart,
   Box,
-  Money
+  Money,
+  Goods
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -313,6 +322,11 @@ const canSeeUserManagement = computed(() => {
 const canSeePatientManagement = computed(() => {
   const role = userStore.userInfo?.roleCode
   return role === 'ADMIN' || role === 'DOCTOR'
+})
+
+const canSeePrescriptionPickup = computed(() => {
+  const role = userStore.userInfo?.roleCode
+  return role === 'ADMIN' || role === 'PHARMACY_MANAGER'
 })
 
 const isAdmin = computed(() => userStore.userInfo?.roleCode === 'ADMIN')

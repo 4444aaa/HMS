@@ -187,56 +187,95 @@
       width="980px"
       @closed="resetCreate"
     >
-      <el-form
-        :model="createForm"
-        label-width="90px"
-      >
-        <el-form-item label="采购计划">
-          <el-select
-            v-model="createForm.planIds"
-            multiple
-            collapse-tags
-            collapse-tags-tooltip
-            placeholder="请选择已提交计划"
-            filterable
-            style="width: 420px"
-            @change="onPlansChange"
+      <div class="create-doc-layout">
+        <div
+          v-if="!isEdit"
+          class="items-header create-basic-header-row"
+        >
+          <div class="items-title">
+            基本信息
+          </div>
+        </div>
+        <div
+          v-if="!isEdit"
+          class="create-meta-strip"
+        >
+          <div class="create-meta-line">
+            <span class="create-meta-item">采购单号：{{ draftPreviewNo }}</span>
+            <span class="create-meta-item">采购时间：{{ draftCreateTime }}</span>
+            <span class="create-meta-item">创建人姓名：{{ currentUserDisplayName }}</span>
+          </div>
+        </div>
+        <el-form
+          :model="createForm"
+          label-position="top"
+          class="create-main-form create-main-form--top"
+        >
+          <el-row
+            :gutter="16"
+            class="create-form-row"
           >
-            <el-option
-              v-for="p in planOptions"
-              :key="p.id"
-              :label="`${p.planNo} ${p.title ? ' - ' + p.title : ''}`"
-              :value="p.id"
+            <el-col
+              :xs="24"
+              :sm="24"
+              :md="12"
+            >
+              <el-form-item label="采购计划">
+                <el-select
+                  v-model="createForm.planIds"
+                  multiple
+                  collapse-tags
+                  collapse-tags-tooltip
+                  placeholder="请选择已提交计划"
+                  filterable
+                  class="create-field-full"
+                  @change="onPlansChange"
+                >
+                  <el-option
+                    v-for="p in planOptions"
+                    :key="p.id"
+                    :label="`${p.planNo} ${p.title ? ' - ' + p.title : ''}`"
+                    :value="p.id"
+                  />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col
+              :xs="24"
+              :sm="24"
+              :md="12"
+            >
+              <el-form-item label="供应商">
+                <el-select
+                  v-model="createForm.supplierId"
+                  placeholder="请选择供应商"
+                  filterable
+                  class="create-field-full"
+                  @change="onSupplierChange"
+                >
+                  <el-option
+                    v-for="s in supplierOptions"
+                    :key="s.id"
+                    :label="`${s.name}${s.supplierCode ? '（' + s.supplierCode + '）' : ''}`"
+                    :value="s.id"
+                  />
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item label="备注">
+            <el-input
+              v-model="createForm.remark"
+              type="textarea"
+              :rows="2"
+              placeholder="可选"
             />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="供应商">
-          <el-select
-            v-model="createForm.supplierId"
-            placeholder="请选择供应商"
-            filterable
-            style="width: 320px"
-            @change="onSupplierChange"
-          >
-            <el-option
-              v-for="s in supplierOptions"
-              :key="s.id"
-              :label="`${s.name}${s.supplierCode ? '（' + s.supplierCode + '）' : ''}`"
-              :value="s.id"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input
-            v-model="createForm.remark"
-            type="textarea"
-            :rows="2"
-            placeholder="可选"
-          />
-        </el-form-item>
-      </el-form>
+          </el-form-item>
+        </el-form>
+      </div>
 
       <el-alert
+        class="create-dialog-follow"
         title="下单明细必须来源采购计划明细。仅填写下单数量>0的行会被提交。"
         type="info"
         :closable="false"
@@ -244,11 +283,18 @@
         style="margin-bottom: 10px"
       />
 
-      <el-table
-        :data="createForm.items"
-        border
-        style="width: 100%"
-      >
+      <div class="items-header create-purchase-detail-header">
+        <div class="items-title">
+          采购明细
+        </div>
+      </div>
+
+      <div class="create-dialog-table-wrap">
+        <el-table
+          :data="createForm.items"
+          border
+          style="width: 100%"
+        >
         <el-table-column
           label="药品"
           min-width="160"
@@ -321,7 +367,8 @@
             />
           </template>
         </el-table-column>
-      </el-table>
+        </el-table>
+      </div>
 
       <template #footer>
         <el-button @click="createVisible = false">
@@ -348,8 +395,12 @@
           采购订单单
         </div>
         <div class="doc-preview-meta">
-          <span>采购时间：{{ formatDate(detail.createTime) }}</span>
           <span>采购单号：{{ detail.orderNo || '-' }}</span>
+          <span>采购时间：{{ formatDate(detail.createTime) }}</span>
+          <span>创建人姓名：{{ currentUserDisplayName }}</span>
+        </div>
+        <div class="doc-preview-meta">
+          <span>采购计划：{{ formatPlanIds(detail) }}</span>
           <span>状态：{{ getStatusText(detail.status) }}</span>
         </div>
         <div class="doc-preview-meta">
@@ -359,7 +410,6 @@
           <span>地址：{{ detail.supplier?.address || '-' }}</span>
         </div>
         <div class="doc-preview-meta">
-          <span>采购计划：{{ formatPlanIds(detail) }}</span>
           <span>备注：{{ detail.remark || '-' }}</span>
         </div>
       </div>
@@ -405,10 +455,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
+import { useUserStore } from '@/store/user'
 import request from '@/utils/request'
 import { ElMessageBox } from 'element-plus'
 import { formatDate } from '@/utils/dateUtils'
+import { previewDocumentNo, formatDraftCreateTime } from '@/utils/draftDocumentPreview'
+
+const userStore = useUserStore()
+const currentUserDisplayName = computed(() => userStore.userInfo?.name || userStore.userInfo?.username || '-')
 
 const loading = ref(false)
 const saving = ref(false)
@@ -442,6 +497,9 @@ const createForm = reactive({
 })
 const supplierMedicineIdSet = ref(new Set())
 const sourcePlanItems = ref([])
+
+const draftPreviewNo = ref('')
+const draftCreateTime = ref('')
 
 const lineAmount = (row) => {
   const q = Number(row?.orderQty) || 0
@@ -507,6 +565,8 @@ const handleCurrentChange = (val) => {
 const openCreate = async () => {
   isEdit.value = false
   editingOrderId.value = null
+  draftPreviewNo.value = previewDocumentNo('PO')
+  draftCreateTime.value = formatDraftCreateTime()
   createVisible.value = true
   await fetchPlanOptions()
   await fetchSupplierOptions()
@@ -685,6 +745,8 @@ const filterItemsBySupplier = (items) => {
 const resetCreate = () => {
   isEdit.value = false
   editingOrderId.value = null
+  draftPreviewNo.value = ''
+  draftCreateTime.value = ''
   createForm.planIds = []
   createForm.supplierId = null
   createForm.remark = ''
@@ -735,7 +797,7 @@ const saveOrder = async () => {
         }
       })
     } else {
-      await request.post('/purchaseOrder', payload, {
+      await request.post('/purchaseOrder', { ...payload, orderNo: draftPreviewNo.value }, {
         successMsg: '创建采购单成功',
         onSuccess: () => {
           createVisible.value = false
@@ -818,6 +880,85 @@ onMounted(() => {
     padding: 10px 12px;
     margin-bottom: 12px;
     background: #fafafa;
+  }
+  .create-doc-layout {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0 12px;
+  }
+  .create-meta-strip {
+    margin-bottom: 12px;
+  }
+  .create-meta-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px 24px;
+    align-items: center;
+  }
+  .create-meta-item {
+    font-size: var(--el-form-label-font-size, 14px);
+    line-height: var(--el-form-line-height, 22px);
+    color: var(--el-text-color-regular);
+  }
+  .items-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 10px 0;
+    padding: 0 12px;
+    box-sizing: border-box;
+    .items-title {
+      font-weight: 600;
+      font-size: 14px;
+      line-height: 22px;
+      color: var(--el-text-color-primary);
+      text-align: left;
+    }
+  }
+  .create-doc-layout > .items-header.create-basic-header-row {
+    padding-left: 0;
+    padding-right: 0;
+    margin-top: 0;
+    margin-bottom: 8px;
+    justify-content: flex-start;
+  }
+  .create-purchase-detail-header {
+    justify-content: flex-start;
+  }
+  .create-dialog-table-wrap {
+    padding: 0 12px;
+    box-sizing: border-box;
+  }
+  .create-main-form {
+    width: 100%;
+    :deep(.el-form-item__content) {
+      flex: 1;
+      min-width: 0;
+    }
+    :deep(.el-input),
+    :deep(.el-textarea) {
+      width: 100%;
+    }
+    .create-field-full {
+      width: 100%;
+    }
+    &.create-main-form--top {
+      :deep(.el-form-item) {
+        margin-bottom: 14px;
+      }
+      :deep(.el-form-item__label) {
+        padding-bottom: 4px;
+        line-height: 1.4;
+      }
+    }
+  }
+  .create-form-row {
+    width: 100%;
+  }
+  .create-dialog-follow {
+    margin-left: 12px;
+    margin-right: 12px;
+    box-sizing: border-box;
   }
   .doc-preview-title {
     font-weight: 700;

@@ -139,19 +139,6 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="病症明细"
-          width="120"
-        >
-          <template #default="scope">
-            {{ scope.row.details?.length || 0 }} 条
-          </template>
-        </el-table-column>
-        <el-table-column
-          prop="createTime"
-          label="创建时间"
-          sortable
-        />
-        <el-table-column
           label="操作"
           width="220"
           fixed="right"
@@ -507,8 +494,8 @@
               width="100"
             >
               <template #default="scope">
-                <el-tag :type="scope.row.status === 1 ? 'success' : 'warning'">
-                  {{ scope.row.status === 1 ? '已取药' : '未取药' }}
+                <el-tag :type="prescriptionStatusTagType(scope.row.status)">
+                  {{ prescriptionStatusLabel(scope.row.status) }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -528,9 +515,9 @@
                   v-if="scope.row.status === 0" 
                   type="success" 
                   size="small" 
-                  @click="handleUpdatePrescriptionStatus(scope.row.id)"
+                  @click="handleSubmitPrescriptionFromRecord(scope.row.id)"
                 >
-                  标记已取药
+                  提交
                 </el-button>
               </template>
             </el-table-column>
@@ -546,6 +533,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import request from '@/utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { prescriptionStatusLabel, prescriptionStatusTagType } from '@/utils/prescriptionStatus'
 
 // 列表数据
 const tableData = ref([])
@@ -766,7 +754,7 @@ const handleViewPrescription = (prescription) => {
     `处方编号: ${prescription.prescriptionNo}<br>
      处方日期: ${prescription.prescriptionDate}<br>
      诊断: ${prescription.diagnosis || '同病历'}<br>
-     状态: ${prescription.status === 1 ? '已取药' : '未取药'}<br>
+     状态: ${prescriptionStatusLabel(prescription.status)}<br>
      药品数量: ${prescription.details?.length || 0}种`,
     '处方详情',
     {
@@ -776,18 +764,17 @@ const handleViewPrescription = (prescription) => {
   )
 }
 
-// 更新处方状态
-const handleUpdatePrescriptionStatus = async (id) => {
+// 提交处方至药房取药
+const handleSubmitPrescriptionFromRecord = async (id) => {
   try {
-    await request.put(`/prescription/status/${id}?status=1`, {}, {
-      successMsg: '已标记为已取药',
+    await request.put(`/prescription/submit/${id}`, {}, {
+      successMsg: '提交成功，已同步至处方取药',
       onSuccess: () => {
-        // 刷新处方列表
         fetchPrescriptions(currentRecord.id)
       }
     })
   } catch (error) {
-    console.error('更新处方状态失败:', error)
+    console.error('提交处方失败:', error)
   }
 }
 

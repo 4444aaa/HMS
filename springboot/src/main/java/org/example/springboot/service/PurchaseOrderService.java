@@ -7,6 +7,7 @@ import jakarta.annotation.Resource;
 import org.example.springboot.entity.*;
 import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.*;
+import org.example.springboot.util.DocumentNoHelper;
 import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,7 +67,17 @@ public class PurchaseOrderService {
 
         LocalDateTime now = LocalDateTime.now();
         order.setPlanId(planIds.iterator().next());
-        order.setOrderNo(generateOrderNo());
+        if (StringUtils.isNotBlank(order.getOrderNo())) {
+            if (!DocumentNoHelper.matchesPrefixedDateRandom(order.getOrderNo(), "PO")) {
+                throw new ServiceException("采购单号格式无效");
+            }
+            if (purchaseOrderMapper.selectCount(new LambdaQueryWrapper<PurchaseOrder>()
+                    .eq(PurchaseOrder::getOrderNo, order.getOrderNo())) > 0) {
+                throw new ServiceException("采购单号已存在");
+            }
+        } else {
+            order.setOrderNo(generateOrderNo());
+        }
         order.setStatus(order.getStatus() == null ? 0 : order.getStatus());
         order.setCreateTime(now);
         order.setUpdateTime(now);

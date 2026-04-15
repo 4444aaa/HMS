@@ -76,6 +76,12 @@ export const backendRoutes = [
         meta: { title: '处方管理', icon: 'List' }
       },
       {
+        path: 'prescription-pickup',
+        name: 'PrescriptionPickup',
+        component: () => import('@/views/backend/prescription-pickup/index.vue'),
+        meta: { title: '处方取药', icon: 'Goods' }
+      },
+      {
         path: 'purchase-plan',
         name: 'PurchasePlanManagement',
         component: () => import('@/views/backend/purchase-plan/index.vue'),
@@ -216,6 +222,7 @@ const roleBackendAccessMap = {
     '/back/profile',
     '/back/medicine',
     '/back/medicine-category',
+    '/back/prescription-pickup',
     '/back/purchase-plan',
     '/back/purchase-order',
     '/back/acceptance-order',

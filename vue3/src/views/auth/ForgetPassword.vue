@@ -180,8 +180,8 @@ const passwordStrengthText = computed(() => {
   return '强'
 })
 
-const handleSubmit = (form) => {
-  formRef.value = form.value
+const handleSubmit = (formInstance) => {
+  formRef.value = formInstance
   handleForgetPassword()
 }
 

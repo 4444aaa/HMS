@@ -66,7 +66,6 @@ import { ElMessage } from 'element-plus'
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
-const formRef = ref(null)
 const loading = ref(false)
 const rememberMe = ref(localStorage.getItem('rememberMe') === 'true')
 
@@ -84,9 +83,9 @@ const rules = {
   ]
 }
 
-const handleSubmit = (form) => {
-  formRef.value = form.value
-  loginFormRef.value = form.value
+/** Auth 子组件传入的是 el-form 实例（已 unwrap），不能使用 .value */
+const handleSubmit = (formInstance) => {
+  loginFormRef.value = formInstance
   handleLogin()
 }
 

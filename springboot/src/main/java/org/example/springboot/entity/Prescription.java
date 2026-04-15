@@ -40,7 +40,7 @@ public class Prescription {
     @Schema(description = "备注")
     private String notes;
     
-    @Schema(description = "状态(0:未取药,1:已取药)")
+    @Schema(description = "状态(0:待提交,1:待取药,2:已取药)")
     private Integer status;
     
     @Schema(description = "创建时间")

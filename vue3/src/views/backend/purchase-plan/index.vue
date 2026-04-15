@@ -164,25 +164,46 @@
       width="900px"
       @closed="resetCreate"
     >
-      <el-form
-        :model="createForm"
-        label-width="90px"
-      >
-        <el-form-item label="主题">
-          <el-input
-            v-model="createForm.title"
-            placeholder="请输入主题"
-          />
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input
-            v-model="createForm.remark"
-            type="textarea"
-            :rows="2"
-            placeholder="可选"
-          />
-        </el-form-item>
-      </el-form>
+      <div class="create-doc-layout">
+        <div
+          v-if="!isEdit"
+          class="items-header create-basic-header-row"
+        >
+          <div class="items-title">
+            基本信息
+          </div>
+        </div>
+        <div
+          v-if="!isEdit"
+          class="create-meta-strip"
+        >
+          <div class="create-meta-line">
+            <span class="create-meta-item">计划单号：{{ draftPreviewNo }}</span>
+            <span class="create-meta-item">计划时间：{{ draftCreateTime }}</span>
+            <span class="create-meta-item">创建人姓名：{{ currentUserDisplayName }}</span>
+          </div>
+        </div>
+        <el-form
+          :model="createForm"
+          label-position="top"
+          class="create-main-form create-main-form--top"
+        >
+          <el-form-item label="主题">
+            <el-input
+              v-model="createForm.title"
+              placeholder="请输入主题"
+            />
+          </el-form-item>
+          <el-form-item label="备注">
+            <el-input
+              v-model="createForm.remark"
+              type="textarea"
+              :rows="2"
+              placeholder="可选"
+            />
+          </el-form-item>
+        </el-form>
+      </div>
 
       <div class="items-header">
         <div class="items-title">
@@ -197,11 +218,12 @@
         </el-button>
       </div>
 
-      <el-table
-        :data="createForm.items"
-        border
-        style="width: 100%"
-      >
+      <div class="create-dialog-table-wrap">
+        <el-table
+          :data="createForm.items"
+          border
+          style="width: 100%"
+        >
         <el-table-column
           label="药品"
           min-width="240"
@@ -262,7 +284,8 @@
             </el-button>
           </template>
         </el-table-column>
-      </el-table>
+        </el-table>
+      </div>
 
       <template #footer>
         <el-button @click="createVisible = false">
@@ -289,12 +312,15 @@
           采购计划单
         </div>
         <div class="doc-preview-meta">
-          <span>采购时间：{{ formatDate(detail.createTime) }}</span>
-          <span>采购单号：{{ detail.planNo || '-' }}</span>
-          <span>状态：{{ getStatusText(detail.status) }}</span>
+          <span>计划单号：{{ detail.planNo || '-' }}</span>
+          <span>计划时间：{{ formatDate(detail.createTime) }}</span>
+          <span>创建人姓名：{{ currentUserDisplayName }}</span>
         </div>
         <div class="doc-preview-meta">
           <span>主题：{{ detail.title || '-' }}</span>
+          <span>状态：{{ getStatusText(detail.status) }}</span>
+        </div>
+        <div class="doc-preview-meta">
           <span>备注：{{ detail.remark || '-' }}</span>
         </div>
       </div>
@@ -341,10 +367,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
+import { useUserStore } from '@/store/user'
 import request from '@/utils/request'
 import { ElMessageBox } from 'element-plus'
 import { formatDate } from '@/utils/dateUtils'
+import { previewDocumentNo, formatDraftCreateTime } from '@/utils/draftDocumentPreview'
+
+const userStore = useUserStore()
+const currentUserDisplayName = computed(() => userStore.userInfo?.name || userStore.userInfo?.username || '-')
 
 const loading = ref(false)
 const saving = ref(false)
@@ -372,6 +403,9 @@ const createForm = reactive({
   remark: '',
   items: []
 })
+
+const draftPreviewNo = ref('')
+const draftCreateTime = ref('')
 
 const fetchMedicines = async () => {
   await request.get('/medicine/list', {}, {
@@ -442,6 +476,8 @@ const handleCurrentChange = (val) => {
 const openCreate = async () => {
   isEdit.value = false
   editingPlanId.value = null
+  draftPreviewNo.value = previewDocumentNo('PP')
+  draftCreateTime.value = formatDraftCreateTime()
   createVisible.value = true
   if (medicineOptions.value.length === 0) {
     await fetchMedicines()
@@ -487,6 +523,8 @@ const removeItem = (idx) => {
 const resetCreate = () => {
   isEdit.value = false
   editingPlanId.value = null
+  draftPreviewNo.value = ''
+  draftCreateTime.value = ''
   createForm.title = ''
   createForm.remark = ''
   createForm.items = []
@@ -511,7 +549,7 @@ const savePlan = async () => {
         }
       })
     } else {
-      await request.post('/purchasePlan', payload, {
+      await request.post('/purchasePlan', { ...payload, planNo: draftPreviewNo.value }, {
         successMsg: '创建采购计划成功',
         onSuccess: () => {
           createVisible.value = false
@@ -592,9 +630,23 @@ onMounted(() => {
     justify-content: space-between;
     align-items: center;
     margin: 10px 0;
+    padding: 0 12px;
+    box-sizing: border-box;
     .items-title {
       font-weight: 600;
+      font-size: 14px;
+      line-height: 22px;
+      color: var(--el-text-color-primary);
+      text-align: left;
     }
+  }
+  /* 位于 create-doc-layout 内，与下方元信息、表单左缘对齐，避免重复 padding */
+  .create-doc-layout > .items-header.create-basic-header-row {
+    padding-left: 0;
+    padding-right: 0;
+    margin-top: 0;
+    margin-bottom: 8px;
+    justify-content: flex-start;
   }
   .doc-preview {
     border: 1px solid #dcdfe6;
@@ -602,6 +654,49 @@ onMounted(() => {
     padding: 10px 12px;
     margin-bottom: 12px;
     background: #fafafa;
+  }
+  .create-doc-layout {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0 12px;
+  }
+  .create-meta-strip {
+    margin-bottom: 12px;
+  }
+  .create-meta-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px 24px;
+    align-items: center;
+  }
+  .create-meta-item {
+    font-size: var(--el-form-label-font-size, 14px);
+    line-height: var(--el-form-line-height, 22px);
+    color: var(--el-text-color-regular);
+  }
+  .create-main-form {
+    width: 100%;
+    :deep(.el-form-item__content) {
+      flex: 1;
+      min-width: 0;
+    }
+    :deep(.el-input),
+    :deep(.el-textarea) {
+      width: 100%;
+    }
+    &.create-main-form--top {
+      :deep(.el-form-item) {
+        margin-bottom: 14px;
+      }
+      :deep(.el-form-item__label) {
+        padding-bottom: 4px;
+        line-height: 1.4;
+      }
+    }
+  }
+  .create-dialog-table-wrap {
+    padding: 0 12px;
+    box-sizing: border-box;
   }
   .doc-preview-title {
     font-weight: 700;

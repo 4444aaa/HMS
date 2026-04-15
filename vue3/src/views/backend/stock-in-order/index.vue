@@ -184,40 +184,62 @@
       width="980px"
       @closed="resetCreate"
     >
-      <el-form
-        :model="createForm"
-        label-width="90px"
-      >
-        <el-form-item label="验收单">
-          <el-select
-            v-model="createForm.acceptanceIds"
-            multiple
-            collapse-tags
-            collapse-tags-tooltip
-            placeholder="请选择已完成验收单（可多选合并入库）"
-            filterable
-            style="width: 420px"
-            @change="onAcceptancesChange"
-          >
-            <el-option
-              v-for="a in acceptanceOptions"
-              :key="a.id"
-              :label="`${a.acceptanceNo}（ID:${a.id}）`"
-              :value="a.id"
+      <div class="create-doc-layout">
+        <div
+          v-if="!isEdit"
+          class="items-header create-basic-header-row"
+        >
+          <div class="items-title">
+            基本信息
+          </div>
+        </div>
+        <div
+          v-if="!isEdit"
+          class="create-meta-strip"
+        >
+          <div class="create-meta-line">
+            <span class="create-meta-item">入库单号：{{ draftPreviewNo }}</span>
+            <span class="create-meta-item">入库时间：{{ draftCreateTime }}</span>
+            <span class="create-meta-item">创建人姓名：{{ currentUserDisplayName }}</span>
+          </div>
+        </div>
+        <el-form
+          :model="createForm"
+          label-position="top"
+          class="create-main-form create-main-form--top"
+        >
+          <el-form-item label="验收单">
+            <el-select
+              v-model="createForm.acceptanceIds"
+              multiple
+              collapse-tags
+              collapse-tags-tooltip
+              placeholder="请选择已完成验收单（可多选合并入库）"
+              filterable
+              class="create-field-full"
+              @change="onAcceptancesChange"
+            >
+              <el-option
+                v-for="a in acceptanceOptions"
+                :key="a.id"
+                :label="`${a.acceptanceNo}（ID:${a.id}）`"
+                :value="a.id"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="备注">
+            <el-input
+              v-model="createForm.remark"
+              type="textarea"
+              :rows="2"
+              placeholder="可选"
             />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input
-            v-model="createForm.remark"
-            type="textarea"
-            :rows="2"
-            placeholder="可选"
-          />
-        </el-form-item>
-      </el-form>
+          </el-form-item>
+        </el-form>
+      </div>
 
       <el-alert
+        class="create-dialog-follow"
         title="可多选核验单，明细合并为一张入库单；入库数量不得超过各验收明细合格数量（系统会做校验）。"
         type="info"
         :closable="false"
@@ -283,11 +305,18 @@
         </div>
       </template>
 
-      <el-table
-        :data="createForm.items"
-        border
-        style="width: 100%"
-      >
+      <div class="items-header create-stock-detail-header">
+        <div class="items-title">
+          入库明细
+        </div>
+      </div>
+
+      <div class="create-dialog-table-wrap">
+        <el-table
+          :data="createForm.items"
+          border
+          style="width: 100%"
+        >
         <el-table-column
           label="核验单"
           min-width="140"
@@ -336,7 +365,8 @@
             />
           </template>
         </el-table-column>
-      </el-table>
+        </el-table>
+      </div>
 
       <template #footer>
         <el-button @click="createVisible = false">
@@ -363,12 +393,15 @@
           采购入库单
         </div>
         <div class="doc-preview-meta">
-          <span>入库时间：{{ formatDate(detail.stockInTime || detail.createTime) }}</span>
           <span>入库单号：{{ detail.stockInNo || '-' }}</span>
+          <span>入库时间：{{ formatDate(detail.stockInTime || detail.createTime) }}</span>
+          <span>创建人姓名：{{ currentUserDisplayName }}</span>
+        </div>
+        <div class="doc-preview-meta">
+          <span>核验单号：{{ formatAcceptanceLine(detail) }}</span>
           <span>状态：{{ getStatusText(detail.status) }}</span>
         </div>
         <div class="doc-preview-meta">
-          <span>核验单：{{ formatAcceptanceLine(detail) }}</span>
           <span>备注：{{ detail.remark || '-' }}</span>
         </div>
       </div>
@@ -411,10 +444,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
+import { useUserStore } from '@/store/user'
 import request from '@/utils/request'
 import { ElMessageBox } from 'element-plus'
 import { formatDate } from '@/utils/dateUtils'
+import { previewDocumentNo, formatDraftCreateTime } from '@/utils/draftDocumentPreview'
+
+const userStore = useUserStore()
+const currentUserDisplayName = computed(() => userStore.userInfo?.name || userStore.userInfo?.username || '-')
 
 const loading = ref(false)
 const saving = ref(false)
@@ -442,6 +480,9 @@ const createForm = reactive({
   remark: '',
   items: []
 })
+
+const draftPreviewNo = ref('')
+const draftCreateTime = ref('')
 
 const formatAcceptanceIds = (row) => {
   if (Array.isArray(row?.acceptanceIds) && row.acceptanceIds.length > 0) {
@@ -522,6 +563,8 @@ const fetchAcceptanceOptions = async (alwaysIncludeAcceptanceIds = []) => {
 const openCreate = async () => {
   isEdit.value = false
   editingStockInId.value = null
+  draftPreviewNo.value = previewDocumentNo('SI')
+  draftCreateTime.value = formatDraftCreateTime()
   createVisible.value = true
   await fetchAcceptanceOptions()
 }
@@ -617,6 +660,8 @@ const onAcceptancesChange = async (acceptanceIds) => {
 const resetCreate = () => {
   isEdit.value = false
   editingStockInId.value = null
+  draftPreviewNo.value = ''
+  draftCreateTime.value = ''
   createForm.acceptanceIds = []
   createForm.remark = ''
   createForm.items = []
@@ -649,7 +694,7 @@ const saveStockIn = async () => {
         }
       })
     } else {
-      await request.post('/stockInOrder', payload, {
+      await request.post('/stockInOrder', { ...payload, stockInNo: draftPreviewNo.value }, {
         successMsg: '创建入库单成功',
         onSuccess: () => {
           createVisible.value = false
@@ -732,6 +777,82 @@ onMounted(() => {
     padding: 10px 12px;
     margin-bottom: 12px;
     background: #fafafa;
+  }
+  .create-doc-layout {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0 12px;
+  }
+  .create-meta-strip {
+    margin-bottom: 12px;
+  }
+  .create-meta-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px 24px;
+    align-items: center;
+  }
+  .create-meta-item {
+    font-size: var(--el-form-label-font-size, 14px);
+    line-height: var(--el-form-line-height, 22px);
+    color: var(--el-text-color-regular);
+  }
+  .items-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 10px 0;
+    padding: 0 12px;
+    box-sizing: border-box;
+    .items-title {
+      font-weight: 600;
+      font-size: 14px;
+      line-height: 22px;
+      color: var(--el-text-color-primary);
+      text-align: left;
+    }
+  }
+  .create-doc-layout > .items-header.create-basic-header-row {
+    padding-left: 0;
+    padding-right: 0;
+    margin-top: 0;
+    margin-bottom: 8px;
+    justify-content: flex-start;
+  }
+  .create-stock-detail-header {
+    justify-content: flex-start;
+  }
+  .create-dialog-table-wrap {
+    padding: 0 12px;
+    box-sizing: border-box;
+  }
+  .create-main-form {
+    width: 100%;
+    :deep(.el-form-item__content) {
+      flex: 1;
+      min-width: 0;
+    }
+    :deep(.el-input),
+    :deep(.el-textarea) {
+      width: 100%;
+    }
+    .create-field-full {
+      width: 100%;
+    }
+    &.create-main-form--top {
+      :deep(.el-form-item) {
+        margin-bottom: 14px;
+      }
+      :deep(.el-form-item__label) {
+        padding-bottom: 4px;
+        line-height: 1.4;
+      }
+    }
+  }
+  .create-dialog-follow {
+    margin-left: 12px;
+    margin-right: 12px;
+    box-sizing: border-box;
   }
   .doc-preview-title {
     font-weight: 700;

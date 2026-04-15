@@ -74,10 +74,8 @@ public class PrescriptionService {
             prescription.setPrescriptionDate(LocalDate.now());
         }
         
-        // 设置默认状态为未取药
-        if (prescription.getStatus() == null) {
-            prescription.setStatus(0);
-        }
+        // 新建处方均为待提交，由医生提交后进入待取药
+        prescription.setStatus(0);
         
         // 设置创建时间和更新时间
         LocalDateTime now = LocalDateTime.now();
@@ -120,7 +118,34 @@ public class PrescriptionService {
     }
     
     /**
-     * 更新处方状态
+     * 医生提交处方，进入待取药（同步到药房取药列表）
+     */
+    @Transactional
+    public void submitPrescription(Long id) {
+        Prescription prescription = prescriptionMapper.selectById(id);
+        if (prescription == null) {
+            throw new ServiceException("处方不存在");
+        }
+        if (prescription.getStatus() == null || prescription.getStatus() != 0) {
+            throw new ServiceException("仅待提交处方可提交");
+        }
+        LambdaQueryWrapper<PrescriptionDetail> dw = new LambdaQueryWrapper<>();
+        dw.eq(PrescriptionDetail::getPrescriptionId, id);
+        long detailCount = prescriptionDetailMapper.selectCount(dw);
+        if (detailCount <= 0) {
+            throw new ServiceException("请至少保留一条处方明细后再提交");
+        }
+        Prescription update = new Prescription();
+        update.setId(id);
+        update.setStatus(1);
+        update.setUpdateTime(LocalDateTime.now());
+        if (prescriptionMapper.updateById(update) <= 0) {
+            throw new ServiceException("处方提交失败");
+        }
+    }
+
+    /**
+     * 药房标记已取药：待取药 -> 已取药
      */
     @Transactional
     public void updatePrescriptionStatus(Long id, Integer status) {
@@ -128,16 +153,16 @@ public class PrescriptionService {
         if (prescription == null) {
             throw new ServiceException("处方不存在");
         }
-        if (status == null || status != 1) {
-            throw new ServiceException("处方状态仅支持标记为已取药");
+        if (status == null || status != 2) {
+            throw new ServiceException("仅支持标记为已取药");
         }
-        if (prescription.getStatus() != null && prescription.getStatus() == 1) {
-            throw new ServiceException("处方已取药，状态不可回退");
+        if (prescription.getStatus() == null || prescription.getStatus() != 1) {
+            throw new ServiceException("仅待取药处方可标记已取药");
         }
         
         Prescription updatePrescription = new Prescription();
         updatePrescription.setId(id);
-        updatePrescription.setStatus(1);
+        updatePrescription.setStatus(2);
         updatePrescription.setUpdateTime(LocalDateTime.now());
         
         if (prescriptionMapper.updateById(updatePrescription) <= 0) {
@@ -314,6 +339,9 @@ public class PrescriptionService {
         if (prescription == null) {
             throw new ServiceException("处方不存在");
         }
+        if (prescription.getStatus() != null && prescription.getStatus() != 0) {
+            throw new ServiceException("仅待提交处方可添加明细");
+        }
         
         // 检查药品是否存在
         Medicine medicine = medicineMapper.selectById(detail.getMedicineId());
@@ -352,6 +380,10 @@ public class PrescriptionService {
         if (existingDetail == null) {
             throw new ServiceException("处方明细不存在");
         }
+        Prescription prescription = prescriptionMapper.selectById(existingDetail.getPrescriptionId());
+        if (prescription != null && prescription.getStatus() != null && prescription.getStatus() != 0) {
+            throw new ServiceException("仅待提交处方可修改明细");
+        }
         
         detail.setId(id);
         detail.setUpdateTime(LocalDateTime.now());
@@ -366,6 +398,14 @@ public class PrescriptionService {
      */
     @Transactional
     public void deletePrescriptionDetail(Long id) {
+        PrescriptionDetail existingDetail = prescriptionDetailMapper.selectById(id);
+        if (existingDetail == null) {
+            throw new ServiceException("处方明细不存在");
+        }
+        Prescription prescription = prescriptionMapper.selectById(existingDetail.getPrescriptionId());
+        if (prescription != null && prescription.getStatus() != null && prescription.getStatus() != 0) {
+            throw new ServiceException("仅待提交处方可删除明细");
+        }
         if (prescriptionDetailMapper.deleteById(id) <= 0) {
             throw new ServiceException("处方明细删除失败");
         }

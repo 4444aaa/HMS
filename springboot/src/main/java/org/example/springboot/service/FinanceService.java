@@ -51,7 +51,7 @@ public class FinanceService {
     public int generateOutpatientChargeDetails() {
         int created = 0;
         List<Prescription> donePrescriptions = prescriptionMapper.selectList(
-                new LambdaQueryWrapper<Prescription>().eq(Prescription::getStatus, 1)
+                new LambdaQueryWrapper<Prescription>().eq(Prescription::getStatus, 2)
         );
         LocalDateTime now = LocalDateTime.now();
         for (Prescription prescription : donePrescriptions) {

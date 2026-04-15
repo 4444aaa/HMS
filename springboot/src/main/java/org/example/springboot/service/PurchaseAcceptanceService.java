@@ -7,6 +7,7 @@ import jakarta.annotation.Resource;
 import org.example.springboot.entity.*;
 import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.*;
+import org.example.springboot.util.DocumentNoHelper;
 import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -63,7 +64,17 @@ public class PurchaseAcceptanceService {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        acceptance.setAcceptanceNo(generateAcceptanceNo());
+        if (StringUtils.isNotBlank(acceptance.getAcceptanceNo())) {
+            if (!DocumentNoHelper.matchesPrefixedDateRandom(acceptance.getAcceptanceNo(), "PA")) {
+                throw new ServiceException("验收单号格式无效");
+            }
+            if (purchaseAcceptanceMapper.selectCount(new LambdaQueryWrapper<PurchaseAcceptance>()
+                    .eq(PurchaseAcceptance::getAcceptanceNo, acceptance.getAcceptanceNo())) > 0) {
+                throw new ServiceException("验收单号已存在");
+            }
+        } else {
+            acceptance.setAcceptanceNo(generateAcceptanceNo());
+        }
         acceptance.setStatus(acceptance.getStatus() == null ? 0 : acceptance.getStatus());
         acceptance.setCreateTime(now);
         acceptance.setUpdateTime(now);
