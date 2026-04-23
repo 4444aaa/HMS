@@ -87,11 +87,11 @@ public class MedicineController {
             @RequestParam(required = false) String medicineCode,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) Long supplierId,
             @RequestParam(defaultValue = "1") Integer currentPage,
             @RequestParam(defaultValue = "10") Integer size) {
         assertMedicineReadAllowed();
-        return Result.success(medicineService.getMedicinesByPage(medicineName, medicineCode, category, categoryId, status, currentPage, size));
+        return Result.success(medicineService.getMedicinesByPage(medicineName, medicineCode, category, categoryId, supplierId, currentPage, size));
     }
     
     @Operation(summary = "删除药品")
@@ -109,15 +109,6 @@ public class MedicineController {
         assertMedicineWriteAllowed();
         LOGGER.info("更新药品库存: id={}, stockChange={}", id, stockChange);
         medicineService.updateStock(id, stockChange);
-        return Result.success();
-    }
-    
-    @Operation(summary = "更新药品状态")
-    @PutMapping("/{id}/status")
-    public Result<?> updateStatus(@PathVariable Long id, @RequestParam Integer status) {
-        assertMedicineWriteAllowed();
-        LOGGER.info("更新药品状态: id={}, status={}", id, status);
-        medicineService.updateStatus(id, status);
         return Result.success();
     }
     

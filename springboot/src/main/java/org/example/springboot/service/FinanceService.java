@@ -3,10 +3,16 @@ package org.example.springboot.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.annotation.Resource;
+import org.apache.commons.lang3.StringUtils;
+import org.example.springboot.DTO.PendingChargePatientDTO;
+import org.example.springboot.DTO.PendingChargePrescriptionDTO;
+import org.example.springboot.DTO.PendingSettlementStockInDTO;
+import org.example.springboot.DTO.PendingSettlementSupplierDTO;
 import org.example.springboot.entity.*;
 import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.*;
 import org.example.springboot.util.JwtTokenUtils;
+import org.example.springboot.util.ListQuerySupport;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,7 +20,12 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 public class FinanceService {
@@ -46,6 +57,8 @@ public class FinanceService {
     private PurchaseSettlementDetailMapper purchaseSettlementDetailMapper;
     @Resource
     private PurchaseSettlementOrderMapper purchaseSettlementOrderMapper;
+    @Resource
+    private ListQuerySupport listQuerySupport;
 
     @Transactional
     public int generateOutpatientChargeDetails() {
@@ -67,7 +80,7 @@ public class FinanceService {
                     continue;
                 }
                 Medicine medicine = medicineMapper.selectById(detail.getMedicineId());
-                BigDecimal unitPrice = medicine == null || medicine.getPrice() == null ? BigDecimal.ZERO : medicine.getPrice();
+                BigDecimal unitPrice = medicine == null || medicine.getSalePrice() == null ? BigDecimal.ZERO : medicine.getSalePrice();
                 int quantity = detail.getQuantity() == null ? 0 : detail.getQuantity();
 
                 OutpatientChargeDetail chargeDetail = new OutpatientChargeDetail();
@@ -88,7 +101,9 @@ public class FinanceService {
         return created;
     }
 
-    public Page<OutpatientChargeDetail> pageOutpatientChargeDetails(Long patientId, Integer status, Integer currentPage, Integer size) {
+    public Page<OutpatientChargeDetail> pageOutpatientChargeDetails(Long patientId, Integer status,
+                                                                    List<Long> prescriptionIds,
+                                                                    Integer currentPage, Integer size) {
         LambdaQueryWrapper<OutpatientChargeDetail> qw = new LambdaQueryWrapper<>();
         if (patientId != null) {
             qw.eq(OutpatientChargeDetail::getPatientId, patientId);
@@ -96,10 +111,69 @@ public class FinanceService {
         if (status != null) {
             qw.eq(OutpatientChargeDetail::getStatus, status);
         }
+        if (prescriptionIds != null && !prescriptionIds.isEmpty()) {
+            qw.in(OutpatientChargeDetail::getPrescriptionId, prescriptionIds);
+        }
         qw.orderByDesc(OutpatientChargeDetail::getUpdateTime);
         Page<OutpatientChargeDetail> page = outpatientChargeDetailMapper.selectPage(new Page<>(currentPage, size), qw);
         fillOutpatientDetails(page.getRecords());
         return page;
+    }
+
+    /**
+     * 存在「未生成缴费单」明细的患者列表，供创建缴费单前先选择患者。
+     */
+    public List<PendingChargePatientDTO> listPendingChargePatients() {
+        List<OutpatientChargeDetail> pendings = outpatientChargeDetailMapper.selectList(
+                new LambdaQueryWrapper<OutpatientChargeDetail>().eq(OutpatientChargeDetail::getStatus, 0)
+        );
+        Map<Long, Long> countByPatient = pendings.stream()
+                .filter(d -> d.getPatientId() != null)
+                .collect(Collectors.groupingBy(OutpatientChargeDetail::getPatientId, Collectors.counting()));
+        List<Long> sortedIds = new ArrayList<>(countByPatient.keySet());
+        sortedIds.sort(Comparator.naturalOrder());
+        List<PendingChargePatientDTO> list = new ArrayList<>();
+        for (Long pid : sortedIds) {
+            Patient patient = patientMapper.selectById(pid);
+            PendingChargePatientDTO dto = new PendingChargePatientDTO();
+            dto.setPatientId(pid);
+            dto.setPatientName(patient != null && StringUtils.isNotBlank(patient.getName()) ? patient.getName() : String.valueOf(pid));
+            dto.setPendingLineCount(countByPatient.get(pid).intValue());
+            list.add(dto);
+        }
+        return list;
+    }
+
+    /**
+     * 存在「未生成缴费单」明细的处方列表；若传入 patientId 则仅返回该患者的处方。
+     */
+    public List<PendingChargePrescriptionDTO> listPendingChargePrescriptions(Long patientIdFilter) {
+        List<OutpatientChargeDetail> pendings = outpatientChargeDetailMapper.selectList(
+                new LambdaQueryWrapper<OutpatientChargeDetail>().eq(OutpatientChargeDetail::getStatus, 0)
+        );
+        Map<Long, Long> countByRx = pendings.stream()
+                .filter(d -> d.getPrescriptionId() != null)
+                .collect(Collectors.groupingBy(OutpatientChargeDetail::getPrescriptionId, Collectors.counting()));
+        List<Long> sortedIds = new ArrayList<>(countByRx.keySet());
+        sortedIds.sort(Comparator.naturalOrder());
+        List<PendingChargePrescriptionDTO> list = new ArrayList<>();
+        for (Long rxId : sortedIds) {
+            Prescription p = prescriptionMapper.selectById(rxId);
+            if (patientIdFilter != null) {
+                if (p == null || p.getPatientId() == null || !patientIdFilter.equals(p.getPatientId())) {
+                    continue;
+                }
+            }
+            Patient patient = p != null && p.getPatientId() != null ? patientMapper.selectById(p.getPatientId()) : null;
+            PendingChargePrescriptionDTO dto = new PendingChargePrescriptionDTO();
+            dto.setPatientId(p != null ? p.getPatientId() : null);
+            dto.setPrescriptionId(rxId);
+            dto.setPrescriptionNo(p != null && StringUtils.isNotBlank(p.getPrescriptionNo()) ? p.getPrescriptionNo() : String.valueOf(rxId));
+            dto.setPatientName(patient != null && StringUtils.isNotBlank(patient.getName()) ? patient.getName() : "-");
+            dto.setPendingLineCount(countByRx.get(rxId).intValue());
+            list.add(dto);
+        }
+        return list;
     }
 
     @Transactional
@@ -169,13 +243,47 @@ public class FinanceService {
         outpatientChargeOrderMapper.updateById(update);
     }
 
-    public Page<OutpatientChargeOrder> pageOutpatientChargeOrders(Long patientId, Integer status, Integer currentPage, Integer size) {
+    @Transactional
+    public void payOutpatientChargeOrderByPatient(Long orderId, Long patientId) {
+        OutpatientChargeOrder order = outpatientChargeOrderMapper.selectById(orderId);
+        if (order == null) {
+            throw new ServiceException("缴费单不存在");
+        }
+        if (patientId == null || !patientId.equals(order.getPatientId())) {
+            throw new ServiceException("无权支付该缴费单");
+        }
+        payOutpatientChargeOrder(orderId);
+    }
+
+    public Page<OutpatientChargeOrder> pageOutpatientChargeOrders(Long patientId, String patientName, Integer status, String orderNo,
+                                                                  String creatorName,
+                                                                  LocalDate createDateStart,
+                                                                  LocalDate createDateEnd,
+                                                                  Integer currentPage, Integer size) {
+        List<Long> patientIdsFromName = listQuerySupport.resolvePatientIdsByKeyword(patientName);
+        if (patientIdsFromName != null && patientIdsFromName.isEmpty()) {
+            return new Page<>(currentPage, size, 0);
+        }
+        List<Long> creatorIds = listQuerySupport.resolveUserIdsByKeyword(creatorName);
+        if (creatorIds != null && creatorIds.isEmpty()) {
+            return new Page<>(currentPage, size, 0);
+        }
         LambdaQueryWrapper<OutpatientChargeOrder> qw = new LambdaQueryWrapper<>();
         if (patientId != null) {
             qw.eq(OutpatientChargeOrder::getPatientId, patientId);
         }
+        if (patientIdsFromName != null) {
+            qw.in(OutpatientChargeOrder::getPatientId, patientIdsFromName);
+        }
+        if (creatorIds != null) {
+            qw.in(OutpatientChargeOrder::getCashierUserId, creatorIds);
+        }
+        ListQuerySupport.applyCreateTimeDateRange(qw, OutpatientChargeOrder::getCreateTime, createDateStart, createDateEnd);
         if (status != null) {
             qw.eq(OutpatientChargeOrder::getStatus, status);
+        }
+        if (StringUtils.isNotBlank(orderNo)) {
+            qw.like(OutpatientChargeOrder::getOrderNo, orderNo.trim());
         }
         qw.orderByDesc(OutpatientChargeOrder::getUpdateTime);
         Page<OutpatientChargeOrder> page = outpatientChargeOrderMapper.selectPage(new Page<>(currentPage, size), qw);
@@ -243,7 +351,9 @@ public class FinanceService {
         return created;
     }
 
-    public Page<PurchaseSettlementDetail> pagePurchaseSettlementDetails(Long supplierId, Integer status, Integer currentPage, Integer size) {
+    public Page<PurchaseSettlementDetail> pagePurchaseSettlementDetails(Long supplierId, Integer status,
+                                                                        List<Long> stockInIds,
+                                                                        Integer currentPage, Integer size) {
         LambdaQueryWrapper<PurchaseSettlementDetail> qw = new LambdaQueryWrapper<>();
         if (supplierId != null) {
             qw.eq(PurchaseSettlementDetail::getSupplierId, supplierId);
@@ -251,10 +361,73 @@ public class FinanceService {
         if (status != null) {
             qw.eq(PurchaseSettlementDetail::getStatus, status);
         }
+        if (stockInIds != null && !stockInIds.isEmpty()) {
+            qw.in(PurchaseSettlementDetail::getStockInId, stockInIds);
+        }
         qw.orderByDesc(PurchaseSettlementDetail::getUpdateTime);
         Page<PurchaseSettlementDetail> page = purchaseSettlementDetailMapper.selectPage(new Page<>(currentPage, size), qw);
         fillSettlementDetails(page.getRecords());
         return page;
+    }
+
+    /**
+     * 存在「未生成结算单」明细的供应商列表，供创建结算单前先选择供应商。
+     */
+    public List<PendingSettlementSupplierDTO> listPendingSettlementSuppliers() {
+        List<PurchaseSettlementDetail> pendings = purchaseSettlementDetailMapper.selectList(
+                new LambdaQueryWrapper<PurchaseSettlementDetail>().eq(PurchaseSettlementDetail::getStatus, 0)
+        );
+        Map<Long, Long> countBySupplier = pendings.stream()
+                .filter(d -> d.getSupplierId() != null)
+                .collect(Collectors.groupingBy(PurchaseSettlementDetail::getSupplierId, Collectors.counting()));
+        List<Long> sortedIds = new ArrayList<>(countBySupplier.keySet());
+        sortedIds.sort(Comparator.naturalOrder());
+        List<PendingSettlementSupplierDTO> list = new ArrayList<>();
+        for (Long sid : sortedIds) {
+            Supplier supplier = supplierMapper.selectById(sid);
+            PendingSettlementSupplierDTO dto = new PendingSettlementSupplierDTO();
+            dto.setSupplierId(sid);
+            dto.setSupplierName(supplier != null && StringUtils.isNotBlank(supplier.getName()) ? supplier.getName() : String.valueOf(sid));
+            dto.setPendingLineCount(countBySupplier.get(sid).intValue());
+            list.add(dto);
+        }
+        return list;
+    }
+
+    /**
+     * 存在「未生成结算单」明细的入库单列表；若传入 supplierId 则仅返回该供应商的入库单。
+     */
+    public List<PendingSettlementStockInDTO> listPendingSettlementStockIns(Long supplierIdFilter) {
+        List<PurchaseSettlementDetail> pendings = purchaseSettlementDetailMapper.selectList(
+                new LambdaQueryWrapper<PurchaseSettlementDetail>().eq(PurchaseSettlementDetail::getStatus, 0)
+        );
+        if (supplierIdFilter != null) {
+            pendings = pendings.stream()
+                    .filter(d -> supplierIdFilter.equals(d.getSupplierId()))
+                    .collect(Collectors.toList());
+        }
+        Map<Long, Long> countByStockIn = pendings.stream()
+                .filter(d -> d.getStockInId() != null)
+                .collect(Collectors.groupingBy(PurchaseSettlementDetail::getStockInId, Collectors.counting()));
+        List<Long> sortedIds = new ArrayList<>(countByStockIn.keySet());
+        sortedIds.sort(Comparator.naturalOrder());
+        List<PendingSettlementStockInDTO> list = new ArrayList<>();
+        for (Long stockInId : sortedIds) {
+            StockInOrder stockIn = stockInOrderMapper.selectById(stockInId);
+            PurchaseSettlementDetail sample = pendings.stream()
+                    .filter(d -> stockInId.equals(d.getStockInId()))
+                    .findFirst()
+                    .orElse(null);
+            Supplier supplier = sample != null && sample.getSupplierId() != null
+                    ? supplierMapper.selectById(sample.getSupplierId()) : null;
+            PendingSettlementStockInDTO dto = new PendingSettlementStockInDTO();
+            dto.setStockInId(stockInId);
+            dto.setStockInNo(stockIn != null && StringUtils.isNotBlank(stockIn.getStockInNo()) ? stockIn.getStockInNo() : String.valueOf(stockInId));
+            dto.setSupplierName(supplier != null && StringUtils.isNotBlank(supplier.getName()) ? supplier.getName() : "-");
+            dto.setPendingLineCount(countByStockIn.get(stockInId).intValue());
+            list.add(dto);
+        }
+        return list;
     }
 
     @Transactional
@@ -323,13 +496,35 @@ public class FinanceService {
         purchaseSettlementOrderMapper.updateById(update);
     }
 
-    public Page<PurchaseSettlementOrder> pagePurchaseSettlementOrders(Long supplierId, Integer status, Integer currentPage, Integer size) {
+    public Page<PurchaseSettlementOrder> pagePurchaseSettlementOrders(Long supplierId, String supplierName, Integer status, String settlementNo,
+                                                                       String creatorName,
+                                                                       LocalDate createDateStart,
+                                                                       LocalDate createDateEnd,
+                                                                       Integer currentPage, Integer size) {
+        List<Long> supplierIdsFromName = listQuerySupport.resolveSupplierIdsByName(supplierName);
+        if (supplierIdsFromName != null && supplierIdsFromName.isEmpty()) {
+            return new Page<>(currentPage, size, 0);
+        }
+        List<Long> creatorIds = listQuerySupport.resolveUserIdsByKeyword(creatorName);
+        if (creatorIds != null && creatorIds.isEmpty()) {
+            return new Page<>(currentPage, size, 0);
+        }
         LambdaQueryWrapper<PurchaseSettlementOrder> qw = new LambdaQueryWrapper<>();
         if (supplierId != null) {
             qw.eq(PurchaseSettlementOrder::getSupplierId, supplierId);
         }
+        if (supplierIdsFromName != null) {
+            qw.in(PurchaseSettlementOrder::getSupplierId, supplierIdsFromName);
+        }
+        if (creatorIds != null) {
+            qw.in(PurchaseSettlementOrder::getCashierUserId, creatorIds);
+        }
+        ListQuerySupport.applyCreateTimeDateRange(qw, PurchaseSettlementOrder::getCreateTime, createDateStart, createDateEnd);
         if (status != null) {
             qw.eq(PurchaseSettlementOrder::getStatus, status);
+        }
+        if (StringUtils.isNotBlank(settlementNo)) {
+            qw.like(PurchaseSettlementOrder::getSettlementNo, settlementNo.trim());
         }
         qw.orderByDesc(PurchaseSettlementOrder::getUpdateTime);
         Page<PurchaseSettlementOrder> page = purchaseSettlementOrderMapper.selectPage(new Page<>(currentPage, size), qw);
@@ -362,6 +557,13 @@ public class FinanceService {
             );
             fillOutpatientDetails(details);
             order.setDetails(details);
+            List<Long> rxIds = details.stream()
+                    .map(OutpatientChargeDetail::getPrescriptionId)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .sorted(Comparator.naturalOrder())
+                    .toList();
+            order.setPrescriptionIds(rxIds);
         }
     }
 
@@ -381,6 +583,13 @@ public class FinanceService {
             );
             fillSettlementDetails(details);
             order.setDetails(details);
+            List<Long> siIds = details.stream()
+                    .map(PurchaseSettlementDetail::getStockInId)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .sorted(Comparator.naturalOrder())
+                    .toList();
+            order.setStockInIds(siIds);
         }
     }
 

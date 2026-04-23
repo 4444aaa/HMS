@@ -39,14 +39,14 @@ public class Medicine {
     @Schema(description = "分类ID")
     private Long categoryId;
     
-    @Schema(description = "单价")
-    private BigDecimal price;
+    @Schema(description = "进货价")
+    private BigDecimal purchasePrice;
+    
+    @Schema(description = "售价")
+    private BigDecimal salePrice;
     
     @Schema(description = "库存量")
     private Integer stock;
-    
-    @Schema(description = "状态(0:下架,1:上架)")
-    private Integer status;
     
     @Schema(description = "创建时间")
     private LocalDateTime createTime;

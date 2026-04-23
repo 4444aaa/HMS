@@ -9,6 +9,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -31,4 +32,7 @@ public class PurchaseSettlementOrder {
     private Supplier supplier;
     @TableField(exist = false)
     private List<PurchaseSettlementDetail> details;
+    /** 本结算单涉及的入库单 ID（去重、升序） */
+    @TableField(exist = false)
+    private List<Long> stockInIds = new ArrayList<>();
 }

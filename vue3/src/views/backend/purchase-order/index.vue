@@ -32,20 +32,24 @@
             clearable
           />
         </el-form-item>
-        <el-form-item label="供应商ID">
+        <el-form-item label="供应商名称">
           <el-input
-            v-model="searchForm.supplierId"
-            placeholder="可选"
+            v-model="searchForm.supplierName"
+            placeholder="供应商名称"
             clearable
+            style="width: 160px"
           />
         </el-form-item>
         <el-form-item label="状态">
           <el-select
             v-model="searchForm.status"
             placeholder="请选择状态"
-            clearable
             style="width: 140px"
           >
+            <el-option
+              label="全部"
+              :value="''"
+            />
             <el-option
               label="草稿"
               :value="0"
@@ -59,6 +63,26 @@
               :value="2"
             />
           </el-select>
+        </el-form-item>
+        <el-form-item label="创建人">
+          <el-input
+            v-model="searchForm.creatorName"
+            placeholder="姓名或用户名"
+            clearable
+            style="width: 160px"
+          />
+        </el-form-item>
+        <el-form-item label="创建日期">
+          <el-date-picker
+            v-model="searchForm.createDateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始"
+            end-placeholder="结束"
+            value-format="YYYY-MM-DD"
+            clearable
+            style="width: 260px"
+          />
         </el-form-item>
         <el-form-item>
           <el-button
@@ -450,6 +474,11 @@
       <div class="doc-preview-total">
         总金额：{{ detail.totalAmount || 0 }} 元
       </div>
+      <template #footer>
+        <el-button @click="detailVisible = false">
+          关闭
+        </el-button>
+      </template>
     </el-dialog>
   </div>
 </template>
@@ -475,8 +504,10 @@ const pageSize = ref(10)
 const searchForm = reactive({
   orderNo: '',
   planId: '',
-  supplierId: '',
-  status: undefined
+  supplierName: '',
+  status: '',
+  creatorName: '',
+  createDateRange: null
 })
 
 const createVisible = ref(false)
@@ -523,14 +554,28 @@ const formatPlanIds = (row) => {
 const fetchOrders = async () => {
   loading.value = true
   try {
-    await request.get('/purchaseOrder/page', {
+    const params = {
       orderNo: searchForm.orderNo,
       planId: searchForm.planId ? Number(searchForm.planId) : undefined,
-      supplierId: searchForm.supplierId ? Number(searchForm.supplierId) : undefined,
-      status: searchForm.status,
       currentPage: currentPage.value,
       size: pageSize.value
-    }, {
+    }
+    const sn = (searchForm.supplierName || '').trim()
+    if (sn) {
+      params.supplierName = sn
+    }
+    const cn = (searchForm.creatorName || '').trim()
+    if (cn) {
+      params.creatorName = cn
+    }
+    if (Array.isArray(searchForm.createDateRange) && searchForm.createDateRange.length === 2) {
+      params.createDateStart = searchForm.createDateRange[0]
+      params.createDateEnd = searchForm.createDateRange[1]
+    }
+    if (searchForm.status !== '') {
+      params.status = searchForm.status
+    }
+    await request.get('/purchaseOrder/page', params, {
       showDefaultMsg: false,
       onSuccess: (res) => {
         tableData.value = res.records || []
@@ -549,8 +594,10 @@ const handleSearch = () => {
 const resetSearch = () => {
   searchForm.orderNo = ''
   searchForm.planId = ''
-  searchForm.supplierId = ''
-  searchForm.status = undefined
+  searchForm.supplierName = ''
+  searchForm.status = ''
+  searchForm.creatorName = ''
+  searchForm.createDateRange = null
   handleSearch()
 }
 const handleSizeChange = (val) => {
@@ -693,7 +740,7 @@ const onPlansChange = async (planIds, preserveSupplier = false) => {
           purchasedQty: 0,
           remainingQty: 0,
           orderQty: 0,
-          unitPrice: Number(it.medicine?.price || 0),
+          unitPrice: Number(it.medicine?.purchasePrice || 0),
           remark: '',
           planAllocations: []
         }
@@ -799,9 +846,12 @@ const saveOrder = async () => {
     } else {
       await request.post('/purchaseOrder', { ...payload, orderNo: draftPreviewNo.value }, {
         successMsg: '创建采购单成功',
-        onSuccess: () => {
+        onSuccess: async (res) => {
           createVisible.value = false
-          fetchOrders()
+          await fetchOrders()
+          if (res?.id) {
+            await openDetailById(res.id)
+          }
         }
       })
     }
@@ -810,14 +860,18 @@ const saveOrder = async () => {
   }
 }
 
-const openDetail = async (row) => {
-  await request.get(`/purchaseOrder/${row.id}`, {}, {
+const openDetailById = async (id) => {
+  await request.get(`/purchaseOrder/${id}`, {}, {
     showDefaultMsg: false,
     onSuccess: (res) => {
       Object.assign(detail, res || {})
       detailVisible.value = true
     }
   })
+}
+
+const openDetail = async (row) => {
+  await openDetailById(row.id)
 }
 
 const sendOrder = async (row) => {

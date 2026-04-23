@@ -50,11 +50,6 @@ public class MedicineService {
         medicine.setCreateTime(now);
         medicine.setUpdateTime(now);
         
-        // 设置默认状态
-        if (medicine.getStatus() == null) {
-            medicine.setStatus(1); // 默认上架
-        }
-        
         if (medicineMapper.insert(medicine) <= 0) {
             throw new ServiceException("药品添加失败");
         }
@@ -154,7 +149,6 @@ public class MedicineService {
         return medicineMapper.selectList(
             new LambdaQueryWrapper<Medicine>()
                 .eq(Medicine::getCategoryId, categoryId)
-                .eq(Medicine::getStatus, 1)
                 .orderByAsc(Medicine::getMedicineCode)
         );
     }
@@ -162,8 +156,8 @@ public class MedicineService {
     /**
      * 分页查询药品列表
      */
-    public Page<Medicine> getMedicinesByPage(String medicineName, String medicineCode, String category, 
-                                          Long categoryId, Integer status, 
+    public Page<Medicine> getMedicinesByPage(String medicineName, String medicineCode, String category,
+                                          Long categoryId, Long supplierId,
                                           Integer currentPage, Integer size) {
         LambdaQueryWrapper<Medicine> queryWrapper = new LambdaQueryWrapper<>();
         
@@ -180,10 +174,9 @@ public class MedicineService {
         if (categoryId != null) {
             queryWrapper.eq(Medicine::getCategoryId, categoryId);
         }
-        if (status != null) {
-            queryWrapper.eq(Medicine::getStatus, status);
+        if (supplierId != null) {
+            queryWrapper.eq(Medicine::getSupplierId, supplierId);
         }
-        
         // 按药品编码排序
         queryWrapper.orderByAsc(Medicine::getMedicineCode);
         
@@ -234,23 +227,6 @@ public class MedicineService {
         
         if (medicineMapper.updateById(updateMedicine) <= 0) {
             throw new ServiceException("库存更新失败");
-        }
-    }
-    
-    /**
-     * 更新药品状态
-     */
-    @Transactional
-    public void updateStatus(Long id, Integer status) {
-        Medicine medicine = getMedicineById(id);
-        
-        Medicine updateMedicine = new Medicine();
-        updateMedicine.setId(id);
-        updateMedicine.setStatus(status);
-        updateMedicine.setUpdateTime(LocalDateTime.now());
-        
-        if (medicineMapper.updateById(updateMedicine) <= 0) {
-            throw new ServiceException("状态更新失败");
         }
     }
     

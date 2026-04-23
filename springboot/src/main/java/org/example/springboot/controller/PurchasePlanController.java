@@ -6,11 +6,15 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import org.example.springboot.common.Result;
 import org.example.springboot.entity.PurchasePlan;
+import org.example.springboot.service.PurchasePlanImageCreateService;
 import org.example.springboot.service.PurchasePlanService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,12 +26,20 @@ public class PurchasePlanController {
 
     @Resource
     private PurchasePlanService purchasePlanService;
+    @Resource
+    private PurchasePlanImageCreateService purchasePlanImageCreateService;
 
     @Operation(summary = "创建采购计划(含明细)")
     @PostMapping
     public Result<?> create(@RequestBody PurchasePlan plan) {
         LOGGER.info("创建采购计划: title={}", plan != null ? plan.getTitle() : null);
         return Result.success(purchasePlanService.createPlan(plan));
+    }
+
+    @Operation(summary = "识图创建采购计划")
+    @PostMapping("/ocr-create")
+    public Result<?> createByOcr(@RequestParam("file") MultipartFile file) {
+        return Result.success(purchasePlanImageCreateService.createByImage(file));
     }
 
     @Operation(summary = "提交采购计划")
@@ -67,11 +79,15 @@ public class PurchasePlanController {
     public Result<?> page(@RequestParam(required = false) String planNo,
                           @RequestParam(required = false) String title,
                           @RequestParam(required = false) Integer status,
+                          @RequestParam(required = false) String creatorName,
+                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate createDateStart,
+                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate createDateEnd,
                           @RequestParam(defaultValue = "1") Integer currentPage,
                           @RequestParam(defaultValue = "10") Integer size,
                           @RequestParam(required = false) Boolean onlyWithPurchaseRemaining,
                           @RequestParam(required = false) String alwaysIncludePlanIds) {
-        Page<PurchasePlan> page = purchasePlanService.getPlansByPage(planNo, title, status, currentPage, size,
+        Page<PurchasePlan> page = purchasePlanService.getPlansByPage(planNo, title, status, creatorName,
+                createDateStart, createDateEnd, currentPage, size,
                 onlyWithPurchaseRemaining, parseCommaLongs(alwaysIncludePlanIds));
         return Result.success(page);
     }

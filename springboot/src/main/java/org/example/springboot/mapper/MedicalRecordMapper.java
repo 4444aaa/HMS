@@ -38,6 +38,9 @@ public interface MedicalRecordMapper extends BaseMapper<MedicalRecord> {
         "<if test='endDate != null'>",
         "    AND m.record_date &lt;= #{endDate}",
         "</if>",
+        "<if test='status != null'>",
+        "    AND m.status = #{status}",
+        "</if>",
         "ORDER BY m.create_time DESC",
         "</script>"
     })
@@ -47,5 +50,6 @@ public interface MedicalRecordMapper extends BaseMapper<MedicalRecord> {
                                               @Param("patientName") String patientName,
                                               @Param("doctorName") String doctorName,
                                               @Param("startDate") LocalDate startDate,
-                                              @Param("endDate") LocalDate endDate);
+                                              @Param("endDate") LocalDate endDate,
+                                              @Param("status") Integer status);
 } 

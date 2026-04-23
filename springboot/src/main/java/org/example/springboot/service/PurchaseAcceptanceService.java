@@ -9,6 +9,7 @@ import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.*;
 import org.example.springboot.util.DocumentNoHelper;
 import org.example.springboot.util.JwtTokenUtils;
+import org.example.springboot.util.ListQuerySupport;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,6 +43,8 @@ public class PurchaseAcceptanceService {
     private StockInOrderItemMapper stockInOrderItemMapper;
     @Resource
     private StockInOrderMapper stockInOrderMapper;
+    @Resource
+    private ListQuerySupport listQuerySupport;
 
     @Transactional
     public PurchaseAcceptance createAcceptance(PurchaseAcceptance acceptance) {
@@ -246,9 +249,31 @@ public class PurchaseAcceptanceService {
     }
 
     public Page<PurchaseAcceptance> getAcceptancesByPage(String acceptanceNo, Long purchaseOrderId, Integer status,
+                                                        String supplierName,
+                                                        String creatorName,
+                                                        LocalDate createDateStart,
+                                                        LocalDate createDateEnd,
                                                         Integer currentPage, Integer size,
                                                         Boolean excludeFullyStockPosted,
                                                         List<Long> alwaysIncludeAcceptanceIds) {
+        List<Long> creatorIds = listQuerySupport.resolveUserIdsByKeyword(creatorName);
+        if (creatorIds != null && creatorIds.isEmpty()) {
+            return new Page<>(currentPage, size, 0);
+        }
+        List<Long> supplierIds = listQuerySupport.resolveSupplierIdsByName(supplierName);
+        List<Long> orderIdsBySupplier = null;
+        if (supplierIds != null) {
+            if (supplierIds.isEmpty()) {
+                return new Page<>(currentPage, size, 0);
+            }
+            orderIdsBySupplier = purchaseOrderMapper.selectList(
+                            new LambdaQueryWrapper<PurchaseOrder>().in(PurchaseOrder::getSupplierId, supplierIds))
+                    .stream().map(PurchaseOrder::getId).filter(Objects::nonNull).distinct().toList();
+            if (orderIdsBySupplier.isEmpty()) {
+                return new Page<>(currentPage, size, 0);
+            }
+        }
+        boolean creatorFilterActive = creatorIds != null;
         LambdaQueryWrapper<PurchaseAcceptance> qw = new LambdaQueryWrapper<>();
         if (StringUtils.isNotBlank(acceptanceNo)) {
             qw.like(PurchaseAcceptance::getAcceptanceNo, acceptanceNo);
@@ -256,6 +281,13 @@ public class PurchaseAcceptanceService {
         if (purchaseOrderId != null) {
             qw.eq(PurchaseAcceptance::getPurchaseOrderId, purchaseOrderId);
         }
+        if (orderIdsBySupplier != null) {
+            qw.in(PurchaseAcceptance::getPurchaseOrderId, orderIdsBySupplier);
+        }
+        if (creatorIds != null) {
+            qw.in(PurchaseAcceptance::getInspectorUserId, creatorIds);
+        }
+        ListQuerySupport.applyCreateTimeDateRange(qw, PurchaseAcceptance::getCreateTime, createDateStart, createDateEnd);
         if (status != null) {
             qw.eq(PurchaseAcceptance::getStatus, status);
         }
@@ -281,7 +313,8 @@ public class PurchaseAcceptanceService {
         for (Long id : always) {
             if (id != null && !seen.contains(id)) {
                 PurchaseAcceptance a = purchaseAcceptanceMapper.selectById(id);
-                if (a != null && matchesAcceptanceListFilters(a, acceptanceNo, purchaseOrderId, status)) {
+                if (a != null && matchesAcceptanceListFilters(a, acceptanceNo, purchaseOrderId, status,
+                        orderIdsBySupplier, creatorFilterActive, creatorIds, createDateStart, createDateEnd)) {
                     filtered.add(a);
                     seen.add(id);
                 }
@@ -325,7 +358,10 @@ public class PurchaseAcceptanceService {
         }
     }
 
-    private boolean matchesAcceptanceListFilters(PurchaseAcceptance a, String acceptanceNo, Long purchaseOrderId, Integer status) {
+    private boolean matchesAcceptanceListFilters(PurchaseAcceptance a, String acceptanceNo, Long purchaseOrderId, Integer status,
+                                                 List<Long> orderIdsBySupplier,
+                                                 boolean creatorFilterActive, List<Long> creatorUserIds,
+                                                 LocalDate createDateStart, LocalDate createDateEnd) {
         if (status != null && !Objects.equals(a.getStatus(), status)) {
             return false;
         }
@@ -334,6 +370,24 @@ public class PurchaseAcceptanceService {
         }
         if (StringUtils.isNotBlank(acceptanceNo) && (a.getAcceptanceNo() == null || !a.getAcceptanceNo().contains(acceptanceNo.trim()))) {
             return false;
+        }
+        if (orderIdsBySupplier != null && (a.getPurchaseOrderId() == null || !orderIdsBySupplier.contains(a.getPurchaseOrderId()))) {
+            return false;
+        }
+        if (creatorFilterActive) {
+            if (a.getInspectorUserId() == null || creatorUserIds == null || !creatorUserIds.contains(a.getInspectorUserId())) {
+                return false;
+            }
+        }
+        if (createDateStart != null) {
+            if (a.getCreateTime() == null || a.getCreateTime().toLocalDate().isBefore(createDateStart)) {
+                return false;
+            }
+        }
+        if (createDateEnd != null) {
+            if (a.getCreateTime() == null || a.getCreateTime().toLocalDate().isAfter(createDateEnd)) {
+                return false;
+            }
         }
         return true;
     }

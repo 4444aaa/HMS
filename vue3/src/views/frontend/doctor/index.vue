@@ -1,13 +1,5 @@
 <template>
   <div class="doctor-page">
-    <!-- 欢迎横幅 -->
-    <div class="welcome-banner">
-      <div class="banner-content">
-        <h2><el-icon><User /></el-icon> 医生介绍</h2>
-        <p>了解我院优秀医生团队，为您提供专业医疗服务</p>
-      </div>
-    </div>
-
     <el-card
       class="box-card"
       shadow="hover"
@@ -697,43 +689,6 @@ onMounted(() => {
 <style scoped>
 .doctor-page {
   padding: 20px;
-}
-
-.welcome-banner {
-  background: linear-gradient(to right, #a8d8ea, #c4e3b2);
-  border-radius: 15px;
-  padding: 25px 40px;
-  margin-bottom: 25px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  animation: fadeIn 0.8s ease-in-out;
-}
-
-.banner-content {
-  max-width: 800px;
-  text-align: center;
-  margin: 0 auto;
-}
-
-.banner-content h2 {
-  color: #3a5463;
-  margin: 0 0 10px 0;
-  font-size: 28px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.banner-content h2 .el-icon {
-  margin-right: 10px;
-  font-size: 28px;
-  color: #76c893;
-}
-
-.banner-content p {
-  color: #5a7385;
-  font-size: 16px;
-  margin: 0;
 }
 
 .box-card {

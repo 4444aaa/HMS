@@ -19,6 +19,7 @@ import org.example.springboot.mapper.PurchaseOrderMapper;
 import org.example.springboot.mapper.SupplierMapper;
 import org.example.springboot.util.DocumentNoHelper;
 import org.example.springboot.util.JwtTokenUtils;
+import org.example.springboot.util.ListQuerySupport;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,6 +50,8 @@ public class PurchasePlanService {
     private SupplierMapper supplierMapper;
     @Resource
     private PurchaseOrderPlanMapper purchaseOrderPlanMapper;
+    @Resource
+    private ListQuerySupport listQuerySupport;
 
     @Transactional
     public PurchasePlan createPlan(PurchasePlan plan) {
@@ -183,9 +186,17 @@ public class PurchasePlanService {
     }
 
     public Page<PurchasePlan> getPlansByPage(String planNo, String title, Integer status,
+                                            String creatorName,
+                                            LocalDate createDateStart,
+                                            LocalDate createDateEnd,
                                             Integer currentPage, Integer size,
                                             Boolean onlyWithPurchaseRemaining,
                                             List<Long> alwaysIncludePlanIds) {
+        List<Long> creatorIds = listQuerySupport.resolveUserIdsByKeyword(creatorName);
+        if (creatorIds != null && creatorIds.isEmpty()) {
+            return new Page<>(currentPage, size, 0);
+        }
+        boolean creatorFilterActive = creatorIds != null;
         LambdaQueryWrapper<PurchasePlan> qw = new LambdaQueryWrapper<>();
         if (StringUtils.isNotBlank(planNo)) {
             qw.like(PurchasePlan::getPlanNo, planNo);
@@ -196,6 +207,10 @@ public class PurchasePlanService {
         if (status != null) {
             qw.eq(PurchasePlan::getStatus, status);
         }
+        if (creatorIds != null) {
+            qw.in(PurchasePlan::getCreatorUserId, creatorIds);
+        }
+        ListQuerySupport.applyCreateTimeDateRange(qw, PurchasePlan::getCreateTime, createDateStart, createDateEnd);
         qw.orderByDesc(PurchasePlan::getUpdateTime);
         if (!Boolean.TRUE.equals(onlyWithPurchaseRemaining)) {
             Page<PurchasePlan> page = purchasePlanMapper.selectPage(new Page<>(currentPage, size), qw);
@@ -217,7 +232,8 @@ public class PurchasePlanService {
         for (Long id : always) {
             if (id != null && !seen.contains(id)) {
                 PurchasePlan p = purchasePlanMapper.selectById(id);
-                if (p != null && matchesPlanListFilters(p, planNo, title, status)) {
+                if (p != null && matchesPlanListFilters(p, planNo, title, status, creatorFilterActive, creatorIds,
+                        createDateStart, createDateEnd)) {
                     filtered.add(p);
                     seen.add(id);
                 }
@@ -246,7 +262,9 @@ public class PurchasePlanService {
         return page;
     }
 
-    private boolean matchesPlanListFilters(PurchasePlan p, String planNo, String title, Integer status) {
+    private boolean matchesPlanListFilters(PurchasePlan p, String planNo, String title, Integer status,
+                                          boolean creatorFilterActive, List<Long> creatorUserIds,
+                                          LocalDate createDateStart, LocalDate createDateEnd) {
         if (status != null && !Objects.equals(p.getStatus(), status)) {
             return false;
         }
@@ -255,6 +273,21 @@ public class PurchasePlanService {
         }
         if (StringUtils.isNotBlank(title) && (p.getTitle() == null || !p.getTitle().contains(title.trim()))) {
             return false;
+        }
+        if (creatorFilterActive) {
+            if (p.getCreatorUserId() == null || creatorUserIds == null || !creatorUserIds.contains(p.getCreatorUserId())) {
+                return false;
+            }
+        }
+        if (createDateStart != null) {
+            if (p.getCreateTime() == null || p.getCreateTime().toLocalDate().isBefore(createDateStart)) {
+                return false;
+            }
+        }
+        if (createDateEnd != null) {
+            if (p.getCreateTime() == null || p.getCreateTime().toLocalDate().isAfter(createDateEnd)) {
+                return false;
+            }
         }
         return true;
     }

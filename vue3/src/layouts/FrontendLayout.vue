@@ -32,14 +32,6 @@
             <el-icon><HomeFilled /></el-icon>
             <span>首页</span>
           </el-menu-item>
-          <el-menu-item index="/department">
-            <el-icon><OfficeBuilding /></el-icon>
-            <span>科室介绍</span>
-          </el-menu-item>
-          <el-menu-item index="/doctor">
-            <el-icon><User /></el-icon>
-            <span>医生介绍</span>
-          </el-menu-item>
           <el-menu-item
             v-if="isLoggedIn"
             index="/appointment"
@@ -56,10 +48,17 @@
           </el-menu-item>
           <el-menu-item
             v-if="isLoggedIn"
+            index="/outpatient-charge"
+          >
+            <el-icon><Money /></el-icon>
+            <span>就诊缴费</span>
+          </el-menu-item>
+          <el-menu-item
+            v-if="isLoggedIn"
             index="/medical-record"
           >
             <el-icon><DocumentChecked /></el-icon>
-            <span>就诊记录</span>
+            <span>病历处方</span>
           </el-menu-item>
           <el-menu-item
             v-if="isLoggedIn"
@@ -144,10 +143,10 @@
     HomeFilled,
     Calendar,
     Tickets,
+    Money,
     DocumentChecked,
     UserFilled,
     FirstAidKit,
-    OfficeBuilding,
     Key
   } from '@element-plus/icons-vue'
   import { ElMessage } from 'element-plus'
@@ -254,8 +253,8 @@
   .nav-menu :deep(.el-menu-item.is-active) {
     font-weight: bold;
     color: #76c893;
-    background-color: rgba(118, 200, 147, 0.1);
-    border-bottom: 3px solid #76c893;
+    background-color: transparent;
+    border-bottom: none;
   }
   
   .nav-menu :deep(.el-menu-item:hover) {

@@ -36,9 +36,12 @@
           <el-select
             v-model="searchForm.status"
             placeholder="请选择状态"
-            clearable
             style="width: 140px"
           >
+            <el-option
+              label="全部"
+              :value="''"
+            />
             <el-option
               label="草稿"
               :value="0"
@@ -48,6 +51,26 @@
               :value="1"
             />
           </el-select>
+        </el-form-item>
+        <el-form-item label="操作人">
+          <el-input
+            v-model="searchForm.creatorName"
+            placeholder="姓名或用户名"
+            clearable
+            style="width: 160px"
+          />
+        </el-form-item>
+        <el-form-item label="创建日期">
+          <el-date-picker
+            v-model="searchForm.createDateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始"
+            end-placeholder="结束"
+            value-format="YYYY-MM-DD"
+            clearable
+            style="width: 260px"
+          />
         </el-form-item>
         <el-form-item>
           <el-button
@@ -439,6 +462,11 @@
           min-width="200"
         />
       </el-table>
+      <template #footer>
+        <el-button @click="detailVisible = false">
+          关闭
+        </el-button>
+      </template>
     </el-dialog>
   </div>
 </template>
@@ -464,7 +492,9 @@ const pageSize = ref(10)
 const searchForm = reactive({
   stockInNo: '',
   acceptanceId: '',
-  status: undefined
+  status: '',
+  creatorName: '',
+  createDateRange: null
 })
 
 const createVisible = ref(false)
@@ -507,13 +537,24 @@ const formatAcceptanceLine = (d) => {
 const fetchStockIns = async () => {
   loading.value = true
   try {
-    await request.get('/stockInOrder/page', {
+    const params = {
       stockInNo: searchForm.stockInNo,
       acceptanceId: searchForm.acceptanceId ? Number(searchForm.acceptanceId) : undefined,
-      status: searchForm.status,
       currentPage: currentPage.value,
       size: pageSize.value
-    }, {
+    }
+    if (searchForm.status !== '') {
+      params.status = searchForm.status
+    }
+    const cn = (searchForm.creatorName || '').trim()
+    if (cn) {
+      params.creatorName = cn
+    }
+    if (Array.isArray(searchForm.createDateRange) && searchForm.createDateRange.length === 2) {
+      params.createDateStart = searchForm.createDateRange[0]
+      params.createDateEnd = searchForm.createDateRange[1]
+    }
+    await request.get('/stockInOrder/page', params, {
       showDefaultMsg: false,
       onSuccess: (res) => {
         tableData.value = res.records || []
@@ -532,7 +573,9 @@ const handleSearch = () => {
 const resetSearch = () => {
   searchForm.stockInNo = ''
   searchForm.acceptanceId = ''
-  searchForm.status = undefined
+  searchForm.status = ''
+  searchForm.creatorName = ''
+  searchForm.createDateRange = null
   handleSearch()
 }
 const handleSizeChange = (val) => {
@@ -646,7 +689,7 @@ const onAcceptancesChange = async (acceptanceIds) => {
           medicine: it.medicine,
           qualifiedQty: it.qualifiedQty || 0,
           stockInQty: it.qualifiedQty || 0,
-          unitCost: Number(orderPriceMap[it.medicineId] || it.medicine?.price || 0)
+          unitCost: Number(orderPriceMap[it.medicineId] || it.medicine?.purchasePrice || 0)
         })
       }
     }
@@ -696,9 +739,12 @@ const saveStockIn = async () => {
     } else {
       await request.post('/stockInOrder', { ...payload, stockInNo: draftPreviewNo.value }, {
         successMsg: '创建入库单成功',
-        onSuccess: () => {
+        onSuccess: async (res) => {
           createVisible.value = false
-          fetchStockIns()
+          await fetchStockIns()
+          if (res?.id) {
+            await openDetailById(res.id)
+          }
         }
       })
     }
@@ -707,14 +753,18 @@ const saveStockIn = async () => {
   }
 }
 
-const openDetail = async (row) => {
-  await request.get(`/stockInOrder/${row.id}`, {}, {
+const openDetailById = async (id) => {
+  await request.get(`/stockInOrder/${id}`, {}, {
     showDefaultMsg: false,
     onSuccess: (res) => {
       Object.assign(detail, res || {})
       detailVisible.value = true
     }
   })
+}
+
+const openDetail = async (row) => {
+  await openDetailById(row.id)
 }
 
 const post = async (row) => {

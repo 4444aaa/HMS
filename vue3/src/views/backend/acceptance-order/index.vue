@@ -4,12 +4,21 @@
       <template #header>
         <div class="card-header">
           <h3>验收单</h3>
-          <el-button
-            type="primary"
-            @click="openCreate"
-          >
-            新增验收单
-          </el-button>
+          <div class="header-actions">
+            <el-button
+              type="primary"
+              plain
+              @click="openImageCreate"
+            >
+              识图创建
+            </el-button>
+            <el-button
+              type="primary"
+              @click="openCreate"
+            >
+              新增验收单
+            </el-button>
+          </div>
         </div>
       </template>
 
@@ -32,13 +41,24 @@
             clearable
           />
         </el-form-item>
+        <el-form-item label="供应商名称">
+          <el-input
+            v-model="searchForm.supplierName"
+            placeholder="供应商名称"
+            clearable
+            style="width: 160px"
+          />
+        </el-form-item>
         <el-form-item label="状态">
           <el-select
             v-model="searchForm.status"
             placeholder="请选择状态"
-            clearable
             style="width: 140px"
           >
+            <el-option
+              label="全部"
+              :value="''"
+            />
             <el-option
               label="草稿"
               :value="0"
@@ -48,6 +68,26 @@
               :value="1"
             />
           </el-select>
+        </el-form-item>
+        <el-form-item label="验收人">
+          <el-input
+            v-model="searchForm.creatorName"
+            placeholder="姓名或用户名"
+            clearable
+            style="width: 160px"
+          />
+        </el-form-item>
+        <el-form-item label="创建日期">
+          <el-date-picker
+            v-model="searchForm.createDateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始"
+            end-placeholder="结束"
+            value-format="YYYY-MM-DD"
+            clearable
+            style="width: 260px"
+          />
         </el-form-item>
         <el-form-item>
           <el-button
@@ -401,6 +441,43 @@
       </template>
     </el-dialog>
 
+    <el-dialog
+      v-model="imageCreateVisible"
+      title="识图创建验收单"
+      width="520px"
+      @closed="resetImageCreate"
+    >
+      <el-upload
+        :auto-upload="false"
+        :show-file-list="true"
+        :limit="1"
+        accept="image/png,image/jpeg,image/jpg,image/webp"
+        :on-change="handleImageFileChange"
+        :on-remove="handleImageFileRemove"
+      >
+        <el-button type="primary">
+          选择图片
+        </el-button>
+        <template #tip>
+          <div class="el-upload__tip">
+            支持 jpg/png/webp，系统会 OCR 提取验收信息并自动匹配采购单，生成验收单草稿。
+          </div>
+        </template>
+      </el-upload>
+      <template #footer>
+        <el-button @click="imageCreateVisible = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="imageCreating"
+          @click="submitImageCreate"
+        >
+          开始创建
+        </el-button>
+      </template>
+    </el-dialog>
+
     <!-- 详情 -->
     <el-dialog
       v-model="detailVisible"
@@ -474,6 +551,11 @@
           width="140"
         />
       </el-table>
+      <template #footer>
+        <el-button @click="detailVisible = false">
+          关闭
+        </el-button>
+      </template>
     </el-dialog>
   </div>
 </template>
@@ -482,7 +564,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useUserStore } from '@/store/user'
 import request from '@/utils/request'
-import { ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { formatDate } from '@/utils/dateUtils'
 import { previewDocumentNo, formatDraftCreateTime } from '@/utils/draftDocumentPreview'
 
@@ -499,7 +581,10 @@ const pageSize = ref(10)
 const searchForm = reactive({
   acceptanceNo: '',
   purchaseOrderId: '',
-  status: undefined
+  supplierName: '',
+  status: '',
+  creatorName: '',
+  createDateRange: null
 })
 
 const createVisible = ref(false)
@@ -508,6 +593,9 @@ const editingAcceptanceId = ref(null)
 const detailVisible = ref(false)
 const detail = reactive({})
 const sourceOrderDetail = ref(null)
+const imageCreateVisible = ref(false)
+const imageCreating = ref(false)
+const imageCreateFile = ref(null)
 
 const orderOptions = ref([])
 const createForm = reactive({
@@ -522,13 +610,28 @@ const draftCreateTime = ref('')
 const fetchAcceptances = async () => {
   loading.value = true
   try {
-    await request.get('/purchaseAcceptance/page', {
+    const params = {
       acceptanceNo: searchForm.acceptanceNo,
       purchaseOrderId: searchForm.purchaseOrderId ? Number(searchForm.purchaseOrderId) : undefined,
-      status: searchForm.status,
       currentPage: currentPage.value,
       size: pageSize.value
-    }, {
+    }
+    if (searchForm.status !== '') {
+      params.status = searchForm.status
+    }
+    const sn = (searchForm.supplierName || '').trim()
+    if (sn) {
+      params.supplierName = sn
+    }
+    const cn = (searchForm.creatorName || '').trim()
+    if (cn) {
+      params.creatorName = cn
+    }
+    if (Array.isArray(searchForm.createDateRange) && searchForm.createDateRange.length === 2) {
+      params.createDateStart = searchForm.createDateRange[0]
+      params.createDateEnd = searchForm.createDateRange[1]
+    }
+    await request.get('/purchaseAcceptance/page', params, {
       showDefaultMsg: false,
       onSuccess: (res) => {
         tableData.value = res.records || []
@@ -547,7 +650,10 @@ const handleSearch = () => {
 const resetSearch = () => {
   searchForm.acceptanceNo = ''
   searchForm.purchaseOrderId = ''
-  searchForm.status = undefined
+  searchForm.supplierName = ''
+  searchForm.status = ''
+  searchForm.creatorName = ''
+  searchForm.createDateRange = null
   handleSearch()
 }
 const handleSizeChange = (val) => {
@@ -575,6 +681,48 @@ const openCreate = async () => {
       orderOptions.value = res.records || []
     }
   })
+}
+
+const openImageCreate = () => {
+  imageCreateVisible.value = true
+}
+
+const handleImageFileChange = (file) => {
+  imageCreateFile.value = file?.raw || null
+}
+
+const handleImageFileRemove = () => {
+  imageCreateFile.value = null
+}
+
+const resetImageCreate = () => {
+  imageCreateFile.value = null
+  imageCreating.value = false
+}
+
+const submitImageCreate = async () => {
+  if (!imageCreateFile.value) {
+    ElMessage.warning('请先选择图片')
+    return
+  }
+  imageCreating.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', imageCreateFile.value)
+    await request.post('/purchaseAcceptance/ocr-create', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      successMsg: '识图创建验收单成功',
+      onSuccess: async (res) => {
+        imageCreateVisible.value = false
+        await fetchAcceptances()
+        if (res?.id) {
+          await openDetailById(res.id)
+        }
+      }
+    })
+  } finally {
+    imageCreating.value = false
+  }
 }
 
 const openEdit = async (row) => {
@@ -672,9 +820,12 @@ const saveAcceptance = async () => {
     } else {
       await request.post('/purchaseAcceptance', { ...payload, acceptanceNo: draftPreviewNo.value }, {
         successMsg: '创建验收单成功',
-        onSuccess: () => {
+        onSuccess: async (res) => {
           createVisible.value = false
-          fetchAcceptances()
+          await fetchAcceptances()
+          if (res?.id) {
+            await openDetailById(res.id)
+          }
         }
       })
     }
@@ -683,14 +834,18 @@ const saveAcceptance = async () => {
   }
 }
 
-const openDetail = async (row) => {
-  await request.get(`/purchaseAcceptance/${row.id}`, {}, {
+const openDetailById = async (id) => {
+  await request.get(`/purchaseAcceptance/${id}`, {}, {
     showDefaultMsg: false,
     onSuccess: (res) => {
       Object.assign(detail, res || {})
       detailVisible.value = true
     }
   })
+}
+
+const openDetail = async (row) => {
+  await openDetailById(row.id)
 }
 
 const complete = async (row) => {
@@ -735,6 +890,10 @@ onMounted(() => {
     display: flex;
     align-items: center;
     justify-content: space-between;
+  }
+  .header-actions {
+    display: flex;
+    gap: 10px;
   }
   .search-form {
     margin-bottom: 16px;

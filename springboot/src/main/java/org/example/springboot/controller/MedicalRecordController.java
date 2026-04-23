@@ -61,11 +61,12 @@ public class MedicalRecordController {
             @RequestParam(required = false) String doctorName,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Integer status,
             @RequestParam(defaultValue = "1") Integer currentPage,
             @RequestParam(defaultValue = "10") Integer size) {
-        LOGGER.info("分页查询就诊记录: patientId={}, doctorId={}, patientName={}, doctorName={}, startDate={}, endDate={}, currentPage={}, size={}", 
-                patientId, doctorId, patientName, doctorName, startDate, endDate, currentPage, size);
-        Page<MedicalRecord> page = medicalRecordService.getMedicalRecordsByPage(patientId, doctorId, patientName, doctorName, startDate, endDate, currentPage, size);
+        LOGGER.info("分页查询就诊记录: patientId={}, doctorId={}, patientName={}, doctorName={}, startDate={}, endDate={}, status={}, currentPage={}, size={}", 
+                patientId, doctorId, patientName, doctorName, startDate, endDate, status, currentPage, size);
+        Page<MedicalRecord> page = medicalRecordService.getMedicalRecordsByPage(patientId, doctorId, patientName, doctorName, startDate, endDate, status, currentPage, size);
         return Result.success(page);
     }
     

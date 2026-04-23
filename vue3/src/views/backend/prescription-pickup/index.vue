@@ -32,10 +32,14 @@
         <el-form-item label="状态">
           <el-select
             v-model="searchForm.status"
-            placeholder="待取药"
+            placeholder="全部"
             clearable
             style="width: 160px"
           >
+            <el-option
+              label="全部"
+              value=""
+            />
             <el-option
               label="待取药"
               :value="1"
@@ -108,7 +112,7 @@
           min-width="160"
         >
           <template #default="scope">
-            <span class="ellipsis">{{ scope.row.diagnosis || '同就诊记录' }}</span>
+            <span class="ellipsis">{{ scope.row.diagnosis || scope.row.medicalRecord?.diagnosis || '—' }}</span>
           </template>
         </el-table-column>
         <el-table-column
@@ -248,7 +252,7 @@ const dateRange = ref([])
 const searchForm = reactive({
   prescriptionNo: '',
   patientName: '',
-  status: 1
+  status: ''
 })
 
 const detailVisible = ref(false)
@@ -273,8 +277,11 @@ const fetchList = async () => {
 
     await request.get('/prescription/page', params, {
       onSuccess: (res) => {
-        tableData.value = res.records || []
-        total.value = res.total || 0
+        const records = (res.records || []).filter(item => item?.status === 1 || item?.status === 2)
+        tableData.value = searchForm.status === 1 || searchForm.status === 2
+          ? records.filter(item => item.status === searchForm.status)
+          : records
+        total.value = tableData.value.length
       }
     })
   } finally {
@@ -290,7 +297,7 @@ const handleSearch = () => {
 const resetSearch = () => {
   searchForm.prescriptionNo = ''
   searchForm.patientName = ''
-  searchForm.status = 1
+  searchForm.status = ''
   dateRange.value = []
   currentPage.value = 1
   fetchList()

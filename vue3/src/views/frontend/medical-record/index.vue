@@ -1,12 +1,5 @@
 <template>
   <div class="my-medical-records">
-    <div class="welcome-banner">
-      <div class="banner-content">
-        <h2><el-icon><DocumentChecked /></el-icon> 我的就诊记录</h2>
-        <p>在这里查看您的历史就诊记录，帮助您更好地了解自己的健康状况</p>
-      </div>
-    </div>
-
     <el-card
       class="records-card"
       shadow="hover"
@@ -60,7 +53,7 @@
         </el-form>
       </div>
 
-      <!-- 就诊记录列表 -->
+      <!-- 病历处方列表 -->
       <div
         v-if="loading"
         class="loading-container"
@@ -76,7 +69,7 @@
         class="empty-container"
       >
         <el-empty
-          description="暂无就诊记录"
+          description="暂无病历处方记录"
           :image-size="120"
         >
           <template #image>
@@ -288,198 +281,101 @@
         <h4>健康小贴士</h4>
       </div>
       <ul class="tips-list">
-        <li>定期查看您的就诊记录，有助于了解自己的健康状况变化</li>
+        <li>定期查看您的病历处方记录，有助于了解自己的健康状况变化</li>
         <li>按时服药、遵医嘱治疗是康复的关键</li>
-        <li>建议保存您的历史就诊记录，方便日后就医参考</li>
+        <li>建议保存您的历史病历处方记录，方便日后就医参考</li>
         <li>如有疑问，请随时咨询您的主治医生</li>
       </ul>
     </el-card>
 
-    <!-- 就诊记录详情对话框 -->
+    <!-- 病历详情对话框 -->
     <el-dialog
       v-model="recordDialogVisible"
-      title="就诊记录详情"
-      width="650px"
+      title="病历详情"
+      width="700px"
       class="record-dialog"
     >
       <div
         v-if="currentRecord.id"
-        class="record-detail"
+        class="record-view-detail"
       >
-        <div class="dialog-header-info">
-          <div class="header-icon">
-            <el-icon><DocumentChecked /></el-icon>
-          </div>
-          <div class="header-content">
-            <h3>{{ currentRecord.recordNo }}</h3>
-            <p>{{ currentRecord.recordDate }}</p>
+        <div class="view-header-line">
+          <div>
+            记录编号：{{ currentRecord.recordNo || '-' }} ｜ 就诊日期：{{ currentRecord.recordDate || '-' }}
           </div>
         </div>
 
-        <el-descriptions
-          title="基本信息"
-          :column="2"
-          border
-        >
-          <el-descriptions-item label="就诊医生">
-            <div class="info-with-icon">
-              <el-icon><User /></el-icon>
-              {{ currentRecord.doctor?.name || '未知' }}
-              <el-tag
-                size="small"
-                type="info"
-              >
-                {{ currentRecord.doctor?.title || '' }}
-              </el-tag>
-            </div>
+        <div class="section-divider section-divider-detail">
+          <span>患者信息</span>
+        </div>
+        <el-descriptions :column="2" border size="small">
+          <el-descriptions-item label="患者">
+            {{ currentRecord.patient?.name || '-' }}
           </el-descriptions-item>
-          <el-descriptions-item label="科室">
-            <div class="info-with-icon">
-              <el-icon><OfficeBuilding /></el-icon>
-              {{ currentRecord.doctor?.department?.deptName || '未知科室' }}
-            </div>
+          <el-descriptions-item label="年龄/性别">
+            {{ patientAgeText(currentRecord.patient) }} / {{ currentRecord.patient?.sex || '未知' }}
           </el-descriptions-item>
-          <el-descriptions-item
-            label="诊断结果"
-            :span="2"
-          >
-            <div class="diagnosis-box">
-              {{ currentRecord.diagnosis || '暂无诊断' }}
-            </div>
+          <el-descriptions-item label="既往病史">
+            {{ currentRecord.patient?.medicalHistory || '无' }}
           </el-descriptions-item>
-          <el-descriptions-item
-            label="治疗方案"
-            :span="2"
-          >
-            <div class="treatment-box">
-              {{ currentRecord.treatment || '暂无治疗方案' }}
-            </div>
-          </el-descriptions-item>
-          <el-descriptions-item
-            v-if="currentRecord.followUp"
-            label="随访日期"
-          >
-            <div class="info-with-icon">
-              <el-icon><Calendar /></el-icon>
-              {{ currentRecord.followUp }}
-            </div>
-          </el-descriptions-item>
-          <el-descriptions-item
-            v-if="currentRecord.notes"
-            label="医生备注"
-            :span="2"
-          >
-            <div class="notes-box">
-              {{ currentRecord.notes }}
-            </div>
+          <el-descriptions-item label="过敏史">
+            {{ currentRecord.patient?.allergies || '无' }}
           </el-descriptions-item>
         </el-descriptions>
 
-        <div class="section-divider">
+        <div class="section-divider section-divider-detail">
+          <span>诊断信息</span>
+        </div>
+        <el-descriptions :column="1" border size="small" class="diagnosis-descriptions">
+          <el-descriptions-item label="患者主诉">
+            {{ currentRecord.appointment?.symptoms || '无' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="诊断结果">
+            {{ currentRecord.diagnosis || '暂无诊断' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="治疗方案">
+            {{ currentRecord.treatment || '暂无治疗方案' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="医生备注">
+            {{ currentRecord.notes || '无' }}
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <div class="section-divider section-divider-detail">
           <span>病症明细</span>
         </div>
-        <div v-if="currentRecord.details && currentRecord.details.length > 0">
-          <el-table
-            :data="currentRecord.details"
-            border
-            style="width: 100%"
-            :row-class-name="tableRowClassName"
+        <div class="record-detail-list">
+          <div
+            v-for="(detail, index) in (currentRecord.details || [])"
+            :key="detail.id || `d-${index}`"
+            class="record-detail-item"
           >
-            <el-table-column
-              prop="symptomName"
-              label="病症名称"
-              width="180"
-            />
-            <el-table-column
-              prop="treatmentPlan"
-              label="对应治疗方案"
-              min-width="260"
-            />
-          </el-table>
-        </div>
-        <div
-          v-else
-          class="no-prescription"
-        >
+            <div class="detail-line">
+              <span><strong>病症名称：</strong>{{ detail.symptomName || '-' }}</span>
+            </div>
+            <div class="detail-line detail-line-muted">
+              <span><strong>对应治疗方案：</strong>{{ detail.treatmentPlan || '-' }}</span>
+            </div>
+          </div>
           <el-empty
+            v-if="!currentRecord.details || currentRecord.details.length === 0"
             description="暂无病症明细"
-            :image-size="80"
+            :image-size="60"
           />
         </div>
-        
-        <div class="section-divider">
-          <span>处方信息</span>
-        </div>
-        
-        <div
-          v-if="currentRecord.prescriptions && currentRecord.prescriptions.length > 0"
-          class="prescription-list"
-        >
-          <el-table
-            :data="currentRecord.prescriptions"
-            border
-            style="width: 100%"
-            :row-class-name="tableRowClassName"
-          >
-            <el-table-column
-              prop="prescriptionNo"
-              label="处方编号"
-              width="180"
-            />
-            <el-table-column
-              prop="prescriptionDate"
-              label="处方日期"
-              width="120"
-            />
-            <el-table-column
-              prop="status"
-              label="状态"
-              width="100"
-            >
-              <template #default="scope">
-                <el-tag
-                  :type="prescriptionStatusTagType(scope.row.status)"
-                  effect="light"
-                  round
-                >
-                  {{ prescriptionStatusLabel(scope.row.status) }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column
-              label="操作"
-              width="120"
-            >
-              <template #default="scope">
-                <el-button
-                  type="primary"
-                  size="small"
-                  round
-                  @click="handleViewPrescription(scope.row)"
-                >
-                  <el-icon><View /></el-icon>查看
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </div>
-        <div
-          v-else
-          class="no-prescription"
-        >
-          <el-empty
-            description="暂无处方信息"
-            :image-size="80"
-          />
+
+        <div class="view-meta-line">
+          <span>
+            医生信息：{{ currentRecord.doctor?.name || '-' }}<span v-if="currentRecord.doctor?.title">（{{ currentRecord.doctor.title }}）</span><span v-if="currentRecord.doctor?.department?.deptName"> - {{ currentRecord.doctor.department.deptName }}</span>
+          </span>
+          <span>
+            创建时间：{{ currentRecord.createTime || '-' }}
+          </span>
         </div>
       </div>
-
       <template #footer>
         <span class="dialog-footer">
-          <el-button
-            round
-            @click="recordDialogVisible = false"
-          >关闭</el-button>
+          <el-button @click="recordDialogVisible = false">关闭</el-button>
         </span>
       </template>
     </el-dialog>
@@ -493,141 +389,90 @@
     >
       <div
         v-if="currentPrescription.id"
-        class="prescription-detail"
+        class="prescription-view-detail"
       >
-        <div class="dialog-header-info">
-          <div class="header-icon">
-            <el-icon><Stamp /></el-icon>
-          </div>
-          <div class="header-content">
-            <h3>{{ currentPrescription.prescriptionNo }}</h3>
-            <p>{{ currentPrescription.prescriptionDate }}</p>
+        <div class="view-header-line">
+          <div>
+            处方编号：{{ currentPrescription.prescriptionNo || '-' }} ｜ 处方日期：{{ currentPrescription.prescriptionDate || '-' }}
           </div>
         </div>
 
-        <el-descriptions
-          title="处方信息"
-          :column="2"
-          border
-        >
-          <el-descriptions-item label="开方医生">
-            <div class="info-with-icon">
-              <el-icon><User /></el-icon>
-              {{ currentPrescription.doctor?.name || '未知' }}
-              <el-tag
-                size="small"
-                type="info"
-              >
-                {{ currentPrescription.doctor?.title || '' }}
-              </el-tag>
-            </div>
+        <div class="section-divider section-divider-detail">
+          <span>患者信息</span>
+        </div>
+        <el-descriptions :column="2" border size="small">
+          <el-descriptions-item label="患者">
+            {{ currentPrescription.patient?.name || '-' }}
           </el-descriptions-item>
-          <el-descriptions-item label="状态">
-            <el-tag
-              :type="prescriptionStatusTagType(currentPrescription.status)"
-              effect="light"
-              round
-            >
-              <el-icon v-if="currentPrescription.status === 2">
-                <CircleCheckFilled />
-              </el-icon>
-              <el-icon v-else>
-                <Clock />
-              </el-icon>
-              {{ prescriptionStatusLabel(currentPrescription.status) }}
-            </el-tag>
+          <el-descriptions-item label="年龄/性别">
+            {{ patientAgeText(currentPrescription.patient) }} / {{ currentPrescription.patient?.sex || '未知' }}
           </el-descriptions-item>
-          <el-descriptions-item
-            label="诊断结果"
-            :span="2"
-          >
-            <div class="diagnosis-box">
-              {{ currentPrescription.diagnosis || '同就诊记录' }}
-            </div>
+          <el-descriptions-item label="既往病史">
+            {{ currentPrescription.patient?.medicalHistory || '无' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="过敏史">
+            {{ currentPrescription.patient?.allergies || '无' }}
           </el-descriptions-item>
         </el-descriptions>
-        
-        <div class="section-divider">
-          <span>药品明细</span>
+
+        <div class="section-divider section-divider-detail">
+          <span>诊断信息</span>
         </div>
-        
-        <div
-          v-if="currentPrescription.details && currentPrescription.details.length > 0"
-          class="medicine-detail"
-        >
-          <el-table
-            :data="currentPrescription.details"
-            border
-            style="width: 100%"
-            :row-class-name="tableRowClassName"
+        <el-descriptions :column="1" border size="small" class="diagnosis-descriptions">
+          <el-descriptions-item label="患者主诉">
+            {{ currentPrescription.medicalRecord?.appointment?.symptoms || '无' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="诊断结果">
+            {{ currentPrescription.diagnosis || currentPrescription.medicalRecord?.diagnosis || '无' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="处方备注">
+            {{ currentPrescription.notes || '无' }}
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <div class="section-divider section-divider-detail">
+          <span>处方明细</span>
+        </div>
+        <div class="prescription-detail-list">
+          <div
+            v-for="(detail, index) in (currentPrescription.details || [])"
+            :key="detail.id || `${detail.medicineId || 'm'}-${index}`"
+            class="prescription-detail-item"
           >
-            <el-table-column
-              label="病症"
-              min-width="140"
-            >
-              <template #default="scope">
-                {{ scope.row.medicalRecordDetail?.symptomName || '-' }}
-              </template>
-            </el-table-column>
-            <el-table-column
-              prop="medicine.medicineName"
-              label="药品名称"
-            />
-            <el-table-column
-              prop="medicine.specification"
-              label="规格"
-            />
-            <el-table-column
-              prop="dosage"
-              label="用量"
-            />
-            <el-table-column
-              prop="frequency"
-              label="频次"
-            />
-            <el-table-column
-              prop="days"
-              label="用药天数"
-            />
-            <el-table-column
-              prop="usage"
-              label="用法"
-            />
-            <el-table-column
-              prop="quantity"
-              label="数量"
-            />
-          </el-table>
-        </div>
-        <div
-          v-else
-          class="no-medicine"
-        >
+            <div class="detail-line">
+              <span><strong>药品名称：</strong>{{ detail.medicine?.medicineName || '-' }}</span>
+              <span><strong>对应病症：</strong>{{ detail.medicalRecordDetail?.symptomName || '-' }}</span>
+              <span><strong>对应治疗方案：</strong>{{ detail.medicalRecordDetail?.treatmentPlan || '-' }}</span>
+              <span><strong>数量：</strong>{{ detail.quantity ?? '-' }}</span>
+            </div>
+            <div class="detail-line detail-line-muted">
+              <span><strong>规格：</strong>{{ detail.medicine?.specification || '-' }}</span>
+              <span><strong>用量：</strong>{{ detail.dosage || '-' }}</span>
+              <span><strong>频次：</strong>{{ detail.frequency || '-' }}</span>
+              <span><strong>用药天数：</strong>{{ detail.days ?? '-' }}</span>
+              <span><strong>用法：</strong>{{ detail.usage || '-' }}</span>
+            </div>
+          </div>
           <el-empty
-            description="暂无药品信息"
-            :image-size="80"
+            v-if="!currentPrescription.details || currentPrescription.details.length === 0"
+            description="暂无处方明细"
+            :image-size="60"
           />
         </div>
-        
-        <div
-          v-if="currentPrescription.notes"
-          class="prescription-notes"
-        >
-          <div class="section-divider">
-            <span>处方备注</span>
-          </div>
-          <div class="notes-box">
-            {{ currentPrescription.notes }}
-          </div>
+
+        <div class="view-meta-line">
+          <span>
+            医生信息：{{ currentPrescription.doctor?.name || '-' }}
+          </span>
+          <span>
+            创建时间：{{ currentPrescription.createTime || '-' }}
+          </span>
         </div>
       </div>
 
       <template #footer>
         <span class="dialog-footer">
-          <el-button
-            round
-            @click="prescriptionDialogVisible = false"
-          >关闭</el-button>
+          <el-button @click="prescriptionDialogVisible = false">关闭</el-button>
         </span>
       </template>
     </el-dialog>
@@ -643,21 +488,12 @@ import {
   Search, 
   Refresh, 
   FirstAidKit, 
-  InfoFilled, 
-  DocumentChecked, 
-  Calendar, 
-  User,
-  Clock,
-  OfficeBuilding,
-  Stamp,
-  CircleCheckFilled,
-  View
+  InfoFilled
 } from '@element-plus/icons-vue'
 import { prescriptionStatusLabel, prescriptionStatusTagType } from '@/utils/prescriptionStatus'
 
 // 用户信息
 const userStore = useUserStore()
-const userId = computed(() => userStore.userInfo?.id)
 const patientId = computed(() => userStore.patientInfo?.id)
 // 列表数据
 const medicalRecords = ref([])
@@ -725,8 +561,8 @@ const fetchMyMedicalRecords = async () => {
       }
     })
   } catch (error) {
-    console.error('获取就诊记录失败:', error)
-    ElMessage.error('获取就诊记录失败')
+    console.error('获取病历处方失败:', error)
+    ElMessage.error('获取病历处方失败')
   } finally {
     loading.value = false
   }
@@ -736,7 +572,7 @@ const loadRecordDetail = async (record) => {
   try {
     await request.get(`/medical-record/${record.id}`, {}, {
       onSuccess: (res) => {
-        record.details = res?.details || []
+        Object.assign(record, res || {})
       }
     })
   } catch (error) {
@@ -778,9 +614,19 @@ const handleViewRecord = (record) => {
 }
 
 // 查看处方详情
-const handleViewPrescription = (prescription) => {
-  currentPrescription.value = prescription
-  prescriptionDialogVisible.value = true
+const handleViewPrescription = async (prescription) => {
+  try {
+    await request.get(`/prescription/${prescription.id}`, {}, {
+      onSuccess: (res) => {
+        currentPrescription.value = res || prescription
+        prescriptionDialogVisible.value = true
+      }
+    })
+  } catch (error) {
+    console.error('获取处方详情失败:', error)
+    currentPrescription.value = prescription
+    prescriptionDialogVisible.value = true
+  }
 }
 
 // 根据记录类型获取时间线类型
@@ -810,19 +656,14 @@ const handleCurrentChange = (val) => {
   fetchMyMedicalRecords()
 }
 
-// 计算分页后的记录
-const paginatedRecords = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return medicalRecords.value.slice(start, end)
-})
-
-// 表格行样式
-const tableRowClassName = ({ row, rowIndex }) => {
-  if (rowIndex % 2 === 0) {
-    return 'even-row'
-  }
-  return 'odd-row'
+const patientAgeText = (patient) => {
+  if (!patient) return '未知'
+  if (patient.age !== null && patient.age !== undefined) return `${patient.age}岁`
+  if (!patient.birthday) return '未知'
+  const birth = new Date(patient.birthday)
+  if (Number.isNaN(birth.getTime())) return '未知'
+  const currentYear = new Date().getFullYear()
+  return `${Math.max(currentYear - birth.getFullYear(), 0)}岁`
 }
 </script>
 
@@ -830,33 +671,6 @@ const tableRowClassName = ({ row, rowIndex }) => {
 .my-medical-records {
   padding: 20px;
   background-color: #f9f7f2;
-}
-
-.welcome-banner {
-  background: linear-gradient(to right, #a8d8ea, #c4e3b2);
-  border-radius: 15px;
-  padding: 25px 40px;
-  margin-bottom: 25px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.banner-content {
-  max-width: 800px;
-  text-align: center;
-  margin: 0 auto;
-}
-
-.banner-content h2 {
-  color: #3a5463;
-  margin: 0 0 10px 0;
-  font-size: 28px;
-  font-weight: 600;
-}
-
-.banner-content p {
-  color: #5a7385;
-  font-size: 16px;
-  margin: 0;
 }
 
 .records-card {
@@ -1054,6 +868,85 @@ const tableRowClassName = ({ row, rowIndex }) => {
   border-left: 3px solid #a8d8ea;
 }
 
+.record-view-detail,
+.prescription-view-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.view-header-line {
+  margin-bottom: 4px;
+  color: #606266;
+  line-height: 1.8;
+}
+
+.section-divider-detail {
+  margin: 8px 0 2px;
+  color: #303133;
+  font-weight: 600;
+}
+
+.section-divider-detail:before,
+.section-divider-detail:after {
+  background-color: #dcdfe6;
+}
+
+.section-divider-detail:before {
+  margin-right: 12px;
+}
+
+.section-divider-detail:after {
+  margin-left: 12px;
+}
+
+.view-meta-line {
+  margin-top: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  color: #606266;
+  font-size: 13px;
+}
+
+.record-detail-list,
+.prescription-detail-list {
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.record-detail-item,
+.prescription-detail-item {
+  padding: 10px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.record-detail-item:last-child,
+.prescription-detail-item:last-child {
+  border-bottom: none;
+}
+
+.detail-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #303133;
+}
+
+.detail-line + .detail-line {
+  margin-top: 6px;
+}
+
+.detail-line-muted {
+  color: #606266;
+  font-size: 12px;
+}
+
 /* 对话框样式 */
 :deep(.el-dialog) {
   border-radius: 12px;
@@ -1080,6 +973,30 @@ const tableRowClassName = ({ row, rowIndex }) => {
 
 :deep(.el-descriptions__content) {
   color: #5a7385;
+}
+
+:deep(.record-view-detail .el-descriptions__label),
+:deep(.prescription-view-detail .el-descriptions__label) {
+  font-size: 13px;
+  padding: 8px 10px !important;
+}
+
+:deep(.record-view-detail .el-descriptions__content),
+:deep(.prescription-view-detail .el-descriptions__content) {
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 8px 10px !important;
+}
+
+:deep(.diagnosis-descriptions .el-descriptions__table) {
+  table-layout: fixed;
+}
+
+:deep(.diagnosis-descriptions .el-descriptions__label) {
+  width: 96px;
+  min-width: 96px;
+  max-width: 96px;
+  white-space: normal;
 }
 
 /* 对话框样式 */
@@ -1192,18 +1109,6 @@ const tableRowClassName = ({ row, rowIndex }) => {
 
 /* 响应式调整 */
 @media (max-width: 768px) {
-  .welcome-banner {
-    padding: 20px;
-  }
-  
-  .banner-content h2 {
-    font-size: 22px;
-  }
-  
-  .banner-content p {
-    font-size: 14px;
-  }
-  
   .search-container {
     padding: 10px;
   }

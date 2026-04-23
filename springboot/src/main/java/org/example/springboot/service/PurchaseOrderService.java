@@ -9,6 +9,7 @@ import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.*;
 import org.example.springboot.util.DocumentNoHelper;
 import org.example.springboot.util.JwtTokenUtils;
+import org.example.springboot.util.ListQuerySupport;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,6 +47,8 @@ public class PurchaseOrderService {
     private SupplierMapper supplierMapper;
     @Resource
     private MedicineMapper medicineMapper;
+    @Resource
+    private ListQuerySupport listQuerySupport;
 
     @Transactional
     public PurchaseOrder createOrder(PurchaseOrder order) {
@@ -109,7 +112,7 @@ public class PurchaseOrderService {
 
             BigDecimal unitPrice = item.getUnitPrice();
             if (unitPrice == null || unitPrice.compareTo(BigDecimal.ZERO) <= 0) {
-                unitPrice = medicine.getPrice() == null ? BigDecimal.ZERO : medicine.getPrice();
+                unitPrice = medicine.getPurchasePrice() == null ? BigDecimal.ZERO : medicine.getPurchasePrice();
             }
             BigDecimal amount = unitPrice.multiply(BigDecimal.valueOf(item.getOrderQty()));
             item.setUnitPrice(unitPrice);
@@ -130,6 +133,7 @@ public class PurchaseOrderService {
         update.setTotalAmount(total);
         update.setUpdateTime(now);
         purchaseOrderMapper.updateById(update);
+        refreshPlanCompletionStatus(planIds);
 
         return getOrderById(order.getId());
     }
@@ -175,6 +179,7 @@ public class PurchaseOrderService {
         if (supplier == null || (supplier.getStatus() != null && supplier.getStatus() == 0)) {
             throw new ServiceException("供应商不存在或已停用");
         }
+        Set<Long> affectedPlanIds = new HashSet<>(loadPlanIdsByOrderId(existing.getId(), existing.getPlanId()));
         rollbackOrderPlanUsage(existing.getId());
         Map<Long, PurchasePlanItem> planItemMap = loadAndValidatePlans(planIds);
         purchaseOrderItemMapper.delete(new LambdaQueryWrapper<PurchaseOrderItem>().eq(PurchaseOrderItem::getOrderId, existing.getId()));
@@ -201,7 +206,7 @@ public class PurchaseOrderService {
 
             BigDecimal unitPrice = item.getUnitPrice();
             if (unitPrice == null || unitPrice.compareTo(BigDecimal.ZERO) <= 0) {
-                unitPrice = medicine.getPrice() == null ? BigDecimal.ZERO : medicine.getPrice();
+                unitPrice = medicine.getPurchasePrice() == null ? BigDecimal.ZERO : medicine.getPurchasePrice();
             }
             BigDecimal amount = unitPrice.multiply(BigDecimal.valueOf(item.getOrderQty()));
             item.setUnitPrice(unitPrice);
@@ -225,6 +230,8 @@ public class PurchaseOrderService {
         if (purchaseOrderMapper.updateById(update) <= 0) {
             throw new ServiceException("采购单更新失败");
         }
+        affectedPlanIds.addAll(planIds);
+        refreshPlanCompletionStatus(affectedPlanIds);
         return getOrderById(existing.getId());
     }
 
@@ -263,8 +270,19 @@ public class PurchaseOrderService {
         return order;
     }
 
-    public Page<PurchaseOrder> getOrdersByPage(String orderNo, Long planId, Long supplierId, Integer status,
+    public Page<PurchaseOrder> getOrdersByPage(String orderNo, Long planId, String supplierName, Integer status,
+                                              String creatorName,
+                                              LocalDate createDateStart,
+                                              LocalDate createDateEnd,
                                               Integer currentPage, Integer size) {
+        List<Long> creatorIds = listQuerySupport.resolveUserIdsByKeyword(creatorName);
+        if (creatorIds != null && creatorIds.isEmpty()) {
+            return new Page<>(currentPage, size, 0);
+        }
+        List<Long> supplierIds = listQuerySupport.resolveSupplierIdsByName(supplierName);
+        if (supplierIds != null && supplierIds.isEmpty()) {
+            return new Page<>(currentPage, size, 0);
+        }
         LambdaQueryWrapper<PurchaseOrder> qw = new LambdaQueryWrapper<>();
         if (StringUtils.isNotBlank(orderNo)) {
             qw.like(PurchaseOrder::getOrderNo, orderNo);
@@ -279,9 +297,13 @@ public class PurchaseOrderService {
                 qw.and(w -> w.eq(PurchaseOrder::getPlanId, planId).or().in(PurchaseOrder::getId, orderIds));
             }
         }
-        if (supplierId != null) {
-            qw.eq(PurchaseOrder::getSupplierId, supplierId);
+        if (supplierIds != null) {
+            qw.in(PurchaseOrder::getSupplierId, supplierIds);
         }
+        if (creatorIds != null) {
+            qw.in(PurchaseOrder::getCreatorUserId, creatorIds);
+        }
+        ListQuerySupport.applyCreateTimeDateRange(qw, PurchaseOrder::getCreateTime, createDateStart, createDateEnd);
         if (status != null) {
             qw.eq(PurchaseOrder::getStatus, status);
         }
@@ -343,6 +365,7 @@ public class PurchaseOrderService {
         if (acceptanceCount > 0) {
             throw new ServiceException("采购单已产生验收单，不能删除");
         }
+        Set<Long> affectedPlanIds = new HashSet<>(loadPlanIdsByOrderId(orderId, order.getPlanId()));
         List<PurchaseOrderItem> items = purchaseOrderItemMapper.selectList(
                 new LambdaQueryWrapper<PurchaseOrderItem>().eq(PurchaseOrderItem::getOrderId, orderId)
         );
@@ -352,6 +375,7 @@ public class PurchaseOrderService {
         purchaseOrderItemMapper.delete(new LambdaQueryWrapper<PurchaseOrderItem>().eq(PurchaseOrderItem::getOrderId, orderId));
         purchaseOrderPlanMapper.delete(new LambdaQueryWrapper<PurchaseOrderPlan>().eq(PurchaseOrderPlan::getOrderId, orderId));
         purchaseOrderMapper.deleteById(orderId);
+        refreshPlanCompletionStatus(affectedPlanIds);
     }
 
     private Set<Long> normalizePlanIds(PurchaseOrder order) {
@@ -509,6 +533,61 @@ public class PurchaseOrderService {
             updatePlanItem.setPurchasedQty(Math.max(0, purchased - entry.getValue()));
             updatePlanItem.setUpdateTime(LocalDateTime.now());
             purchasePlanItemMapper.updateById(updatePlanItem);
+        }
+    }
+
+    private Set<Long> loadPlanIdsByOrderId(Long orderId, Long fallbackPlanId) {
+        Set<Long> planIds = purchaseOrderPlanMapper.selectList(
+                        new LambdaQueryWrapper<PurchaseOrderPlan>().eq(PurchaseOrderPlan::getOrderId, orderId))
+                .stream()
+                .map(PurchaseOrderPlan::getPlanId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        if (planIds.isEmpty() && fallbackPlanId != null) {
+            planIds.add(fallbackPlanId);
+        }
+        return planIds;
+    }
+
+    /**
+     * 当某计划所有明细「计划量-已下单量」均为0时，置为已完结(2)；否则从已完结恢复为已提交(1)。
+     */
+    private void refreshPlanCompletionStatus(Set<Long> planIds) {
+        if (planIds == null || planIds.isEmpty()) {
+            return;
+        }
+        List<PurchasePlanItem> items = purchasePlanItemMapper.selectList(
+                new LambdaQueryWrapper<PurchasePlanItem>().in(PurchasePlanItem::getPlanId, planIds)
+        );
+        Map<Long, List<PurchasePlanItem>> itemsByPlanId = items.stream()
+                .collect(Collectors.groupingBy(PurchasePlanItem::getPlanId));
+        LocalDateTime now = LocalDateTime.now();
+        for (Long planId : planIds) {
+            if (planId == null) {
+                continue;
+            }
+            PurchasePlan plan = purchasePlanMapper.selectById(planId);
+            if (plan == null) {
+                continue;
+            }
+            // 草稿状态不参与自动完结/恢复。
+            if (Objects.equals(plan.getStatus(), 0)) {
+                continue;
+            }
+            List<PurchasePlanItem> planItems = itemsByPlanId.getOrDefault(planId, List.of());
+            boolean completed = !planItems.isEmpty() && planItems.stream().allMatch(it -> {
+                int planQty = it.getPlanQty() == null ? 0 : it.getPlanQty();
+                int purchasedQty = it.getPurchasedQty() == null ? 0 : it.getPurchasedQty();
+                return Math.max(0, planQty - purchasedQty) == 0;
+            });
+            Integer targetStatus = completed ? 2 : 1;
+            if (!Objects.equals(plan.getStatus(), targetStatus)) {
+                PurchasePlan update = new PurchasePlan();
+                update.setId(planId);
+                update.setStatus(targetStatus);
+                update.setUpdateTime(now);
+                purchasePlanMapper.updateById(update);
+            }
         }
     }
 }

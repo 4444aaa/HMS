@@ -102,6 +102,15 @@
           </template>
         </el-table-column>
         <el-table-column
+          prop="age"
+          label="年龄"
+          width="80"
+        >
+          <template #default="scope">
+            {{ scope.row.age ?? '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column
           prop="address"
           label="住址"
           min-width="200"
@@ -401,6 +410,9 @@
         <el-descriptions-item label="出生日期">
           {{ detailForm.birthday }}
         </el-descriptions-item>
+        <el-descriptions-item label="年龄">
+          {{ detailForm.age ?? '-' }}
+        </el-descriptions-item>
         <el-descriptions-item label="联系电话">
           {{ detailForm.phone }}
         </el-descriptions-item>
@@ -473,6 +485,7 @@ const patientForm = reactive({
   sex: '男',
   idCard: '',
   birthday: '',
+  age: null,
   phone: '',
   address: '',
   medicalHistory: '',
@@ -497,6 +510,7 @@ const detailForm = reactive({
   sex: '',
   idCard: '',
   birthday: '',
+  age: null,
   phone: '',
   address: '',
   medicalHistory: '',

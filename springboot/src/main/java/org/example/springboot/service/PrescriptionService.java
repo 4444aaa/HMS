@@ -36,6 +36,9 @@ public class PrescriptionService {
     private MedicineMapper medicineMapper;
     @Resource
     private MedicalRecordDetailMapper medicalRecordDetailMapper;
+
+    @Resource
+    private AppointmentMapper appointmentMapper;
     
     /**
      * 创建处方
@@ -52,6 +55,17 @@ public class PrescriptionService {
         }
         if (!medicalRecord.getDoctorId().equals(prescription.getDoctorId())) {
             throw new ServiceException("处方医生与就诊记录医生不一致");
+        }
+        // 诊断结果始终与病历保持同步
+        prescription.setDiagnosis(medicalRecord.getDiagnosis());
+        if (medicalRecord.getAppointmentId() != null) {
+            Appointment appointment = appointmentMapper.selectById(medicalRecord.getAppointmentId());
+            if (appointment == null) {
+                throw new ServiceException("病历关联预约不存在");
+            }
+            if (appointment.getStatus() == null || appointment.getStatus() != 2) {
+                throw new ServiceException("未确认就诊，不能进入病历处方流程");
+            }
         }
         
         // 检查患者是否存在
@@ -189,6 +203,10 @@ public class PrescriptionService {
         
         // 查询就诊记录信息
         MedicalRecord medicalRecord = medicalRecordMapper.selectById(prescription.getRecordId());
+        if (medicalRecord != null && medicalRecord.getAppointmentId() != null) {
+            Appointment appointment = appointmentMapper.selectById(medicalRecord.getAppointmentId());
+            medicalRecord.setAppointment(appointment);
+        }
         prescription.setMedicalRecord(medicalRecord);
         
         // 查询处方明细
@@ -324,6 +342,13 @@ public class PrescriptionService {
             }
             
             prescription.setDetails(details);
+
+            MedicalRecord medicalRecord = medicalRecordMapper.selectById(prescription.getRecordId());
+            if (medicalRecord != null && medicalRecord.getAppointmentId() != null) {
+                Appointment appointment = appointmentMapper.selectById(medicalRecord.getAppointmentId());
+                medicalRecord.setAppointment(appointment);
+            }
+            prescription.setMedicalRecord(medicalRecord);
         }
         
         return prescriptions;
@@ -440,6 +465,10 @@ public class PrescriptionService {
             
             // 查询就诊记录信息
             MedicalRecord medicalRecord = medicalRecordMapper.selectById(prescription.getRecordId());
+            if (medicalRecord != null && medicalRecord.getAppointmentId() != null) {
+                Appointment appointment = appointmentMapper.selectById(medicalRecord.getAppointmentId());
+                medicalRecord.setAppointment(appointment);
+            }
             prescription.setMedicalRecord(medicalRecord);
             
             // 查询处方明细

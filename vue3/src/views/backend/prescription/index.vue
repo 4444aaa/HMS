@@ -55,8 +55,12 @@
           <el-select
             v-model="searchForm.status"
             placeholder="请选择状态"
-            clearable
+            style="width: 130px"
           >
+            <el-option
+              label="全部"
+              :value="''"
+            />
             <el-option
               label="待提交"
               :value="0"
@@ -98,16 +102,29 @@
         />
         <el-table-column
           label="患者信息"
-          width="150"
+          min-width="240"
         >
           <template #default="scope">
-            {{ scope.row.patient?.name || '未知' }}
-            <el-tag
-              size="small"
-              type="info"
-            >
-              {{ scope.row.patient?.sex || '未知' }}
-            </el-tag>
+            <div class="patient-info-cell">
+              <div>
+                {{ scope.row.patient?.name || '未知' }}
+                <el-tag
+                  size="small"
+                  type="info"
+                >
+                  {{ patientSexText(scope.row.patient?.sex) }}
+                </el-tag>
+              </div>
+              <div class="text-muted">
+                年龄：{{ patientAgeText(scope.row.patient) }}
+              </div>
+              <div class="text-muted">
+                既往病史：{{ scope.row.patient?.medicalHistory || '无' }}
+              </div>
+              <div class="text-muted">
+                过敏史：{{ scope.row.patient?.allergies || '无' }}
+              </div>
+            </div>
           </template>
         </el-table-column>
         <el-table-column
@@ -126,18 +143,27 @@
           width="180"
         >
           <template #default="scope">
-            <el-tooltip
-              v-if="scope.row.medicalRecord"
-              :content="`诊断: ${scope.row.medicalRecord.diagnosis || '无'}`"
-              placement="top"
-              effect="light"
-            >
+            <div v-if="scope.row.medicalRecord">
               <div>{{ scope.row.medicalRecord?.recordNo || '未知' }}</div>
               <div class="text-muted">
                 {{ scope.row.medicalRecord?.recordDate || '' }}
               </div>
-            </el-tooltip>
+            </div>
             <span v-else>未关联记录</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="主诉"
+          min-width="180"
+        >
+          <template #default="scope">
+            <div
+              v-if="scope.row.medicalRecord?.appointment?.symptoms"
+              class="ellipsis"
+            >
+              {{ scope.row.medicalRecord.appointment.symptoms }}
+            </div>
+            <span v-else>无</span>
           </template>
         </el-table-column>
         <el-table-column
@@ -152,17 +178,13 @@
           width="200"
         >
           <template #default="scope">
-            <el-tooltip
+            <div
               v-if="scope.row.diagnosis"
-              :content="scope.row.diagnosis"
-              placement="top"
-              effect="light"
+              class="ellipsis"
             >
-              <div class="ellipsis">
-                {{ scope.row.diagnosis }}
-              </div>
-            </el-tooltip>
-            <span v-else>同就诊记录</span>
+              {{ scope.row.diagnosis }}
+            </div>
+            <span v-else>{{ scope.row.medicalRecord?.diagnosis || '—' }}</span>
           </template>
         </el-table-column>
         <el-table-column
@@ -228,13 +250,141 @@
       width="800px"
       @closed="resetForm"
     >
+      <div
+        v-if="dialogType === 'view'"
+        class="prescription-view-detail"
+      >
+        <div class="view-header-line">
+          <div>
+            处方编号：{{ prescriptionForm.prescriptionNo || '-' }} ｜ 处方日期：{{ prescriptionForm.prescriptionDate || '-' }}
+          </div>
+        </div>
+
+        <div class="section-divider">
+          <span>患者信息</span>
+        </div>
+        <el-descriptions
+          :column="2"
+          border
+          size="small"
+        >
+          <el-descriptions-item label="患者">
+            {{ prescriptionForm.patient?.name || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="年龄/性别">
+            {{ patientAgeText(prescriptionForm.patient) }} / {{ patientSexText(prescriptionForm.patient?.sex) }}
+          </el-descriptions-item>
+          <el-descriptions-item label="既往病史">
+            {{ prescriptionForm.patient?.medicalHistory || '无' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="过敏史">
+            {{ prescriptionForm.patient?.allergies || '无' }}
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <div class="section-divider">
+          <span>诊断信息</span>
+        </div>
+        <el-descriptions
+          :column="1"
+          border
+          size="small"
+          class="diagnosis-descriptions"
+        >
+          <el-descriptions-item
+            label="患者主诉"
+          >
+            {{ prescriptionForm.medicalRecord?.appointment?.symptoms || '无' }}
+          </el-descriptions-item>
+          <el-descriptions-item
+            label="诊断结果"
+          >
+            {{ prescriptionForm.diagnosis || prescriptionForm.medicalRecord?.diagnosis || '无' }}
+          </el-descriptions-item>
+          <el-descriptions-item
+            label="处方备注"
+          >
+            {{ prescriptionForm.notes || '无' }}
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <div class="section-divider">
+          <span>处方明细</span>
+        </div>
+        <div class="prescription-detail-list">
+          <div
+            v-for="(detail, index) in (prescriptionForm.details || [])"
+            :key="detail.id || `${detail.medicineId || 'm'}-${index}`"
+            class="prescription-detail-item"
+          >
+            <div class="detail-line">
+              <span><strong>药品名称：</strong>{{ detail.medicine?.medicineName || '-' }}</span>
+              <span><strong>对应病症：</strong>{{ detail.medicalRecordDetail?.symptomName || '-' }}</span>
+              <span><strong>对应治疗方案：</strong>{{ detail.medicalRecordDetail?.treatmentPlan || '-' }}</span>
+              <span><strong>数量：</strong>{{ detail.quantity ?? '-' }}</span>
+            </div>
+            <div class="detail-line detail-line-muted">
+              <span><strong>规格：</strong>{{ detail.medicine?.specification || '-' }}</span>
+              <span><strong>用量：</strong>{{ detail.dosage || '-' }}</span>
+              <span><strong>频次：</strong>{{ detail.frequency || '-' }}</span>
+              <span><strong>用药天数：</strong>{{ detail.days ?? '-' }}</span>
+              <span><strong>用法：</strong>{{ detail.usage || '-' }}</span>
+            </div>
+          </div>
+          <el-empty
+            v-if="!prescriptionForm.details || prescriptionForm.details.length === 0"
+            description="暂无处方明细"
+            :image-size="60"
+          />
+        </div>
+
+        <div class="view-meta-line">
+          <span>
+            医生信息：{{ prescriptionForm.doctor?.name || '-' }}
+          </span>
+          <span>
+            创建时间：{{ prescriptionForm.createTime || '-' }}
+          </span>
+        </div>
+      </div>
+
       <el-form
+        v-else
         ref="prescriptionFormRef"
         :model="prescriptionForm"
         :rules="prescriptionFormRules"
         label-width="100px"
-        :disabled="dialogType === 'view'"
       >
+        <el-descriptions
+          v-if="prescriptionForm.patientId"
+          :column="2"
+          border
+          size="small"
+          class="patient-header"
+        >
+          <el-descriptions-item label="患者">
+            {{ selectedPatient?.name || '-' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="性别">
+            {{ patientSexText(selectedPatient?.sex) }}
+          </el-descriptions-item>
+          <el-descriptions-item label="年龄">
+            {{ patientAgeText(selectedPatient) }}
+          </el-descriptions-item>
+          <el-descriptions-item label="既往病史">
+            {{ selectedPatient?.medicalHistory || '无' }}
+          </el-descriptions-item>
+          <el-descriptions-item label="过敏史">
+            {{ selectedPatient?.allergies || '无' }}
+          </el-descriptions-item>
+          <el-descriptions-item
+            label="患者主诉"
+            :span="2"
+          >
+            {{ currentRecordInfo.symptoms || '无' }}
+          </el-descriptions-item>
+        </el-descriptions>
+
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item
@@ -312,7 +462,7 @@
             v-model="prescriptionForm.diagnosis"
             type="textarea"
             :rows="2"
-            placeholder="请输入诊断结果（可选，默认使用就诊记录的诊断）"
+            placeholder="自动同步病历诊断结果"
           />
         </el-form-item>
         
@@ -345,6 +495,14 @@
               >
                 <template #default="scope">
                   {{ scope.row.medicalRecordDetail?.symptomName || '-' }}
+                </template>
+              </el-table-column>
+              <el-table-column
+                label="对应治疗方案"
+                min-width="180"
+              >
+                <template #default="scope">
+                  {{ scope.row.medicalRecordDetail?.treatmentPlan || '-' }}
                 </template>
               </el-table-column>
               <el-table-column
@@ -554,7 +712,7 @@
       
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button @click="dialogVisible = false">{{ dialogType === 'view' ? '关闭' : '取消' }}</el-button>
           <el-button
             v-if="dialogType !== 'view'"
             type="primary"
@@ -567,7 +725,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ref, reactive, onMounted, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import request from '@/utils/request'
 import { ElMessage } from 'element-plus'
@@ -587,7 +745,7 @@ const searchForm = reactive({
   prescriptionNo: '',
   patientName: '',
   doctorName: '',
-  status: null
+  status: ''
 })
 
 // 日期范围
@@ -600,8 +758,10 @@ const medicineOptions = ref([])
 const recordDetailOptions = ref([])
 const currentRecordInfo = reactive({
   doctorName: '',
-  recordDate: ''
+  recordDate: '',
+  symptoms: ''
 })
+const selectedPatient = computed(() => patientOptions.value.find(item => item.id === prescriptionForm.patientId))
 
 // 新增/编辑对话框
 const dialogVisible = ref(false)
@@ -610,10 +770,14 @@ const prescriptionFormRef = ref(null)
 const prescriptionForm = reactive({
   id: null,
   patientId: null,
+  patient: null,
   doctorId: null,
+  doctor: null,
   recordId: null,
+  medicalRecord: null,
   prescriptionNo: '',
   prescriptionDate: '',
+  createTime: '',
   diagnosis: '',
   status: 0,
   notes: '',
@@ -729,7 +893,7 @@ const fetchPrescriptions = async () => {
     if (searchForm.doctorName) {
       params.doctorName = searchForm.doctorName
     }
-    if (searchForm.status !== null) {
+    if (searchForm.status !== '') {
       params.status = searchForm.status
     }
 
@@ -757,7 +921,7 @@ const resetSearch = () => {
   searchForm.prescriptionNo = ''
   searchForm.patientName = ''
   searchForm.doctorName = ''
-  searchForm.status = null
+  searchForm.status = ''
   dateRange.value = []
   currentPage.value = 1
   fetchPrescriptions()
@@ -787,6 +951,7 @@ const handleView = async (row) => {
         })
         currentRecordInfo.doctorName = res.doctor?.name || ''
         currentRecordInfo.recordDate = res.prescriptionDate || ''
+        currentRecordInfo.symptoms = res.medicalRecord?.appointment?.symptoms || ''
         recordOptions.value = res.patientId ? [{ id: res.recordId, recordNo: res.medicalRecord?.recordNo, recordDate: res.medicalRecord?.recordDate }] : []
         recordDetailOptions.value = res.medicalRecord?.details || []
       }
@@ -920,6 +1085,7 @@ const resetForm = () => {
   recordDetailOptions.value = []
   currentRecordInfo.doctorName = ''
   currentRecordInfo.recordDate = ''
+  currentRecordInfo.symptoms = ''
 }
 
 const onPatientChange = async (patientId) => {
@@ -928,6 +1094,7 @@ const onPatientChange = async (patientId) => {
   prescriptionForm.prescriptionDate = ''
   currentRecordInfo.doctorName = ''
   currentRecordInfo.recordDate = ''
+  currentRecordInfo.symptoms = ''
   recordDetailOptions.value = []
   if (!patientId) {
     recordOptions.value = []
@@ -950,6 +1117,7 @@ const onRecordChange = async (recordId) => {
     prescriptionForm.prescriptionDate = ''
     currentRecordInfo.doctorName = ''
     currentRecordInfo.recordDate = ''
+    currentRecordInfo.symptoms = ''
     recordDetailOptions.value = []
     return
   }
@@ -958,8 +1126,10 @@ const onRecordChange = async (recordId) => {
       prescriptionForm.patientId = res.patientId || prescriptionForm.patientId
       prescriptionForm.doctorId = res.doctorId || null
       prescriptionForm.prescriptionDate = res.recordDate || ''
+      prescriptionForm.diagnosis = res.diagnosis || ''
       currentRecordInfo.doctorName = res.doctor?.name || ''
       currentRecordInfo.recordDate = res.recordDate || ''
+      currentRecordInfo.symptoms = res.appointment?.symptoms || ''
       recordDetailOptions.value = res.details || []
     }
   })
@@ -983,6 +1153,18 @@ const handleSizeChange = (val) => {
 const handleCurrentChange = (val) => {
   currentPage.value = val
   fetchPrescriptions()
+}
+
+const patientSexText = (sex) => sex || '未知'
+
+const patientAgeText = (patient) => {
+  if (!patient) return '未知'
+  if (patient.age !== null && patient.age !== undefined) return `${patient.age}岁`
+  if (!patient.birthday) return '未知'
+  const birth = new Date(patient.birthday)
+  if (Number.isNaN(birth.getTime())) return '未知'
+  const currentYear = new Date().getFullYear()
+  return `${Math.max(currentYear - birth.getFullYear(), 0)}岁`
 }
 </script>
 
@@ -1013,6 +1195,14 @@ const handleCurrentChange = (val) => {
   max-width: 180px;
 }
 
+.patient-info-cell {
+  line-height: 1.5;
+}
+
+.patient-header {
+  margin-bottom: 16px;
+}
+
 .medicine-details {
   margin-top: 20px;
 }
@@ -1036,6 +1226,130 @@ const handleCurrentChange = (val) => {
 
 .text-muted {
   color: #909399;
+  font-size: 12px;
+}
+
+.prescription-view-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.section-divider {
+  display: flex;
+  align-items: center;
+  margin: 8px 0 2px;
+  color: #303133;
+  font-weight: 600;
+}
+
+.section-divider::before,
+.section-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background-color: #dcdfe6;
+}
+
+.section-divider::before {
+  margin-right: 12px;
+}
+
+.section-divider::after {
+  margin-left: 12px;
+}
+
+.view-header-line {
+  margin-bottom: 4px;
+  color: #606266;
+  line-height: 1.8;
+}
+
+.view-meta-line {
+  margin-top: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  color: #606266;
+  font-size: 13px;
+}
+
+:deep(.detail-table th) {
+  background-color: #f5f7fa !important;
+  font-weight: 600;
+  color: #606266;
+  font-size: 13px;
+  padding: 8px 10px !important;
+}
+
+:deep(.detail-table td) {
+  font-size: 13px;
+  color: #606266;
+  line-height: 1.5;
+  padding: 8px 10px !important;
+  vertical-align: top;
+}
+
+:deep(.detail-table .cell) {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
+}
+
+:deep(.prescription-view-detail .el-descriptions__label) {
+  font-size: 13px;
+  padding: 8px 10px !important;
+}
+
+:deep(.prescription-view-detail .el-descriptions__content) {
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 8px 10px !important;
+}
+
+:deep(.diagnosis-descriptions .el-descriptions__table) {
+  table-layout: fixed;
+}
+
+:deep(.diagnosis-descriptions .el-descriptions__label) {
+  width: 96px;
+  min-width: 96px;
+  max-width: 96px;
+  white-space: normal;
+}
+
+.prescription-detail-list {
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.prescription-detail-item {
+  padding: 10px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.prescription-detail-item:last-child {
+  border-bottom: none;
+}
+
+.detail-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #303133;
+}
+
+.detail-line + .detail-line {
+  margin-top: 6px;
+}
+
+.detail-line-muted {
+  color: #606266;
   font-size: 12px;
 }
 </style> 

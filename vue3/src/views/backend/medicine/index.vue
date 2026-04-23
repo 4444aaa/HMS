@@ -62,19 +62,18 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="状态">
+        <el-form-item label="供应商">
           <el-select
-            v-model="searchForm.status"
-            placeholder="请选择状态"
+            v-model="searchForm.supplierId"
+            placeholder="请选择供应商"
             clearable
+            filterable
           >
             <el-option
-              label="上架"
-              :value="1"
-            />
-            <el-option
-              label="下架"
-              :value="0"
+              v-for="supplier in supplierOptions"
+              :key="supplier.id"
+              :label="supplier.name"
+              :value="supplier.id"
             />
           </el-select>
         </el-form-item>
@@ -119,12 +118,21 @@
           width="100"
         />
         <el-table-column
-          prop="price"
-          label="单价"
+          prop="purchasePrice"
+          label="进货价"
           width="100"
         >
           <template #default="scope">
-            ¥{{ scope.row.price }}
+            ¥{{ scope.row.purchasePrice }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="salePrice"
+          label="售价"
+          width="100"
+        >
+          <template #default="scope">
+            ¥{{ scope.row.salePrice }}
           </template>
         </el-table-column>
         <el-table-column
@@ -154,19 +162,11 @@
           </template>
         </el-table-column>
         <el-table-column
-          prop="manufacturer"
-          label="生产厂家"
+          label="供应商"
           min-width="180"
-        />
-        <el-table-column
-          prop="status"
-          label="状态"
-          width="80"
         >
           <template #default="scope">
-            <el-tag :type="scope.row.status === 1 ? 'success' : 'info'">
-              {{ scope.row.status === 1 ? '上架' : '下架' }}
-            </el-tag>
+            {{ supplierNameMap[scope.row.supplierId] || '未设置' }}
           </template>
         </el-table-column>
         <el-table-column
@@ -315,11 +315,11 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item
-              label="单价"
-              prop="price"
+              label="进货价"
+              prop="purchasePrice"
             >
               <el-input-number
-                v-model="medicineForm.price"
+                v-model="medicineForm.purchasePrice"
                 :precision="2"
                 :step="0.1"
                 :min="0"
@@ -327,6 +327,23 @@
               />
             </el-form-item>
           </el-col>
+          <el-col :span="12">
+            <el-form-item
+              label="售价"
+              prop="salePrice"
+            >
+              <el-input-number
+                v-model="medicineForm.salePrice"
+                :precision="2"
+                :step="0.1"
+                :min="0"
+                style="width: 100%"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        
+        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item
               label="库存"
@@ -374,13 +391,22 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item
-              label="生产厂家"
-              prop="manufacturer"
+              label="供应商"
+              prop="supplierId"
             >
-              <el-input
-                v-model="medicineForm.manufacturer"
-                placeholder="请输入生产厂家"
-              />
+              <el-select
+                v-model="medicineForm.supplierId"
+                placeholder="请选择供应商"
+                filterable
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="supplier in supplierOptions"
+                  :key="supplier.id"
+                  :label="supplier.name"
+                  :value="supplier.id"
+                />
+              </el-select>
             </el-form-item>
           </el-col>
         </el-row>
@@ -402,19 +428,6 @@
         </el-row>
 
         
-        <el-form-item
-          label="状态"
-          prop="status"
-        >
-          <el-radio-group v-model="medicineForm.status">
-            <el-radio :label="1">
-              上架
-            </el-radio>
-            <el-radio :label="0">
-              下架
-            </el-radio>
-          </el-radio-group>
-        </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
@@ -449,8 +462,11 @@
         <el-descriptions-item label="剂型">
           {{ detailForm.dosageForm || '未设置' }}
         </el-descriptions-item>
-        <el-descriptions-item label="单价">
-          ¥{{ detailForm.price }}
+        <el-descriptions-item label="进货价">
+          ¥{{ detailForm.purchasePrice }}
+        </el-descriptions-item>
+        <el-descriptions-item label="售价">
+          ¥{{ detailForm.salePrice }}
         </el-descriptions-item>
         <el-descriptions-item label="库存">
           {{ detailForm.stock }}
@@ -458,13 +474,8 @@
         <el-descriptions-item label="分类">
           {{ getCategoryName(detailForm.categoryId) }}
         </el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <el-tag :type="detailForm.status === 1 ? 'success' : 'info'">
-            {{ detailForm.status === 1 ? '上架' : '下架' }}
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="生产厂家">
-          {{ detailForm.manufacturer || '未设置' }}
+        <el-descriptions-item label="供应商">
+          {{ supplierNameMap[detailForm.supplierId] || '未设置' }}
         </el-descriptions-item>
         <el-descriptions-item
           label="使用说明"
@@ -525,7 +536,7 @@ const searchForm = reactive({
   medicineCode: '',
   category: '',
   categoryId: null,
-  status: null
+  supplierId: null
 })
 
 // 药品分类选项
@@ -533,6 +544,8 @@ const categoryOptions = ref([])
 const categoryList = ref([])
 const isAddingCategory = ref(false)
 const newCategory = ref('')
+const supplierOptions = ref([])
+const supplierNameMap = reactive({})
 
 // 新增/编辑表单
 const medicineFormRef = ref(null)
@@ -544,13 +557,13 @@ const medicineForm = reactive({
   medicineCode: '',
   specification: '',
   dosageForm: '',
-  price: 0,
+  purchasePrice: 0,
+  salePrice: 0,
   stock: 0,
-  manufacturer: '',
+  supplierId: null,
   categoryId: '',
   instructions: '',
-  status: 1,
- 
+
 })
 
 // 详情对话框
@@ -561,14 +574,14 @@ const detailForm = reactive({
   medicineCode: '',
   specification: '',
   dosageForm: '',
-  price: 0,
+  purchasePrice: 0,
+  salePrice: 0,
   stock: 0,
-  manufacturer: '',
+  supplierId: null,
   categoryId: '',
   category: '',
   instructions: '',
-  status: 1,
- 
+
   createTime: '',
   updateTime: ''
 })
@@ -580,8 +593,9 @@ const stockChange = ref(0)
 const medicineFormRules = {
   medicineName: [{ required: true, message: '请输入药品名称', trigger: 'blur' }],
   medicineCode: [{ required: true, message: '请输入药品编码', trigger: 'blur' }],
-  price: [{ required: true, message: '请输入单价', trigger: 'blur' }],
-  status: [{ required: true, message: '请选择状态', trigger: 'change' }]
+  purchasePrice: [{ required: true, message: '请输入进货价', trigger: 'blur' }],
+  salePrice: [{ required: true, message: '请输入售价', trigger: 'blur' }],
+  supplierId: [{ required: true, message: '请选择供应商', trigger: 'change' }]
 }
 
 // 监听分类选择
@@ -600,6 +614,7 @@ watch(() => medicineForm.categoryId, (val) => {
 onMounted(() => {
   fetchMedicines()
   fetchCategories()
+  fetchSuppliers()
 })
 
 // 获取药品列表
@@ -611,7 +626,7 @@ const fetchMedicines = async () => {
       medicineCode: searchForm.medicineCode,
       category: searchForm.category,
       categoryId: searchForm.categoryId,
-      status: searchForm.status,
+      supplierId: searchForm.supplierId,
       currentPage: currentPage.value,
       size: pageSize.value
     }, {
@@ -649,6 +664,27 @@ const fetchCategories = async () => {
   }
 }
 
+const fetchSuppliers = async () => {
+  try {
+    await request.get('/supplier/page', {
+      currentPage: 1,
+      size: 999
+    }, {
+      showDefaultMsg: false,
+      onSuccess: (res) => {
+        const records = res.records || []
+        supplierOptions.value = records
+        Object.keys(supplierNameMap).forEach((key) => delete supplierNameMap[key])
+        records.forEach((item) => {
+          supplierNameMap[item.id] = item.name
+        })
+      }
+    })
+  } catch (error) {
+    console.error('获取供应商列表失败:', error)
+  }
+}
+
 // 搜索
 const handleSearch = () => {
   currentPage.value = 1
@@ -658,9 +694,7 @@ const handleSearch = () => {
 // 重置搜索
 const resetSearch = () => {
   Object.keys(searchForm).forEach(key => {
-    if (key === 'status') {
-      searchForm[key] = null
-    } else if (key === 'categoryId') {
+    if (key === 'categoryId' || key === 'supplierId') {
       searchForm[key] = null
     } else {
       searchForm[key] = ''
@@ -777,12 +811,10 @@ const resetForm = () => {
     medicineFormRef.value.resetFields()
   }
   Object.keys(medicineForm).forEach(key => {
-    if (key === 'price' || key === 'stock') {
+    if (key === 'purchasePrice' || key === 'salePrice' || key === 'stock') {
       medicineForm[key] = 0
-    } else if (key === 'status') {
-      medicineForm[key] = 1
     } else {
-      medicineForm[key] = key === 'id' ? null : ''
+      medicineForm[key] = (key === 'id' || key === 'supplierId') ? null : ''
     }
   })
   medicineForm.category = ''

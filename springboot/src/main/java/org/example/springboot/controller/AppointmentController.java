@@ -52,6 +52,14 @@ public class AppointmentController {
         appointmentService.completeAppointment(id);
         return Result.success();
     }
+
+    @Operation(summary = "门诊完成")
+    @PutMapping("/finish/{id}")
+    public Result<?> finishAppointment(@PathVariable Long id) {
+        LOGGER.info("门诊完成: id={}", id);
+        appointmentService.finishAppointment(id);
+        return Result.success();
+    }
     
     @Operation(summary = "获取预约详情")
     @GetMapping("/{id}")

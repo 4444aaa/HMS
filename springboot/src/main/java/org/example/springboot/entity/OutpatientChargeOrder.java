@@ -9,6 +9,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -31,4 +32,7 @@ public class OutpatientChargeOrder {
     private Patient patient;
     @TableField(exist = false)
     private List<OutpatientChargeDetail> details;
+    /** 本缴费单合并的处方单 ID（去重、升序），便于列表与详情展示 */
+    @TableField(exist = false)
+    private List<Long> prescriptionIds = new ArrayList<>();
 }

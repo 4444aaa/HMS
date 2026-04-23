@@ -1,12 +1,5 @@
 <template>
   <div class="my-appointments-page">
-    <div class="welcome-banner">
-      <div class="banner-content">
-        <h2>我的预约记录</h2>
-        <p>在这里查看您的所有预约情况，我们随时为您提供贴心服务</p>
-      </div>
-    </div>
-
     <el-card
       class="appointments-card"
       shadow="hover"
@@ -32,6 +25,9 @@
           </el-radio-button>
           <el-radio-button :label="2">
             已就诊
+          </el-radio-button>
+          <el-radio-button :label="3">
+            已完成就诊
           </el-radio-button>
           <el-radio-button :label="0">
             已取消
@@ -146,23 +142,6 @@
       </div>
     </el-card>
 
-    <!-- 预约提示卡片 -->
-    <el-card
-      class="health-tips-card"
-      shadow="hover"
-    >
-      <div class="tips-header">
-        <el-icon><InfoFilled /></el-icon>
-        <h4>就诊小贴士</h4>
-      </div>
-      <ul class="tips-list">
-        <li>请在预约时间前15分钟到达医院，做好就诊准备</li>
-        <li>如需取消预约，请提前24小时操作，以便其他患者使用</li>
-        <li>就诊时请携带有效证件和医保卡，方便医生查询您的病史</li>
-        <li>如有疑问，可拨打咨询电话：0123-4567890</li>
-      </ul>
-    </el-card>
-
     <!-- 预约详情对话框 -->
     <el-dialog
       v-model="detailDialogVisible"
@@ -243,14 +222,6 @@
       
       <div
         v-if="currentAppointment.status === 1"
-        class="notice-box"
-      >
-        <el-icon><Warning /></el-icon>
-        <p>如需取消预约，请提前24小时操作，谢谢配合。</p>
-      </div>
-      
-      <div
-        v-if="currentAppointment.status === 1"
         class="dialog-footer"
       >
         <el-button
@@ -286,9 +257,7 @@ import {
   Timer, 
   Medal, 
   ChatLineRound, 
-  InfoFilled, 
   Document, 
-  Warning, 
   Close, 
   View, 
   Plus 
@@ -400,6 +369,8 @@ const getStatusText = (status) => {
       return '待就诊'
     case 2:
       return '已就诊'
+    case 3:
+      return '已完成就诊'
     default:
       return '未知状态'
   }
@@ -413,6 +384,8 @@ const getStatusTagType = (status) => {
     case 1:
       return 'warning'
     case 2:
+      return 'success'
+    case 3:
       return 'success'
     default:
       return 'info'
@@ -428,6 +401,8 @@ const getTimelineItemType = (status) => {
       return 'warning'
     case 2:
       return 'success'
+    case 3:
+      return 'success'
     default:
       return 'info'
   }
@@ -442,6 +417,8 @@ const getTimelineItemColor = (status) => {
       return '#E6A23C'
     case 2:
       return '#67C23A'
+    case 3:
+      return '#409EFF'
     default:
       return '#909399'
   }
@@ -478,34 +455,7 @@ const formatDateTime = (dateTimeStr) => {
   min-height: calc(100vh - 160px);
 }
 
-.welcome-banner {
-  background: linear-gradient(to right, #a8d8ea, #c4e3b2);
-  border-radius: 15px;
-  padding: 25px 40px;
-  margin-bottom: 25px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.banner-content {
-  max-width: 800px;
-  text-align: center;
-  margin: 0 auto;
-}
-
-.banner-content h2 {
-  color: #3a5463;
-  margin: 0 0 10px 0;
-  font-size: 28px;
-  font-weight: 600;
-}
-
-.banner-content p {
-  color: #5c7b8a;
-  margin: 0;
-  font-size: 16px;
-}
-
-.appointments-card, .health-tips-card {
+.appointments-card {
   border-radius: 15px;
   margin-bottom: 20px;
   border: none;
@@ -656,53 +606,6 @@ const formatDateTime = (dateTimeStr) => {
   border-top: 1px solid #f0eada;
 }
 
-.health-tips-card {
-  padding: 15px 20px;
-}
-
-.tips-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 15px;
-}
-
-.tips-header .el-icon {
-  color: #fbc687;
-  font-size: 20px;
-  margin-right: 10px;
-}
-
-.tips-header h4 {
-  margin: 0;
-  color: #3a5463;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.tips-list {
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
-}
-
-.tips-list li {
-  position: relative;
-  padding-left: 20px;
-  margin-bottom: 10px;
-  color: #5c7b8a;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.tips-list li::before {
-  content: "•";
-  color: #a8d8ea;
-  font-size: 20px;
-  position: absolute;
-  left: 0;
-  top: -2px;
-}
-
 .detail-dialog {
   border-radius: 15px;
 }
@@ -744,29 +647,6 @@ const formatDateTime = (dateTimeStr) => {
   color: #5c7b8a;
 }
 
-.notice-box {
-  display: flex;
-  align-items: flex-start;
-  background-color: #fff8e6;
-  padding: 12px 15px;
-  border-radius: 10px;
-  margin: 20px 0;
-}
-
-.notice-box .el-icon {
-  color: #fbc687;
-  font-size: 18px;
-  margin-right: 10px;
-  margin-top: 2px;
-}
-
-.notice-box p {
-  margin: 0;
-  color: #927d5e;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
 .dialog-footer {
   display: flex;
   justify-content: center;
@@ -776,14 +656,6 @@ const formatDateTime = (dateTimeStr) => {
 
 /* 响应式调整 */
 @media (max-width: 768px) {
-  .welcome-banner {
-    padding: 20px;
-  }
-  
-  .banner-content h2 {
-    font-size: 22px;
-  }
-  
   .filter-container {
     flex-direction: column;
     align-items: flex-start;

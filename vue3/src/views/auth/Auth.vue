@@ -11,25 +11,7 @@
     </div>
     
     <div class="auth-box">
-      <div
-        v-if="showHeader"
-        class="auth-header"
-      >
-        <div class="logo">
-          <el-icon
-            size="42"
-            color="#68a86d"
-          >
-            <FirstAidKit />
-          </el-icon>
-        </div>
-        <h1 class="title">
-          医疗
-        </h1>
-        <div class="subtitle">
-          专业服务 · 悉心照料
-        </div>
-      </div>
+      <div v-if="showHeader" />
       
       <el-form
         ref="formRef"
@@ -55,17 +37,12 @@
         </div>
       </el-form>
       
-      <div class="caring-message">
-        <el-icon><InfoFilled /></el-icon>
-        <span>您的健康是我们最大的牵挂，专业医护团队随时为您服务</span>
-      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
-import { FirstAidKit, InfoFilled } from '@element-plus/icons-vue'
 
 const props = defineProps({
   formData: {
@@ -248,57 +225,6 @@ defineExpose({
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.auth-header {
-  text-align: center;
-  margin-bottom: 30px;
-  
-  .logo {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 16px;
-    position: relative;
-    
-    &::after {
-      content: '';
-      position: absolute;
-      width: 70px;
-      height: 70px;
-      background: rgba(104, 168, 109, 0.1);
-      border-radius: 50%;
-      z-index: -1;
-    }
-  }
-  
-  .title {
-    font-size: 28px;
-    color: #455a64;
-    margin: 0 0 8px;
-    font-weight: 600;
-    background: linear-gradient(to right, #3a5463, #68a86d);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    position: relative;
-    
-    &::after {
-      content: '';
-      position: absolute;
-      width: 40px;
-      height: 3px;
-      background: linear-gradient(to right, #3a5463, #68a86d);
-      bottom: -4px;
-      left: 50%;
-      transform: translateX(-50%);
-      border-radius: 2px;
-    }
-  }
-  
-  .subtitle {
-    font-size: 16px;
-    color: #78909c;
-    letter-spacing: 1px;
-  }
-}
-
 .auth-form {
   margin-bottom: 20px;
   
@@ -419,41 +345,6 @@ defineExpose({
         width: 100%;
       }
     }
-  }
-}
-
-.caring-message {
-  display: flex;
-  align-items: center;
-  background-color: rgba(240, 245, 233, 0.7);
-  padding: 12px 15px;
-  border-radius: 12px;
-  margin-top: 25px;
-  border-left: 4px solid #68a86d;
-  position: relative;
-  overflow: hidden;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle at top right, rgba(104, 168, 109, 0.1), transparent 70%);
-    z-index: -1;
-  }
-  
-  .el-icon {
-    color: #68a86d;
-    margin-right: 10px;
-    font-size: 18px;
-  }
-  
-  span {
-    color: #546e7a;
-    font-size: 14px;
-    line-height: 1.5;
   }
 }
 

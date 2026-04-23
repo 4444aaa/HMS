@@ -39,7 +39,7 @@ public class Appointment {
     @Schema(description = "症状描述")
     private String symptoms;
     
-    @Schema(description = "状态(0:取消,1:待就诊,2:已就诊)")
+    @Schema(description = "状态(0:取消,1:待就诊,2:已就诊,3:已完成就诊)")
     private Integer status;
     
     @Schema(description = "创建时间")

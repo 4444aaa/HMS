@@ -42,9 +42,6 @@ public class MedicalRecordService {
     private AppointmentMapper appointmentMapper;
     
     @Resource
-    private AppointmentService appointmentService;
-    
-    @Resource
     private PrescriptionMapper prescriptionMapper;
     
     @Resource
@@ -75,10 +72,14 @@ public class MedicalRecordService {
             if (appointment == null) {
                 throw new ServiceException("预约不存在");
             }
-            
-            // 更新预约状态为已就诊
-            if (appointment.getStatus() == 1) {
-                appointmentService.completeAppointment(appointment.getId());
+            if (appointment.getStatus() == null || appointment.getStatus() != 2) {
+                throw new ServiceException("请先在门诊管理中确认就诊，再创建病历");
+            }
+            if (!appointment.getPatientId().equals(medicalRecord.getPatientId())) {
+                throw new ServiceException("病历患者与关联预约患者不一致");
+            }
+            if (!appointment.getDoctorId().equals(medicalRecord.getDoctorId())) {
+                throw new ServiceException("病历医生与关联预约医生不一致");
             }
         }
         
@@ -175,14 +176,14 @@ public class MedicalRecordService {
      * 分页查询就诊记录
      */
     public Page<MedicalRecord> getMedicalRecordsByPage(Long patientId, Long doctorId, String patientName, String doctorName,
-                                                LocalDate startDate, LocalDate endDate, Integer currentPage, Integer size) {
+                                                LocalDate startDate, LocalDate endDate, Integer status, Integer currentPage, Integer size) {
         Page<MedicalRecord> page = new Page<>(currentPage, size);
         
         // 如果有患者姓名或医生姓名查询条件，需要进行关联查询
         if (StringUtils.isNotBlank(patientName) || StringUtils.isNotBlank(doctorName)) {
             // 使用自定义SQL查询
             Page<MedicalRecord> resultPage = medicalRecordMapper.selectMedicalRecordsByNamePage(
-                page, patientId, doctorId, patientName, doctorName, startDate, endDate);
+                page, patientId, doctorId, patientName, doctorName, startDate, endDate, status);
             
             // 填充关联信息
             fillMedicalRecordsInfo(resultPage.getRecords());
@@ -204,6 +205,9 @@ public class MedicalRecordService {
         }
         if (endDate != null) {
             queryWrapper.le(MedicalRecord::getRecordDate, endDate);
+        }
+        if (status != null) {
+            queryWrapper.eq(MedicalRecord::getStatus, status);
         }
         
         // 按就诊日期降序排序
@@ -229,6 +233,8 @@ public class MedicalRecordService {
         
         // 查询关联信息
         for (MedicalRecord record : records) {
+            Patient patient = patientMapper.selectById(record.getPatientId());
+            record.setPatient(patient);
             // 查询医生信息
             Doctor doctor = doctorMapper.selectById(record.getDoctorId());
             if (doctor != null) {
@@ -238,6 +244,10 @@ public class MedicalRecordService {
                     doctor.setDepartment(department);
                 }
             record.setDoctor(doctor);
+            }
+            if (record.getAppointmentId() != null) {
+                Appointment appointment = appointmentMapper.selectById(record.getAppointmentId());
+                record.setAppointment(appointment);
             }
         }
         
@@ -359,6 +369,10 @@ public class MedicalRecordService {
                     doctor.setDepartment(department);
                 }
                 record.setDoctor(doctor);
+            }
+            if (record.getAppointmentId() != null) {
+                Appointment appointment = appointmentMapper.selectById(record.getAppointmentId());
+                record.setAppointment(appointment);
             }
         }
     }

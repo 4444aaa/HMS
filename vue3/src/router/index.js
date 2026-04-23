@@ -46,18 +46,6 @@ export const backendRoutes = [
         meta: { title: '药品管理', icon: 'FirstAidKit' }
       },
       {
-        path: 'medicine-category',
-        name: 'MedicineCategoryManagement',
-        component: () => import('@/views/backend/medicine-category/index.vue'),
-        meta: { title: '药品分类管理', icon: 'Menu' }
-      },
-      {
-        path: 'schedule',
-        name: 'ScheduleManagement',
-        component: () => import('@/views/backend/schedule/index.vue'),
-        meta: { title: '排班管理', icon: 'Calendar' }
-      },
-      {
         path: 'appointment',
         name: 'AppointmentManagement',
         component: () => import('@/views/backend/appointment/index.vue'),
@@ -106,10 +94,16 @@ export const backendRoutes = [
         meta: { title: '入库单', icon: 'Box' }
       },
       {
-        path: 'finance',
-        name: 'FinanceManagement',
-        component: () => import('@/views/backend/finance/index.vue'),
-        meta: { title: '财务管理', icon: 'Money' }
+        path: 'finance/outpatient-charge',
+        name: 'FinanceOutpatientCharge',
+        component: () => import('@/views/backend/finance/OutpatientChargeFinance.vue'),
+        meta: { title: '门诊缴费', icon: 'Money' }
+      },
+      {
+        path: 'finance/purchase-settlement',
+        name: 'FinancePurchaseSettlement',
+        component: () => import('@/views/backend/finance/PurchaseSettlementFinance.vue'),
+        meta: { title: '采购结算', icon: 'Money' }
       },
       {
         path: 'profile',
@@ -158,10 +152,16 @@ const frontendRoutes = [
         meta: { title: '我的预约', requiresAuth: true }
       },
       {
+        path: 'outpatient-charge',
+        name: 'OutpatientCharge',
+        component: () => import('@/views/frontend/outpatient-charge/index.vue'),
+        meta: { title: '就诊缴费', requiresAuth: true }
+      },
+      {
         path: 'medical-record',
         name: 'MedicalRecord',
         component: () => import('@/views/frontend/medical-record/index.vue'),
-        meta: { title: '我的就诊记录', requiresAuth: true }
+        meta: { title: '病历处方', requiresAuth: true }
       },
       {
         path: 'profile',
@@ -221,7 +221,6 @@ const roleBackendAccessMap = {
     '/back/dashboard',
     '/back/profile',
     '/back/medicine',
-    '/back/medicine-category',
     '/back/prescription-pickup',
     '/back/purchase-plan',
     '/back/purchase-order',
@@ -235,13 +234,13 @@ const roleBackendAccessMap = {
     '/back/appointment',
     '/back/medical-record',
     '/back/prescription',
-    '/back/medicine',
-    '/back/medicine-category'
+    '/back/medicine'
   ],
   CASHIER: [
     '/back/dashboard',
     '/back/profile',
-    '/back/finance'
+    '/back/finance/outpatient-charge',
+    '/back/finance/purchase-settlement'
   ]
 }
 

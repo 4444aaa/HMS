@@ -7,13 +7,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.example.springboot.entity.Appointment;
 import org.example.springboot.entity.Doctor;
 import org.example.springboot.entity.Patient;
-import org.example.springboot.entity.Schedule;
 import org.example.springboot.entity.Department;
 import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.AppointmentMapper;
 import org.example.springboot.mapper.DoctorMapper;
 import org.example.springboot.mapper.PatientMapper;
-import org.example.springboot.mapper.ScheduleMapper;
 import org.example.springboot.mapper.DepartmentMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,13 +33,7 @@ public class AppointmentService {
     private DoctorMapper doctorMapper;
     
     @Resource
-    private ScheduleMapper scheduleMapper;
-    
-    @Resource
     private DepartmentMapper departmentMapper;
-    
-    @Resource
-    private ScheduleService scheduleService;
     
     /**
      * 创建预约
@@ -60,27 +52,24 @@ public class AppointmentService {
             throw new ServiceException("医生不存在");
         }
         
-        // 检查排班是否存在
-        Schedule schedule = scheduleMapper.selectById(appointment.getScheduleId());
-        if (schedule == null) {
-            throw new ServiceException("排班不存在");
+        if (appointment.getAppointmentDate() == null) {
+            throw new ServiceException("预约日期不能为空");
         }
-        
-        // 检查排班状态是否正常
-        if (schedule.getStatus() != 1) {
-            throw new ServiceException("该排班已停诊，无法预约");
+        if (appointment.getAppointmentDate().isBefore(LocalDate.now())) {
+            throw new ServiceException("预约日期不能早于今天");
         }
-        
-        // 检查是否有剩余预约名额
-        if (schedule.getCurrentPatients() >= schedule.getMaxPatients()) {
-            throw new ServiceException("该排班已满，无法预约");
+        if (StringUtils.isBlank(appointment.getTimeSlot())) {
+            throw new ServiceException("预约时间段不能为空");
+        }
+        if (!isValidTimeSlot(appointment.getTimeSlot())) {
+            throw new ServiceException("预约时间段不合法，仅支持上午/下午/晚上");
         }
         
         // 检查患者是否已经预约过同一天同一医生的门诊
         LambdaQueryWrapper<Appointment> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Appointment::getPatientId, appointment.getPatientId())
                    .eq(Appointment::getDoctorId, appointment.getDoctorId())
-                   .eq(Appointment::getAppointmentDate, schedule.getScheduleDate())
+                   .eq(Appointment::getAppointmentDate, appointment.getAppointmentDate())
                    .eq(Appointment::getStatus, 1); // 待就诊状态
         
         if (appointmentMapper.selectCount(queryWrapper) > 0) {
@@ -90,9 +79,10 @@ public class AppointmentService {
         // 生成预约编号
         appointment.setAppointmentNo(generateAppointmentNo());
         
-        // 设置预约日期和时间段
-        appointment.setAppointmentDate(schedule.getScheduleDate());
-        appointment.setTimeSlot(schedule.getTimeSlot());
+        // 兼容旧库结构：appointment.schedule_id 仍为非空字段
+        if (appointment.getScheduleId() == null) {
+            appointment.setScheduleId(0L);
+        }
         
         // 设置状态为待就诊
         appointment.setStatus(1);
@@ -106,9 +96,6 @@ public class AppointmentService {
         if (appointmentMapper.insert(appointment) <= 0) {
             throw new ServiceException("预约失败");
         }
-        
-        // 更新排班的当前预约人数
-        scheduleService.updateSchedulePatients(schedule.getId(), 1);
         
         return appointment;
     }
@@ -143,8 +130,6 @@ public class AppointmentService {
             throw new ServiceException("取消预约失败");
         }
         
-        // 更新排班的当前预约人数
-        scheduleService.updateSchedulePatients(appointment.getScheduleId(), -1);
     }
     
     /**
@@ -168,6 +153,31 @@ public class AppointmentService {
         updateAppointment.setStatus(2);
         updateAppointment.setUpdateTime(LocalDateTime.now());
         
+        if (appointmentMapper.updateById(updateAppointment) <= 0) {
+            throw new ServiceException("完成就诊失败");
+        }
+    }
+
+    /**
+     * 门诊完成
+     */
+    @Transactional
+    public void finishAppointment(Long id) {
+        Appointment appointment = appointmentMapper.selectById(id);
+        if (appointment == null) {
+            throw new ServiceException("预约不存在");
+        }
+
+        // 仅允许将已就诊记录标记为已完成就诊
+        if (appointment.getStatus() == null || appointment.getStatus() != 2) {
+            throw new ServiceException("只能完成已就诊的预约");
+        }
+
+        Appointment updateAppointment = new Appointment();
+        updateAppointment.setId(id);
+        updateAppointment.setStatus(3);
+        updateAppointment.setUpdateTime(LocalDateTime.now());
+
         if (appointmentMapper.updateById(updateAppointment) <= 0) {
             throw new ServiceException("完成就诊失败");
         }
@@ -196,10 +206,6 @@ public class AppointmentService {
             }
             appointment.setDoctor(doctor);
         }
-        
-        // 查询排班信息
-        Schedule schedule = scheduleMapper.selectById(appointment.getScheduleId());
-        appointment.setSchedule(schedule);
         
         return appointment;
     }
@@ -289,9 +295,6 @@ public class AppointmentService {
                 appointment.setDoctor(doctor);
             }
             
-            // 查询排班信息
-            Schedule schedule = scheduleMapper.selectById(appointment.getScheduleId());
-            appointment.setSchedule(schedule);
         }
         
         return appointments;
@@ -319,9 +322,6 @@ public class AppointmentService {
             Patient patient = patientMapper.selectById(appointment.getPatientId());
             appointment.setPatient(patient);
             
-            // 查询排班信息
-            Schedule schedule = scheduleMapper.selectById(appointment.getScheduleId());
-            appointment.setSchedule(schedule);
         }
         
         return appointments;
@@ -347,36 +347,39 @@ public class AppointmentService {
             throw new ServiceException("无法修改过期的预约");
         }
         
-        // 如果修改了排班
-        if (appointment.getScheduleId() != null && !appointment.getScheduleId().equals(existingAppointment.getScheduleId())) {
-            // 检查新排班是否存在
-            Schedule newSchedule = scheduleMapper.selectById(appointment.getScheduleId());
-            if (newSchedule == null) {
-                throw new ServiceException("排班不存在");
+        LocalDate targetDate = appointment.getAppointmentDate() == null
+                ? existingAppointment.getAppointmentDate()
+                : appointment.getAppointmentDate();
+        if (targetDate != null && targetDate.isBefore(LocalDate.now())) {
+            throw new ServiceException("预约日期不能早于今天");
+        }
+        String targetTimeSlot = StringUtils.isBlank(appointment.getTimeSlot())
+                ? existingAppointment.getTimeSlot()
+                : appointment.getTimeSlot();
+        if (!isValidTimeSlot(targetTimeSlot)) {
+            throw new ServiceException("预约时间段不合法，仅支持上午/下午/晚上");
+        }
+        Long targetDoctorId = appointment.getDoctorId() == null ? existingAppointment.getDoctorId() : appointment.getDoctorId();
+        if (appointment.getDoctorId() != null && !appointment.getDoctorId().equals(existingAppointment.getDoctorId())) {
+            Doctor doctor = doctorMapper.selectById(appointment.getDoctorId());
+            if (doctor == null) {
+                throw new ServiceException("医生不存在");
             }
-            
-            // 检查新排班状态是否正常
-            if (newSchedule.getStatus() != 1) {
-                throw new ServiceException("该排班已停诊，无法预约");
-            }
-            
-            // 检查新排班是否有剩余预约名额
-            if (newSchedule.getCurrentPatients() >= newSchedule.getMaxPatients()) {
-                throw new ServiceException("该排班已满，无法预约");
-            }
-            
-            // 更新原排班的当前预约人数
-            scheduleService.updateSchedulePatients(existingAppointment.getScheduleId(), -1);
-            
-            // 更新新排班的当前预约人数
-            scheduleService.updateSchedulePatients(appointment.getScheduleId(), 1);
-            
-            // 设置新的预约日期和时间段
-            appointment.setAppointmentDate(newSchedule.getScheduleDate());
-            appointment.setTimeSlot(newSchedule.getTimeSlot());
+        }
+        LambdaQueryWrapper<Appointment> duplicateQw = new LambdaQueryWrapper<>();
+        duplicateQw.eq(Appointment::getPatientId, existingAppointment.getPatientId())
+                .eq(Appointment::getDoctorId, targetDoctorId)
+                .eq(Appointment::getAppointmentDate, targetDate)
+                .eq(Appointment::getStatus, 1)
+                .ne(Appointment::getId, id);
+        if (appointmentMapper.selectCount(duplicateQw) > 0) {
+            throw new ServiceException("您已预约过该医生当天的门诊");
         }
         
         appointment.setId(id);
+        appointment.setScheduleId(existingAppointment.getScheduleId() == null ? 0L : existingAppointment.getScheduleId());
+        appointment.setAppointmentDate(targetDate);
+        appointment.setTimeSlot(targetTimeSlot);
         appointment.setUpdateTime(LocalDateTime.now());
         
         if (appointmentMapper.updateById(appointment) <= 0) {
@@ -418,9 +421,10 @@ public class AppointmentService {
                 appointment.setDoctor(doctor);
             }
             
-            // 查询排班信息
-            Schedule schedule = scheduleMapper.selectById(appointment.getScheduleId());
-            appointment.setSchedule(schedule);
         }
+    }
+
+    private boolean isValidTimeSlot(String timeSlot) {
+        return "上午".equals(timeSlot) || "下午".equals(timeSlot) || "晚上".equals(timeSlot);
     }
 } 

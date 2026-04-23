@@ -19,6 +19,7 @@ import org.example.springboot.util.JwtTokenUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -75,7 +76,7 @@ public class PatientService {
         if (patientMapper.insert(patient) <= 0) {
             throw new ServiceException("患者信息添加失败");
         }
-        
+        fillPatientDerivedFields(patient);
         return patient;
     }
     
@@ -121,7 +122,7 @@ public class PatientService {
             User user = userMapper.selectById(patient.getUserId());
             patient.setUser(user);
         }
-        
+        fillPatientDerivedFields(patient);
         return patient;
     }
     
@@ -141,7 +142,7 @@ public class PatientService {
         // 查询关联的用户信息
         User user = userMapper.selectById(userId);
         patient.setUser(user);
-        
+        fillPatientDerivedFields(patient);
         return patient;
     }
     
@@ -165,7 +166,11 @@ public class PatientService {
         
         // 如果需要按关联用户名查询，使用自定义SQL查询
         if (StringUtils.isNotBlank(username)) {
-            return patientMapper.selectPatientsByUsername(page, name, idCard, phone, username);
+            Page<Patient> result = patientMapper.selectPatientsByUsername(page, name, idCard, phone, username);
+            for (Patient patient : result.getRecords()) {
+                fillPatientDerivedFields(patient);
+            }
+            return result;
         }
         
         // 常规查询条件
@@ -193,6 +198,7 @@ public class PatientService {
                 User user = userMapper.selectById(patient.getUserId());
                 patient.setUser(user);
             }
+            fillPatientDerivedFields(patient);
         }
         
         return patientPage;
@@ -338,10 +344,14 @@ public class PatientService {
      * 获取所有患者列表
      */
     public List<Patient> getAllPatients() {
-        return patientMapper.selectList(
+        List<Patient> patients = patientMapper.selectList(
             new LambdaQueryWrapper<Patient>()
                 .orderByDesc(Patient::getCreateTime)
         );
+        for (Patient patient : patients) {
+            fillPatientDerivedFields(patient);
+        }
+        return patients;
     }
     
     /**
@@ -383,5 +393,17 @@ public class PatientService {
         
         // 创建患者
         return createPatient(patient);
+    }
+
+    private void fillPatientDerivedFields(Patient patient) {
+        if (patient == null) {
+            return;
+        }
+        if (patient.getBirthday() == null) {
+            patient.setAge(null);
+            return;
+        }
+        int age = LocalDate.now().getYear() - patient.getBirthday().getYear();
+        patient.setAge(Math.max(age, 0));
     }
 } 

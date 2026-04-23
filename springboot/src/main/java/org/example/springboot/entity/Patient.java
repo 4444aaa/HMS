@@ -57,4 +57,8 @@ public class Patient {
     @TableField(exist = false)
     @Schema(description = "用户信息")
     private User user;
+
+    @TableField(exist = false)
+    @Schema(description = "年龄(按当前年份-出生年份动态计算)")
+    private Integer age;
 } 

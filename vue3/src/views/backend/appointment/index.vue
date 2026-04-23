@@ -42,8 +42,12 @@
           <el-select
             v-model="searchForm.status"
             placeholder="请选择状态"
-            clearable
+            style="width: 150px"
           >
+            <el-option
+              label="全部"
+              :value="''"
+            />
             <el-option
               label="待就诊"
               :value="1"
@@ -51,6 +55,10 @@
             <el-option
               label="已就诊"
               :value="2"
+            />
+            <el-option
+              label="已完成就诊"
+              :value="3"
             />
             <el-option
               label="已取消"
@@ -145,7 +153,7 @@
         />
         <el-table-column
           label="操作"
-          width="220"
+          width="300"
           fixed="right"
         >
           <template #default="scope">
@@ -165,6 +173,24 @@
                   type="success"
                   size="small"
                   @click="handleComplete(scope.row)"
+                >
+                  确认就诊
+                </el-button>
+                <el-button
+                  v-if="scope.row.status === 2"
+                  class="action-btn"
+                  type="warning"
+                  size="small"
+                  @click="handleCreateMedicalRecord(scope.row)"
+                >
+                  创建病历
+                </el-button>
+                <el-button
+                  v-if="scope.row.status === 2"
+                  class="action-btn"
+                  type="success"
+                  size="small"
+                  @click="handleFinish(scope.row)"
                 >
                   完成就诊
                 </el-button>
@@ -229,8 +255,14 @@
         <el-descriptions-item label="患者信息">
           {{ currentAppointment.patient?.name || '未知' }}，
           {{ currentAppointment.patient?.sex || '未知' }}，
-          {{ currentAppointment.patient?.age || '未知' }}岁，
+          {{ formatPatientAge(currentAppointment.patient) }}，
           {{ currentAppointment.patient?.phone || '未知' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="病史">
+          {{ currentAppointment.patient?.medicalHistory || '无' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="过敏史">
+          {{ currentAppointment.patient?.allergies || '无' }}
         </el-descriptions-item>
         <el-descriptions-item label="科室">
           {{ currentAppointment.doctor?.department?.deptName || '未知科室' }}
@@ -260,7 +292,7 @@
           type="success"
           @click="handleComplete(currentAppointment, true)"
         >
-          完成就诊
+          确认就诊
         </el-button>
         <el-button
           type="danger"
@@ -275,6 +307,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import request from '@/utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -284,12 +317,13 @@ const loading = ref(false)
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
+const router = useRouter()
 
 // 搜索表单
 const searchForm = reactive({
   patientName: '',
   doctorName: '',
-  status: null
+  status: ''
 })
 
 // 日期范围
@@ -310,8 +344,10 @@ const fetchAppointments = async () => {
   try {
     const params = {
       currentPage: currentPage.value,
-      size: pageSize.value,
-      status: searchForm.status
+      size: pageSize.value
+    }
+    if (searchForm.status !== '') {
+      params.status = searchForm.status
     }
 
     // 添加日期范围
@@ -351,7 +387,7 @@ const handleSearch = () => {
 const resetSearch = () => {
   searchForm.patientName = ''
   searchForm.doctorName = ''
-  searchForm.status = null
+  searchForm.status = ''
   dateRange.value = []
   currentPage.value = 1
   fetchAppointments()
@@ -383,6 +419,47 @@ const handleComplete = (appointment, closeDialog = false) => {
             if (closeDialog) {
               detailDialogVisible.value = false
             }
+          }
+        })
+      } catch (error) {
+        console.error('完成就诊失败:', error)
+      }
+    })
+    .catch(() => {})
+}
+
+const handleCreateMedicalRecord = (appointment) => {
+  if (!appointment?.id || !appointment?.patientId) {
+    ElMessage.warning('预约信息不完整，无法创建病历')
+    return
+  }
+  router.push({
+    path: '/back/medical-record',
+    query: {
+      autoAdd: '1',
+      appointmentId: String(appointment.id),
+      patientId: String(appointment.patientId)
+    }
+  })
+}
+
+// 门诊完成
+const handleFinish = (appointment) => {
+  ElMessageBox.confirm(
+    '确定将此预约标记为已完成就诊吗？',
+    '提示',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  )
+    .then(async () => {
+      try {
+        await request.put(`/appointment/finish/${appointment.id}`, {}, {
+          successMsg: '已完成就诊',
+          onSuccess: () => {
+            fetchAppointments()
           }
         })
       } catch (error) {
@@ -430,6 +507,8 @@ const getStatusText = (status) => {
       return '待就诊'
     case 2:
       return '已就诊'
+    case 3:
+      return '已完成就诊'
     default:
       return '未知状态'
   }
@@ -444,9 +523,37 @@ const getStatusTagType = (status) => {
       return 'warning'
     case 2:
       return 'success'
+    case 3:
+      return 'success'
     default:
       return 'info'
   }
+}
+
+const formatPatientAge = (patient) => {
+  if (!patient) return '未知年龄'
+  const currentYear = new Date().getFullYear()
+
+  if (patient.birthday) {
+    const birthday = new Date(patient.birthday)
+    if (!Number.isNaN(birthday.getTime())) {
+      const ageByBirthday = currentYear - birthday.getFullYear()
+      if (ageByBirthday >= 0) {
+        return `${ageByBirthday}岁`
+      }
+    }
+  }
+
+  const idCard = (patient.idCard || '').trim()
+  if (idCard.length >= 14) {
+    const yearStr = idCard.slice(6, 10)
+    const birthYear = Number(yearStr)
+    if (!Number.isNaN(birthYear) && birthYear > 1900 && birthYear <= currentYear) {
+      return `${currentYear - birthYear}岁`
+    }
+  }
+
+  return '未知年龄'
 }
 
 // 分页操作

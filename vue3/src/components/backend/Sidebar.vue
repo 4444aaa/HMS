@@ -92,22 +92,6 @@
           </el-menu-item>
           
           <el-menu-item
-            v-if="canSeeOutpatientMedicine"
-            index="/back/medicine-category"
-          >
-            <el-icon><Menu /></el-icon>
-            <span>药品分类管理</span>
-          </el-menu-item>
-          
-          <el-menu-item
-            v-if="isAdmin"
-            index="/back/schedule"
-          >
-            <el-icon><Calendar /></el-icon>
-            <span>排班管理</span>
-          </el-menu-item>
-          
-          <el-menu-item
             v-if="canSeeOutpatientClinical"
             index="/back/appointment"
           >
@@ -172,15 +156,19 @@
 
         <el-sub-menu
           v-if="canSeeFinance"
-          index="/back/finance"
+          index="finance-submenu"
         >
           <template #title>
             <el-icon><Money /></el-icon>
             <span>财务管理</span>
           </template>
-          <el-menu-item index="/back/finance">
+          <el-menu-item index="/back/finance/outpatient-charge">
+            <el-icon><Wallet /></el-icon>
+            <span>门诊缴费</span>
+          </el-menu-item>
+          <el-menu-item index="/back/finance/purchase-settlement">
             <el-icon><Document /></el-icon>
-            <span>财务单据</span>
+            <span>采购结算</span>
           </el-menu-item>
         </el-sub-menu>
       </el-menu>
@@ -199,16 +187,15 @@ import {
   UserFilled,
   OfficeBuilding,
   FirstAidKit,
-  Calendar,
   Tickets,
   Document,
   List,
   Setting,
-  Menu,
   ShoppingCart,
   Box,
   Money,
-  Goods
+  Goods,
+  Wallet
 } from '@element-plus/icons-vue'
 
 const route = useRoute()

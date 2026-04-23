@@ -9,6 +9,7 @@ import org.example.springboot.exception.ServiceException;
 import org.example.springboot.mapper.*;
 import org.example.springboot.util.DocumentNoHelper;
 import org.example.springboot.util.JwtTokenUtils;
+import org.example.springboot.util.ListQuerySupport;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +42,8 @@ public class StockInOrderService {
     private MedicineService medicineService;
     @Resource
     private PurchaseOrderMapper purchaseOrderMapper;
+    @Resource
+    private ListQuerySupport listQuerySupport;
 
     @Transactional
     public StockInOrder createStockInOrder(StockInOrder stockIn) {
@@ -277,7 +280,14 @@ public class StockInOrderService {
     }
 
     public Page<StockInOrder> getStockInOrdersByPage(String stockInNo, Long acceptanceId, Integer status,
+                                                     String creatorName,
+                                                     LocalDate createDateStart,
+                                                     LocalDate createDateEnd,
                                                      Integer currentPage, Integer size) {
+        List<Long> creatorIds = listQuerySupport.resolveUserIdsByKeyword(creatorName);
+        if (creatorIds != null && creatorIds.isEmpty()) {
+            return new Page<>(currentPage, size, 0);
+        }
         LambdaQueryWrapper<StockInOrder> qw = new LambdaQueryWrapper<>();
         if (StringUtils.isNotBlank(stockInNo)) {
             qw.like(StockInOrder::getStockInNo, stockInNo);
@@ -288,6 +298,10 @@ public class StockInOrderService {
                     .apply("EXISTS (SELECT 1 FROM stock_in_order_item si INNER JOIN purchase_acceptance_item pai ON si.acceptance_item_id = pai.id WHERE si.stock_in_id = stock_in_order.id AND pai.acceptance_id = {0})",
                             acceptanceId));
         }
+        if (creatorIds != null) {
+            qw.in(StockInOrder::getOperatorUserId, creatorIds);
+        }
+        ListQuerySupport.applyCreateTimeDateRange(qw, StockInOrder::getCreateTime, createDateStart, createDateEnd);
         if (status != null) {
             qw.eq(StockInOrder::getStatus, status);
         }

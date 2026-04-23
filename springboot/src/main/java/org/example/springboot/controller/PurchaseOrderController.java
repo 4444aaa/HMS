@@ -9,7 +9,10 @@ import org.example.springboot.entity.PurchaseOrder;
 import org.example.springboot.service.PurchaseOrderService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 @Tag(name = "采购单接口")
 @RestController
@@ -51,11 +54,15 @@ public class PurchaseOrderController {
     @GetMapping("/page")
     public Result<?> page(@RequestParam(required = false) String orderNo,
                           @RequestParam(required = false) Long planId,
-                          @RequestParam(required = false) Long supplierId,
+                          @RequestParam(required = false) String supplierName,
                           @RequestParam(required = false) Integer status,
+                          @RequestParam(required = false) String creatorName,
+                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate createDateStart,
+                          @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate createDateEnd,
                           @RequestParam(defaultValue = "1") Integer currentPage,
                           @RequestParam(defaultValue = "10") Integer size) {
-        Page<PurchaseOrder> page = purchaseOrderService.getOrdersByPage(orderNo, planId, supplierId, status, currentPage, size);
+        Page<PurchaseOrder> page = purchaseOrderService.getOrdersByPage(orderNo, planId, supplierName, status,
+                creatorName, createDateStart, createDateEnd, currentPage, size);
         return Result.success(page);
     }
 

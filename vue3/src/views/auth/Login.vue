@@ -8,8 +8,7 @@
   >
     <template #form-items>
       <div class="welcome-message">
-        <h2>欢迎回来</h2>
-        <p>请登录您的账号，开始健康管理之旅</p>
+        <h2>系统登录</h2>
       </div>
       <el-form-item prop="username">
         <el-input 
@@ -155,12 +154,6 @@ const handleLogin = () => {
     color: #455a64;
     margin: 0 0 8px;
     font-weight: 600;
-  }
-  
-  p {
-    font-size: 14px;
-    color: #78909c;
-    margin: 0;
   }
 }
 

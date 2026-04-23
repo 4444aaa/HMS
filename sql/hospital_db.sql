@@ -43,10 +43,7 @@ CREATE TABLE `appointment`  (
 -- ----------------------------
 -- Records of appointment
 -- ----------------------------
-INSERT INTO `appointment` VALUES (1, 1, 1, 1, 'A001', '2026-04-09', '上午', '头痛、发热三天', 2, '2026-04-09 10:00:00', '2026-04-09 10:00:00');
-INSERT INTO `appointment` VALUES (2, 2, 2, 3, 'A002', '2026-04-09', '上午', '腹部疼痛两天', 1, '2026-04-09 10:00:00', '2026-04-09 10:00:00');
-INSERT INTO `appointment` VALUES (5, 3, 9, 19, 'A20250607130564', '2026-04-09', '上午', '咳嗽', 2, '2026-04-09 10:00:00', '2026-04-09 10:00:00');
-INSERT INTO `appointment` VALUES (6, 2, 12, 25, 'A20250607052564', '2026-04-09', '上午', '1111', 1, '2026-04-09 10:00:00', '2026-04-09 10:00:00');
+-- 按需求清空预约数据，初始化不插入门诊预约表单
 
 -- ----------------------------
 -- Table structure for department
@@ -335,9 +332,8 @@ CREATE TABLE `patient`  (
 -- ----------------------------
 -- Records of patient
 -- ----------------------------
-INSERT INTO `patient` VALUES (1, 5, 'P001', '赵患者', '110101199001011234', '1990-01-01', '男', '13844444444', '北京市朝阳区xxx街道', '无重大病史', '青霉素过敏', '2025-05-14 10:30:00', '2025-05-14 10:30:00');
-INSERT INTO `patient` VALUES (2, 6, 'P002', '钱患者', '110101199202022345', '1992-02-02', '女', '13855555555', '北京市海淀区xxx街道', '曾做过阑尾切除手术', '无', '2025-05-14 10:31:00', '2025-05-14 10:31:00');
-INSERT INTO `patient` VALUES (3, 57, 'PF14FE559', 'test', '320821200106063939', '2001-06-06', '女', '13456789987', 'test', 'test', 'test', '2025-06-07 15:26:47', '2025-06-07 15:48:21');
+INSERT INTO `patient` VALUES (1, 5, 'P001', '赵一', '110101199001011234', '1990-01-01', '男', '13844444444', '北京市朝阳区xxx街道', '无重大病史', '青霉素过敏', '2025-05-14 10:30:00', '2025-05-14 10:30:00');
+INSERT INTO `patient` VALUES (2, 6, 'P002', '钱二', '110101199202022345', '1992-02-02', '女', '13855555555', '北京市海淀区xxx街道', '曾做过阑尾切除手术', '无', '2025-05-14 10:31:00', '2025-05-14 10:31:00');
 
 -- ----------------------------
 -- Table structure for medical_record_detail
@@ -557,8 +553,7 @@ INSERT INTO `user` VALUES (53, 'doctor49', '$2a$10$iul6jocLsH.A4gN1QUpgDexDq6KO8
 INSERT INTO `user` VALUES (54, 'doctor50', '$2a$10$iul6jocLsH.A4gN1QUpgDexDq6KO89syHjUkRD3NbA1L6CTVrNRMO', '韦医生', '/img/1751198696770.jpeg', '女', '13900000044', 'doctor50@hospital.com', 'DOCTOR', 1, '2025-05-14 10:53:00', '2025-06-29 20:17:32');
 INSERT INTO `user` VALUES (55, 'doctor51', '$2a$10$iul6jocLsH.A4gN1QUpgDexDq6KO89syHjUkRD3NbA1L6CTVrNRMO', '昌医生', '/img/1751198696770.jpeg', '男', '13900000045', 'doctor51@hospital.com', 'DOCTOR', 1, '2025-05-14 10:54:00', '2025-06-29 20:17:40');
 INSERT INTO `user` VALUES (56, 'doctor52', '$2a$10$iul6jocLsH.A4gN1QUpgDexDq6KO89syHjUkRD3NbA1L6CTVrNRMO', '马医生', '/img/1751198696770.jpeg', '女', '13900000046', 'doctor52@hospital.com', 'DOCTOR', 1, '2025-05-14 10:55:00', '2025-06-29 20:17:40');
-INSERT INTO `user` VALUES (57, 'test', '$2a$10$Qkntw.nhOA2DMPujX8SF0.DcnCr7V7ijtQEXKzmOvifhlyUevyMkm', 'test', '/img/1751198696770.jpeg', '女', '13456789987', '11111@qq.com', 'PATIENT', 1, '2025-06-07 15:26:46', '2025-06-29 20:17:40');
-INSERT INTO `user` VALUES (58, 'pharmacy_admin', '$2a$10$krj3WlCs/S0WGfv3E8Q2meqfC0sS8p.B7oF7E3A7ZDXMbjH9z2biS', '药房管理员', '/img/default_avatar.png', '男', '13800009999', 'pharmacy_admin@demo.com', 'PHARMACY_MANAGER', 1, '2026-04-07 14:45:58', '2026-04-07 14:45:58');
+INSERT INTO `user` VALUES (58, 'pharmacy', '$2a$10$iul6jocLsH.A4gN1QUpgDexDq6KO89syHjUkRD3NbA1L6CTVrNRMO', '药房管理员', '/img/default_avatar.png', '男', '13800009999', 'pharmacy@demo.com', 'PHARMACY_MANAGER', 1, '2026-04-07 14:45:58', '2026-04-07 14:45:58');
 
 -- ----------------------------
 -- Table structure for supplier
@@ -604,6 +599,18 @@ UPDATE `medicine` SET `supplier_id` = 1 WHERE `supplier_id` IS NULL;
 -- 强制非空 + 外键约束
 ALTER TABLE `medicine` MODIFY COLUMN `supplier_id` bigint(20) NOT NULL COMMENT '供应商ID';
 ALTER TABLE `medicine` ADD CONSTRAINT `fk_medicine_supplier` FOREIGN KEY (`supplier_id`) REFERENCES `supplier` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+-- medicine 价格改造：拆分进货价与售价（兼容历史 price）
+ALTER TABLE `medicine` ADD COLUMN `purchase_price` decimal(10, 2) NULL DEFAULT NULL COMMENT '进货价' AFTER `price`;
+ALTER TABLE `medicine` ADD COLUMN `sale_price` decimal(10, 2) NULL DEFAULT NULL COMMENT '售价' AFTER `purchase_price`;
+UPDATE `medicine` SET `purchase_price` = `price` WHERE `purchase_price` IS NULL;
+UPDATE `medicine` SET `sale_price` = `price` WHERE `sale_price` IS NULL;
+-- 售价统一高于进货价：按药品ID分配 +5~+10 元
+UPDATE `medicine`
+SET `sale_price` = ROUND(COALESCE(`purchase_price`, 0) + (5 + MOD(`id`, 6)), 2);
+-- 药品主数据移除生产厂家与状态字段
+ALTER TABLE `medicine` DROP COLUMN `manufacturer`;
+ALTER TABLE `medicine` DROP COLUMN `status`;
 
 -- ----------------------------
 -- Table structure for supplier_medicine
@@ -925,6 +932,79 @@ CREATE TABLE `purchase_settlement_detail` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='采购结算明细';
 
 -- 添加收费员示例账户
-INSERT INTO `user` VALUES (59, 'cashier1', '$2a$10$krj3WlCs/S0WGfv3E8Q2meqfC0sS8p.B7oF7E3A7ZDXMbjH9z2biS', '收费员', '/img/default_avatar.png', '女', '13800008888', 'cashier1@demo.com', 'CASHIER', 1, '2026-04-08 12:00:00', '2026-04-08 12:00:00');
+INSERT INTO `user` VALUES (59, 'cashier1', '$2a$10$iul6jocLsH.A4gN1QUpgDexDq6KO89syHjUkRD3NbA1L6CTVrNRMO', '收费员', '/img/default_avatar.png', '女', '13800008888', 'cashier1@demo.com', 'CASHIER', 1, '2026-04-08 12:00:00', '2026-04-08 12:00:00');
+
+-- ----------------------------
+-- Migration: prescription status tri-state
+-- 原：0 未取药 / 1 已取药
+-- 新：0 待提交 / 1 待取药 / 2 已取药
+-- ----------------------------
+UPDATE `prescription` SET `status` = 2 WHERE `status` = 1;
+UPDATE `prescription` SET `status` = 1 WHERE `status` = 0;
+
+
+UPDATE `medicine`
+SET `supplier_id` = FLOOR((`id` - 1) / 5) + 1
+WHERE `id` BETWEEN 1 AND 54;
+
+UPDATE `medicine` SET `supplier_id` = 1 WHERE `supplier_id` IS NULL OR `supplier_id` < 1 OR `supplier_id` > 11;
+
+UPDATE `purchase_order` po
+LEFT JOIN (
+    SELECT poi.`order_id`, FLOOR((MIN(m.`id`) - 1) / 5) + 1 AS `nsid`
+    FROM `purchase_order_item` poi
+    INNER JOIN `medicine` m ON m.`id` = poi.`medicine_id`
+    GROUP BY poi.`order_id`
+) x ON x.`order_id` = po.`id`
+SET po.`supplier_id` = COALESCE(x.`nsid`, 1);
+
+UPDATE `purchase_settlement_detail` psd
+INNER JOIN `medicine` m ON m.`id` = psd.`medicine_id`
+SET psd.`supplier_id` = m.`supplier_id`;
+
+UPDATE `purchase_settlement_order` pso
+LEFT JOIN (
+    SELECT `settlement_order_id`, MIN(`supplier_id`) AS `sid`
+    FROM `purchase_settlement_detail`
+    WHERE `settlement_order_id` IS NOT NULL
+    GROUP BY `settlement_order_id`
+) t ON t.`settlement_order_id` = pso.`id`
+SET pso.`supplier_id` = COALESCE(t.`sid`, 1);
+
+DELETE FROM `supplier_medicine`;
+INSERT INTO `supplier_medicine` (`supplier_id`, `medicine_id`, `create_time`)
+SELECT FLOOR((m.`id` - 1) / 5) + 1, m.`id`, NOW()
+FROM `medicine` m
+WHERE m.`id` BETWEEN 1 AND 54;
+
+UPDATE `supplier` SET `supplier_code` = 'SUP-001', `name` = '华东康达医药有限公司', `contact_name` = '周文轩', `contact_phone` = '13810001001', `address` = '浙江省杭州市滨江区江南大道3688号康达大厦7层', `email` = 'zhou@kangda-east.demo.com', `status` = 1 WHERE `id` = 1;
+UPDATE `supplier` SET `supplier_code` = 'SUP-002', `name` = '北方九州药品经销', `contact_name` = '韩沐阳', `contact_phone` = '13810001002', `address` = '天津市滨海新区黄海路156号九州物流园B2', `email` = 'han@jz-north.demo.com', `status` = 1 WHERE `id` = 2;
+UPDATE `supplier` SET `supplier_code` = 'SUP-003', `name` = '岭南本草供应链', `contact_name` = '林若溪', `contact_phone` = '13810001003', `address` = '广东省佛山市顺德区乐从镇医药大道22号', `email` = 'lin@lingnan-bc.demo.com', `status` = 1 WHERE `id` = 3;
+UPDATE `supplier` SET `supplier_code` = 'SUP-004', `name` = '川渝惠民药业配送', `contact_name` = '唐思远', `contact_phone` = '13810001004', `address` = '重庆市渝北区金开大道990号惠民仓储中心', `email` = 'tang@cy-huimin.demo.com', `status` = 1 WHERE `id` = 4;
+UPDATE `supplier` SET `supplier_code` = 'SUP-005', `name` = '江汉明泽医药贸易', `contact_name` = '彭雨晴', `contact_phone` = '13810001005', `address` = '湖北省武汉市江夏区光谷大道1888号明泽园', `email` = 'peng@mingze-jh.demo.com', `status` = 1 WHERE `id` = 5;
+UPDATE `supplier` SET `supplier_code` = 'SUP-006', `name` = '齐鲁明德制药渠道', `contact_name` = '孙宇航', `contact_phone` = '13810001006', `address` = '山东省济南市高新区舜华路2006号明德广场', `email` = 'sun@mingde-ql.demo.com', `status` = 1 WHERE `id` = 6;
+UPDATE `supplier` SET `supplier_code` = 'SUP-007', `name` = '闽台海峡健康商贸', `contact_name` = '蔡佳宁', `contact_phone` = '13810001007', `address` = '福建省厦门市湖里区港中路518号海峡医药港', `email` = 'cai@strait-mn.demo.com', `status` = 1 WHERE `id` = 7;
+UPDATE `supplier` SET `supplier_code` = 'SUP-008', `name` = '云滇绿野药材集散', `contact_name` = '段清扬', `contact_phone` = '13810001008', `address` = '云南省昆明市官渡区珥季路333号绿野园区3栋', `email` = 'duan@luye-yn.demo.com', `status` = 1 WHERE `id` = 8;
+UPDATE `supplier` SET `supplier_code` = 'SUP-009', `name` = '关中秦川医疗供应', `contact_name` = '冯子墨', `contact_phone` = '13810001009', `address` = '陕西省西安市未央区尚稷路899号秦川产业园', `email` = 'feng@qin-chuan.demo.com', `status` = 1 WHERE `id` = 9;
+UPDATE `supplier` SET `supplier_code` = 'SUP-010', `name` = '辽东瑞丰冷链物流药业', `contact_name` = '高景行', `contact_phone` = '13810001010', `address` = '辽宁省沈阳市铁西区建设大路77号瑞丰冷库4区', `email` = 'gao@ruifeng-ld.demo.com', `status` = 1 WHERE `id` = 10;
+UPDATE `supplier` SET `supplier_code` = 'SUP-011', `name` = '琼海蓝天医药服务', `contact_name` = '符安然', `contact_phone` = '13810001011', `address` = '海南省海口市秀英区长滨路66号蓝天医药园', `email` = 'fu@lantian-qh.demo.com', `status` = 1 WHERE `id` = 11;
+
+DELETE FROM `supplier` WHERE `id` > 11;
+ALTER TABLE `supplier` AUTO_INCREMENT = 12;
+
+DELETE FROM `outpatient_charge_detail`
+WHERE `patient_id` IN (SELECT `id` FROM `patient` WHERE `name` = 'test' OR `patient_no` = 'PF14FE559');
+DELETE FROM `outpatient_charge_order`
+WHERE `patient_id` IN (SELECT `id` FROM `patient` WHERE `name` = 'test' OR `patient_no` = 'PF14FE559');
+DELETE FROM `prescription`
+WHERE `patient_id` IN (SELECT `id` FROM `patient` WHERE `name` = 'test' OR `patient_no` = 'PF14FE559');
+DELETE FROM `medical_record`
+WHERE `patient_id` IN (SELECT `id` FROM `patient` WHERE `name` = 'test' OR `patient_no` = 'PF14FE559');
+DELETE FROM `appointment`
+WHERE `patient_id` IN (SELECT `id` FROM `patient` WHERE `name` = 'test' OR `patient_no` = 'PF14FE559');
+DELETE FROM `patient`
+WHERE `name` = 'test' OR `patient_no` = 'PF14FE559';
+DELETE FROM `user`
+WHERE `username` = 'test' OR (`role_code` = 'PATIENT' AND `name` = 'test');
 
 SET FOREIGN_KEY_CHECKS = 1;
