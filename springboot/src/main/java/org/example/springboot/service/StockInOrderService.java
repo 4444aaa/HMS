@@ -56,6 +56,7 @@ public class StockInOrderService {
 
         Set<Long> headerAcceptanceIds = resolveAcceptanceIdsFromItems(stockIn.getItems());
         validateAcceptancesCompleted(headerAcceptanceIds);
+        assertNoDraftStockInForAcceptances(headerAcceptanceIds);
         Long headerAcceptanceId = headerAcceptanceIds.size() == 1 ? headerAcceptanceIds.iterator().next() : null;
         stockIn.setAcceptanceId(headerAcceptanceId);
 
@@ -337,6 +338,37 @@ public class StockInOrderService {
             }
             if (acceptance.getStatus() == null || acceptance.getStatus() != 1) {
                 throw new ServiceException("仅已完成的验收单允许入库");
+            }
+        }
+    }
+
+    private void assertNoDraftStockInForAcceptances(Set<Long> acceptanceIds) {
+        if (acceptanceIds == null || acceptanceIds.isEmpty()) {
+            return;
+        }
+        for (Long acceptanceId : acceptanceIds) {
+            if (acceptanceId == null) {
+                continue;
+            }
+            // 1) 单来源入库单（header.acceptance_id）
+            PurchaseAcceptance directDraft = purchaseAcceptanceMapper.selectById(acceptanceId);
+            if (directDraft == null) {
+                throw new ServiceException("来源验收单不存在");
+            }
+            long directCount = stockInOrderMapper.selectCount(new LambdaQueryWrapper<StockInOrder>()
+                    .eq(StockInOrder::getStatus, 0)
+                    .eq(StockInOrder::getAcceptanceId, acceptanceId));
+            if (directCount > 0) {
+                throw new ServiceException("入库数量超过验收合格可入库数量");
+            }
+
+            // 2) 多来源合并入库：通过明细关联验收单
+            long viaItemCount = stockInOrderMapper.selectCount(new LambdaQueryWrapper<StockInOrder>()
+                    .eq(StockInOrder::getStatus, 0)
+                    .apply("EXISTS (SELECT 1 FROM stock_in_order_item si INNER JOIN purchase_acceptance_item pai ON si.acceptance_item_id = pai.id WHERE si.stock_in_id = stock_in_order.id AND pai.acceptance_id = {0})",
+                            acceptanceId));
+            if (viaItemCount > 0) {
+                throw new ServiceException("入库数量超过验收合格可入库数量");
             }
         }
     }

@@ -15,6 +15,7 @@ import org.example.springboot.mapper.PurchaseOrderItemMapper;
 import org.example.springboot.mapper.PurchaseOrderMapper;
 import org.example.springboot.mapper.SupplierMapper;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -25,9 +26,11 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.Duration;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -35,13 +38,21 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 
 @Service
 public class PurchaseAcceptanceImageCreateService {
 
-    @Value("${procurement.ai.acceptance-url:http://127.0.0.1:8000/procurement/parse-acceptance}")
-    private String aiUrl;
+    @Value("${qwen.base-url:https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions}")
+    private String qwenBaseUrl;
+
+    @Value("${qwen.api-key:}")
+    private String qwenApiKey;
+
+    @Value("${qwen.vision-model:qwen-vl-plus}")
+    private String qwenVisionModel;
+
+    @Value("${qwen.timeout-seconds:60}")
+    private long timeoutSeconds;
 
     @Resource
     private PurchaseOrderMapper purchaseOrderMapper;
@@ -60,31 +71,81 @@ public class PurchaseAcceptanceImageCreateService {
         if (file == null || file.isEmpty()) {
             throw new ServiceException("请先上传图片");
         }
-        JsonNode acceptanceNode = callPythonParser(file);
-        return createAcceptanceByStructured(acceptanceNode);
+        ParseResult parseResult = callQwenVisionParser(file);
+        return createAcceptanceByStructured(parseResult.acceptanceNode, parseResult.rawJson);
     }
 
-    private JsonNode callPythonParser(MultipartFile file) {
-        String boundary = "----SpringBootBoundary" + UUID.randomUUID();
+    private ParseResult callQwenVisionParser(MultipartFile file) {
+        if (qwenApiKey == null || qwenApiKey.isBlank()) {
+            throw new ServiceException("未配置 Qwen API Key，请在 application.properties 设置 qwen.api-key");
+        }
         try {
-            byte[] body = buildMultipartBody(file, boundary);
+            String contentType = file.getContentType() == null ? "image/jpeg" : file.getContentType();
+            String base64Image = Base64.getEncoder().encodeToString(file.getBytes());
+            String imageUrl = "data:" + contentType + ";base64," + base64Image;
+            String prompt = """
+                    你是医院采购核验单结构化助手。
+                    请从图片中提取验收信息，输出严格 JSON（不要 markdown，不要解释）：
+                    {
+                      "acceptance": {
+                        "purchase_order_no": "string",
+                        "supplier_name": "string",
+                        "remark": "string",
+                        "items": [
+                          {
+                            "medicine_code": "string",
+                            "medicine_name": "string",
+                            "received_qty": 1,
+                            "qualified_qty": 1,
+                            "production_date": "yyyy-MM-dd",
+                            "expiry_date": "yyyy-MM-dd",
+                            "remark": "string"
+                          }
+                        ]
+                      }
+                    }
+                    要求：
+                    0) “订货单号”“采购单号”“订单号”都视为同一业务字段，请统一填写到 purchase_order_no；
+                    1) 数量为非负整数，qualified_qty 不大于 received_qty；
+                    2) 日期无法识别时填空字符串；
+                    3) 仅返回 JSON。
+                    """;
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("model", qwenVisionModel);
+            payload.put("temperature", 0.1);
+            payload.put("messages", List.of(
+                    Map.of("role", "system", "content", "你是严谨的图像结构化信息提取助手。"),
+                    Map.of("role", "user", "content", List.of(
+                            Map.of("type", "text", "text", prompt),
+                            Map.of("type", "image_url", "image_url", Map.of("url", imageUrl))
+                    ))
+            ));
+
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(aiUrl))
-                    .header("Content-Type", "multipart/form-data; boundary=" + boundary)
-                    .POST(HttpRequest.BodyPublishers.ofByteArray(body))
+                    .uri(URI.create(qwenBaseUrl))
+                    .header("Authorization", "Bearer " + qwenApiKey)
+                    .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+                    .timeout(Duration.ofSeconds(Math.max(10, timeoutSeconds)))
+                    .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(payload), StandardCharsets.UTF_8))
                     .build();
             HttpClient client = HttpClient.newBuilder().build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new ServiceException("识图服务调用失败: HTTP " + response.statusCode());
+                throw new ServiceException("识图服务调用失败: HTTP " + response.statusCode() + "，响应：" + response.body());
             }
-            JsonNode root = objectMapper.readTree(response.body());
+            JsonNode qwenRoot = objectMapper.readTree(response.body());
+            String content = qwenRoot.path("choices").path(0).path("message").path("content").asText("");
+            if (content.isBlank()) {
+                throw new ServiceException("识图服务未返回内容");
+            }
+            JsonNode root = tryParseJson(content);
             JsonNode acceptance = root.path("acceptance");
             if (acceptance.isObject()) {
-                return acceptance;
+                return new ParseResult(acceptance, jsonForEcho(root));
             }
             if (root.isObject()) {
-                return root;
+                return new ParseResult(root, jsonForEcho(root));
             }
             throw new ServiceException("识图服务未返回有效结构化结果");
         } catch (InterruptedException e) {
@@ -95,27 +156,18 @@ public class PurchaseAcceptanceImageCreateService {
         }
     }
 
-    private byte[] buildMultipartBody(MultipartFile file, String boundary) throws IOException {
-        String lineEnd = "\r\n";
-        String filename = file.getOriginalFilename() == null ? "upload.jpg" : file.getOriginalFilename();
-        String contentType = file.getContentType() == null ? "application/octet-stream" : file.getContentType();
-
-        byte[] fileBytes = file.getBytes();
-        byte[] prefix = (
-                "--" + boundary + lineEnd +
-                        "Content-Disposition: form-data; name=\"file\"; filename=\"" + filename + "\"" + lineEnd +
-                        "Content-Type: " + contentType + lineEnd + lineEnd
-        ).getBytes(StandardCharsets.UTF_8);
-        byte[] suffix = (lineEnd + "--" + boundary + "--" + lineEnd).getBytes(StandardCharsets.UTF_8);
-
-        byte[] merged = new byte[prefix.length + fileBytes.length + suffix.length];
-        System.arraycopy(prefix, 0, merged, 0, prefix.length);
-        System.arraycopy(fileBytes, 0, merged, prefix.length, fileBytes.length);
-        System.arraycopy(suffix, 0, merged, prefix.length + fileBytes.length, suffix.length);
-        return merged;
+    private JsonNode tryParseJson(String content) throws IOException {
+        String t = content.trim();
+        if (t.startsWith("```")) {
+            t = t.replaceFirst("^```json\\s*", "")
+                    .replaceFirst("^```\\s*", "")
+                    .replaceFirst("\\s*```$", "")
+                    .trim();
+        }
+        return objectMapper.readTree(t);
     }
 
-    private PurchaseAcceptance createAcceptanceByStructured(JsonNode acceptanceNode) {
+    private PurchaseAcceptance createAcceptanceByStructured(JsonNode acceptanceNode, String aiRawJson) {
         String orderNoHint = firstNonBlank(
                 textOrEmpty(acceptanceNode.path("purchase_order_no")),
                 textOrEmpty(acceptanceNode.path("order_no")),
@@ -134,7 +186,9 @@ public class PurchaseAcceptanceImageCreateService {
         List<StructuredItem> structuredItems = parseStructuredItems(itemsNode);
         PurchaseOrder order = findBestPurchaseOrder(orderNoHint, supplierNameHint, structuredItems);
         if (order == null) {
-            throw new ServiceException("未匹配到可用采购单（仅支持已发送采购单）");
+            throw new ServiceException("未匹配到可用采购单（仅支持已发送采购单）。"
+                    + buildDebugEcho(orderNoHint, supplierNameHint, structuredItems)
+                    + "；【AI原始JSON】" + emptyToDash(aiRawJson));
         }
 
         List<PurchaseOrderItem> orderItems = purchaseOrderItemMapper.selectList(
@@ -198,7 +252,6 @@ public class PurchaseAcceptanceImageCreateService {
         item.setReceivedQty(received);
         item.setQualifiedQty(qualified);
         if (structuredItem != null) {
-            item.setBatchNo(structuredItem.batchNo);
             item.setProductionDate(structuredItem.productionDate);
             item.setExpiryDate(structuredItem.expiryDate);
             item.setRemark(structuredItem.remark);
@@ -232,10 +285,6 @@ public class PurchaseAcceptanceImageCreateService {
                     textOrEmpty(itemNode.path("qualifiedQty"))
             ));
             item.qualifiedQty = qualified == null ? item.receivedQty : qualified;
-            item.batchNo = textOrEmpty(itemNode.path("batch_no"));
-            if (item.batchNo.isBlank()) {
-                item.batchNo = textOrEmpty(itemNode.path("batchNo"));
-            }
             item.productionDate = parseDate(firstNonBlank(
                     textOrEmpty(itemNode.path("production_date")),
                     textOrEmpty(itemNode.path("productionDate"))
@@ -256,11 +305,7 @@ public class PurchaseAcceptanceImageCreateService {
 
     private PurchaseOrder findBestPurchaseOrder(String orderNoHint, String supplierNameHint, List<StructuredItem> items) {
         if (orderNoHint != null && !orderNoHint.isBlank()) {
-            PurchaseOrder byNo = purchaseOrderMapper.selectOne(new LambdaQueryWrapper<PurchaseOrder>()
-                    .eq(PurchaseOrder::getOrderNo, orderNoHint)
-                    .eq(PurchaseOrder::getStatus, 1)
-                    .orderByDesc(PurchaseOrder::getUpdateTime)
-                    .last("limit 1"));
+            PurchaseOrder byNo = findOrderByOrderNo(orderNoHint);
             if (byNo != null) {
                 return byNo;
             }
@@ -275,7 +320,10 @@ public class PurchaseAcceptanceImageCreateService {
                     .filter(Objects::nonNull)
                     .toList();
             if (supplierIds.isEmpty()) {
-                candidates = new ArrayList<>();
+                // 供应商名可能被识别成“收货单位”或存在简称差异，此时降级到全量已发送采购单再做药品打分匹配
+                candidates = purchaseOrderMapper.selectList(new LambdaQueryWrapper<PurchaseOrder>()
+                        .eq(PurchaseOrder::getStatus, 1)
+                        .orderByDesc(PurchaseOrder::getUpdateTime));
             } else {
                 candidates = purchaseOrderMapper.selectList(new LambdaQueryWrapper<PurchaseOrder>()
                         .eq(PurchaseOrder::getStatus, 1)
@@ -330,6 +378,42 @@ public class PurchaseAcceptanceImageCreateService {
             return null;
         }
         return bestOrder;
+    }
+
+    private PurchaseOrder findOrderByOrderNo(String orderNoHint) {
+        String raw = orderNoHint.trim();
+        String normalizedHint = normalizeOrderNo(raw);
+
+        List<PurchaseOrder> candidates = purchaseOrderMapper.selectList(new LambdaQueryWrapper<PurchaseOrder>()
+                .eq(PurchaseOrder::getStatus, 1)
+                .orderByDesc(PurchaseOrder::getUpdateTime));
+        if (candidates.isEmpty()) {
+            return null;
+        }
+
+        // 1) 精确匹配优先
+        for (PurchaseOrder order : candidates) {
+            if (raw.equalsIgnoreCase(String.valueOf(order.getOrderNo()))) {
+                return order;
+            }
+        }
+
+        // 2) 归一化后匹配（去空格、横杠、斜杠等）
+        for (PurchaseOrder order : candidates) {
+            String n = normalizeOrderNo(order.getOrderNo());
+            if (!normalizedHint.isBlank() && normalizedHint.equalsIgnoreCase(n)) {
+                return order;
+            }
+        }
+
+        // 3) 包含匹配（处理 OCR 混入前后缀字符）
+        for (PurchaseOrder order : candidates) {
+            String n = normalizeOrderNo(order.getOrderNo());
+            if (!normalizedHint.isBlank() && (n.contains(normalizedHint) || normalizedHint.contains(n))) {
+                return order;
+            }
+        }
+        return null;
     }
 
     private Medicine findMedicine(String medicineCode, String medicineName) {
@@ -418,13 +502,80 @@ public class PurchaseAcceptanceImageCreateService {
         return "";
     }
 
+    private String normalizeOrderNo(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        return raw.trim()
+                .replaceAll("[\\s\\-_/：:]", "")
+                .toUpperCase(Locale.ROOT);
+    }
+
+    private String buildDebugEcho(String orderNoHint, String supplierNameHint, List<StructuredItem> items) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("【调试回显】");
+        sb.append("识别采购单号=").append(emptyToDash(orderNoHint));
+        sb.append("（归一化=").append(emptyToDash(normalizeOrderNo(orderNoHint))).append("）");
+        sb.append("；识别供应商=").append(emptyToDash(supplierNameHint));
+
+        if (items == null || items.isEmpty()) {
+            sb.append("；识别药品明细=0条");
+            return sb.toString();
+        }
+
+        sb.append("；识别药品明细=").append(items.size()).append("条");
+        int limit = Math.min(5, items.size());
+        List<String> sample = new ArrayList<>();
+        for (int i = 0; i < limit; i++) {
+            StructuredItem it = items.get(i);
+            String name = !textOrEmptyValue(it.medicineName).isBlank() ? it.medicineName : it.medicineCode;
+            String qty = it.receivedQty == null ? "-" : String.valueOf(it.receivedQty);
+            String matched = it.medicineId == null ? "未匹配药品" : "已匹配药品ID:" + it.medicineId;
+            sample.add((name == null || name.isBlank() ? "-" : name) + " x" + qty + "(" + matched + ")");
+        }
+        sb.append("；样例=").append(String.join("、", sample));
+        if (items.size() > limit) {
+            sb.append("...");
+        }
+        return sb.toString();
+    }
+
+    private String emptyToDash(String value) {
+        return (value == null || value.isBlank()) ? "-" : value.trim();
+    }
+
+    private String textOrEmptyValue(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private String jsonForEcho(JsonNode node) {
+        try {
+            String json = objectMapper.writeValueAsString(node);
+            if (json.length() > 8000) {
+                return json.substring(0, 8000) + "...(truncated)";
+            }
+            return json;
+        } catch (Exception e) {
+            return "{}";
+        }
+    }
+
+    private static class ParseResult {
+        final JsonNode acceptanceNode;
+        final String rawJson;
+
+        ParseResult(JsonNode acceptanceNode, String rawJson) {
+            this.acceptanceNode = acceptanceNode;
+            this.rawJson = rawJson;
+        }
+    }
+
     private static class StructuredItem {
         Long medicineId;
         String medicineCode;
         String medicineName;
         Integer receivedQty;
         Integer qualifiedQty;
-        String batchNo;
         LocalDate productionDate;
         LocalDate expiryDate;
         String remark;

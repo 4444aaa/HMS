@@ -65,6 +65,12 @@ public class PurchaseAcceptanceService {
         if (order.getStatus() == null || order.getStatus() != 1) {
             throw new ServiceException("仅已发送的采购单允许创建验收单");
         }
+        long draftCount = purchaseAcceptanceMapper.selectCount(new LambdaQueryWrapper<PurchaseAcceptance>()
+                .eq(PurchaseAcceptance::getPurchaseOrderId, acceptance.getPurchaseOrderId())
+                .eq(PurchaseAcceptance::getStatus, 0));
+        if (draftCount > 0) {
+            throw new ServiceException("该采购单已存在草稿验收单，请先编辑或完成现有草稿后再创建");
+        }
 
         LocalDateTime now = LocalDateTime.now();
         if (StringUtils.isNotBlank(acceptance.getAcceptanceNo())) {
@@ -116,6 +122,7 @@ public class PurchaseAcceptanceService {
             item.setAcceptanceId(acceptance.getId());
             item.setMedicineId(orderItem.getMedicineId());
             item.setOrderedQty(orderedQty);
+            item.setBatchNo(null);
             item.setCreateTime(now);
             item.setUpdateTime(now);
             if (purchaseAcceptanceItemMapper.insert(item) <= 0) {
@@ -216,6 +223,7 @@ public class PurchaseAcceptanceService {
             item.setAcceptanceId(existing.getId());
             item.setMedicineId(orderItem.getMedicineId());
             item.setOrderedQty(orderedQty);
+            item.setBatchNo(null);
             item.setCreateTime(now);
             item.setUpdateTime(now);
             if (purchaseAcceptanceItemMapper.insert(item) <= 0) {

@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -58,4 +59,12 @@ public class PrescriptionDetail {
     @TableField(exist = false)
     @Schema(description = "病症明细")
     private MedicalRecordDetail medicalRecordDetail;
+
+    @TableField(exist = false)
+    @Schema(description = "药品售价")
+    private BigDecimal salePrice;
+
+    @TableField(exist = false)
+    @Schema(description = "该明细金额")
+    private BigDecimal amount;
 } 

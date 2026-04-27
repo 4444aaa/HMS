@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -64,4 +65,8 @@ public class Prescription {
     @TableField(exist = false)
     @Schema(description = "处方明细列表")
     private List<PrescriptionDetail> details;
+
+    @TableField(exist = false)
+    @Schema(description = "处方总金额")
+    private BigDecimal totalAmount;
 } 

@@ -386,17 +386,6 @@
           </template>
         </el-table-column>
         <el-table-column
-          label="批号"
-          width="160"
-        >
-          <template #default="scope">
-            <el-input
-              v-model="scope.row.batchNo"
-              placeholder="可选"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column
           label="生产日期"
           width="140"
         >
@@ -460,7 +449,7 @@
         </el-button>
         <template #tip>
           <div class="el-upload__tip">
-            支持 jpg/png/webp，系统会 OCR 提取验收信息并自动匹配采购单，生成验收单草稿。
+            支持 jpg/png/webp，系统将基于多模态模型提取验收信息并自动匹配采购单。
           </div>
         </template>
       </el-upload>
@@ -534,11 +523,6 @@
           prop="qualifiedQty"
           label="合格数量"
           width="120"
-        />
-        <el-table-column
-          prop="batchNo"
-          label="批号"
-          width="140"
         />
         <el-table-column
           prop="productionDate"
@@ -716,7 +700,7 @@ const submitImageCreate = async () => {
         imageCreateVisible.value = false
         await fetchAcceptances()
         if (res?.id) {
-          await openDetailById(res.id)
+          await openEdit({ id: res.id })
         }
       }
     })
@@ -751,7 +735,6 @@ const openEdit = async (row) => {
         orderedQty: it.orderedQty || 0,
         receivedQty: it.receivedQty || 0,
         qualifiedQty: it.qualifiedQty || 0,
-        batchNo: it.batchNo || '',
         productionDate: it.productionDate || '',
         expiryDate: it.expiryDate || ''
       }))
@@ -772,7 +755,6 @@ const onOrderChange = async (orderId) => {
         orderedQty: it.orderQty || 0,
         receivedQty: it.orderQty || 0,
         qualifiedQty: it.orderQty || 0,
-        batchNo: '',
         productionDate: '',
         expiryDate: ''
       }))
@@ -798,7 +780,6 @@ const saveAcceptance = async () => {
     purchaseOrderItemId: i.purchaseOrderItemId,
     receivedQty: i.receivedQty,
     qualifiedQty: i.qualifiedQty,
-    batchNo: i.batchNo,
     productionDate: i.productionDate,
     expiryDate: i.expiryDate
   }))

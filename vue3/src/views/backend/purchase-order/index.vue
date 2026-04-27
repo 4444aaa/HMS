@@ -4,12 +4,14 @@
       <template #header>
         <div class="card-header">
           <h3>采购单</h3>
-          <el-button
-            type="primary"
-            @click="openCreate"
-          >
-            新增采购单
-          </el-button>
+          <div class="header-actions">
+            <el-button
+              type="primary"
+              @click="openCreate"
+            >
+              新增采购单
+            </el-button>
+          </div>
         </div>
       </template>
 
@@ -919,6 +921,10 @@ onMounted(() => {
     display: flex;
     align-items: center;
     justify-content: space-between;
+  }
+  .header-actions {
+    display: flex;
+    gap: 10px;
   }
   .search-form {
     margin-bottom: 16px;

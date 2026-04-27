@@ -352,7 +352,7 @@
         </el-button>
         <template #tip>
           <div class="el-upload__tip">
-            支持 jpg/png/webp，系统会先 OCR，再用 RAG 做结构化纠错并自动创建采购计划。
+            支持 jpg/png/webp，系统将基于多模态模型识别并自动创建采购计划。
           </div>
         </template>
       </el-upload>
@@ -690,7 +690,7 @@ const submitImageCreate = async () => {
         imageCreateVisible.value = false
         await fetchPlans()
         if (res?.id) {
-          await openDetailById(res.id)
+          await openEdit({ id: res.id })
         }
       }
     })

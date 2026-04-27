@@ -322,6 +322,8 @@
               <span><strong>对应病症：</strong>{{ detail.medicalRecordDetail?.symptomName || '-' }}</span>
               <span><strong>对应治疗方案：</strong>{{ detail.medicalRecordDetail?.treatmentPlan || '-' }}</span>
               <span><strong>数量：</strong>{{ detail.quantity ?? '-' }}</span>
+              <span><strong>售价：</strong>{{ formatMoney(detail.salePrice) }}</span>
+              <span><strong>金额：</strong>{{ formatMoney(detail.amount) }}</span>
             </div>
             <div class="detail-line detail-line-muted">
               <span><strong>规格：</strong>{{ detail.medicine?.specification || '-' }}</span>
@@ -336,6 +338,12 @@
             description="暂无处方明细"
             :image-size="60"
           />
+        </div>
+
+        <div class="view-meta-line">
+          <span>
+            处方总金额：{{ formatMoney(prescriptionForm.totalAmount) }}
+          </span>
         </div>
 
         <div class="view-meta-line">
@@ -1156,6 +1164,12 @@ const handleCurrentChange = (val) => {
 }
 
 const patientSexText = (sex) => sex || '未知'
+
+const formatMoney = (value) => {
+  const num = Number(value)
+  if (!Number.isFinite(num)) return '￥0.00'
+  return `￥${num.toFixed(2)}`
+}
 
 const patientAgeText = (patient) => {
   if (!patient) return '未知'

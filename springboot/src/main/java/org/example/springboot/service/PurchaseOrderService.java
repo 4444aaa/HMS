@@ -63,6 +63,7 @@ public class PurchaseOrderService {
         }
         Set<Long> planIds = normalizePlanIds(order);
         Map<Long, PurchasePlanItem> planItemMap = loadAndValidatePlans(planIds);
+        assertNoDraftOrderForPlans(planIds);
         Supplier supplier = supplierMapper.selectById(order.getSupplierId());
         if (supplier == null || (supplier.getStatus() != null && supplier.getStatus() == 0)) {
             throw new ServiceException("供应商不存在或已停用");
@@ -547,6 +548,38 @@ public class PurchaseOrderService {
             planIds.add(fallbackPlanId);
         }
         return planIds;
+    }
+
+    private void assertNoDraftOrderForPlans(Set<Long> planIds) {
+        if (planIds == null || planIds.isEmpty()) {
+            return;
+        }
+        for (Long planId : planIds) {
+            if (planId == null) {
+                continue;
+            }
+            List<Long> relatedOrderIds = purchaseOrderPlanMapper.selectList(
+                            new LambdaQueryWrapper<PurchaseOrderPlan>().eq(PurchaseOrderPlan::getPlanId, planId))
+                    .stream()
+                    .map(PurchaseOrderPlan::getOrderId)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .toList();
+
+            LambdaQueryWrapper<PurchaseOrder> qw = new LambdaQueryWrapper<PurchaseOrder>()
+                    .eq(PurchaseOrder::getStatus, 0)
+                    .and(w -> {
+                        w.eq(PurchaseOrder::getPlanId, planId);
+                        if (!relatedOrderIds.isEmpty()) {
+                            w.or().in(PurchaseOrder::getId, relatedOrderIds);
+                        }
+                    })
+                    .last("limit 1");
+            PurchaseOrder draft = purchaseOrderMapper.selectOne(qw);
+            if (draft != null) {
+                throw new ServiceException("采购计划[" + planId + "]已存在草稿采购单(" + draft.getOrderNo() + ")，请先编辑或发送现有草稿");
+            }
+        }
     }
 
     /**

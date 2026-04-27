@@ -66,6 +66,11 @@ export const useUserStore = defineStore('user', {
       localStorage.removeItem('menus')
       localStorage.removeItem('doctorInfo')
       localStorage.removeItem('patientInfo')
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('ai_clinic_chat_history_v1:')) {
+          localStorage.removeItem(key)
+        }
+      })
     },
     setMenus(menus) {
       if (!menus) return

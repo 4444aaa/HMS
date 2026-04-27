@@ -126,7 +126,7 @@
             v-if="!chatMessages.length"
             class="consult-welcome"
           >
-            您好，我是智能问诊助手。请描述您的不适或疑问，我会尽量给出通俗说明；急重症请务必直接就医或拨打急救电话。
+            您好，我是智能问诊助手。我可以为您：推荐科室、医生；查询病历、处方；回答与就诊、服药相关常见问题。
           </div>
           <div
             v-for="m in chatMessages"
@@ -189,6 +189,7 @@ const router = useRouter()
 const userStore = useUserStore()
 
 const INBOX_STORAGE_KEY = 'patient_home_inbox_seen_v1'
+const CHAT_HISTORY_KEY_PREFIX = 'ai_clinic_chat_history_v1'
 
 const isPatient = computed(() => userStore.isPatient && !!userStore.patientInfo?.id)
 const patientId = computed(() => userStore.patientInfo?.id)
@@ -257,6 +258,39 @@ const chatScrollRef = ref(null)
 const chatMessages = ref([])
 const chatInput = ref('')
 const chatSending = ref(false)
+
+const getChatHistoryStorageKey = () => {
+  const pid = patientId.value
+  const token = userStore.token || ''
+  if (!pid || !token) return ''
+  return `${CHAT_HISTORY_KEY_PREFIX}:${pid}:${token.slice(0, 16)}`
+}
+
+const loadChatHistory = () => {
+  const key = getChatHistoryStorageKey()
+  if (!key) {
+    chatMessages.value = []
+    return
+  }
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) {
+      chatMessages.value = []
+      return
+    }
+    const parsed = JSON.parse(raw)
+    chatMessages.value = Array.isArray(parsed) ? parsed : []
+  } catch {
+    chatMessages.value = []
+  }
+}
+
+const saveChatHistory = () => {
+  const key = getChatHistoryStorageKey()
+  if (!key) return
+  const lastMessages = chatMessages.value.slice(-100)
+  localStorage.setItem(key, JSON.stringify(lastMessages))
+}
 
 const parseTime = (v) => {
   if (!v) return 0
@@ -366,33 +400,14 @@ const markAllInboxRead = () => {
   inboxItems.value = []
 }
 
-function getConsultReply (text) {
-  const q = (text || '').trim()
-  if (!q) {
-    return '请简单描述您的症状或疑问。'
-  }
-  if (/发烧|发热|体温/.test(q)) {
-    return '发热常见于感染等，请注意补水与休息，监测体温；若持续高热、意识模糊、呼吸困难等，请尽快急诊就医。'
-  }
-  if (/咳嗽|咽痛|嗓子/.test(q)) {
-    return '咳嗽、咽痛多与上呼吸道刺激或感染有关；若伴胸痛、咯血、气促或超过一周加重，建议尽快门诊评估。'
-  }
-  if (/腹|拉肚子|腹泻|恶心|吐/.test(q)) {
-    return '腹痛、腹泻、呕吐可能与饮食或胃肠道疾病相关；若剧痛、便血、脱水（口干尿少）、高热，请及时就医。'
-  }
-  if (/胸|闷|心悸|心慌/.test(q)) {
-    return '胸闷、心悸需要重视，尤其伴放射痛、大汗、晕厥时，请立即拨打急救电话或前往急诊。'
-  }
-  if (/预约|挂号|科室|医生/.test(q)) {
-    return '您可在本页「快捷服务」中使用「预约挂号」选择科室与医生；急症请直接前往医院急诊。'
-  }
-  if (/药|处方|取药/.test(q)) {
-    return '处方与取药进度可在「病历处方」中查看；用药请遵医嘱，勿自行加减量。'
-  }
-  if (/缴费|支付|账单/.test(q)) {
-    return '待缴费单可在「就诊缴费」中查看并完成支付；如有疑问可联系医院收费窗口。'
-  }
-  return '感谢您的描述。智能回复仅供参考，不能替代医生面诊与检查。若症状明显、持续加重或影响日常生活，建议通过「预约挂号」到院就诊，必要时请拨打急救电话。'
+const buildPatientInfoText = () => {
+  const p = userStore.patientInfo || {}
+  const chunks = []
+  if (p.name) chunks.push(`姓名:${p.name}`)
+  if (p.gender) chunks.push(`性别:${p.gender}`)
+  if (p.age != null && p.age !== '') chunks.push(`年龄:${p.age}`)
+  if (p.phone) chunks.push(`联系电话:${p.phone}`)
+  return chunks.join('，')
 }
 
 const formatChatTime = (ts) => {
@@ -423,16 +438,32 @@ const sendChat = async () => {
   })
   chatInput.value = ''
   await scrollChatToBottom()
-  await new Promise((resolve) => setTimeout(resolve, 380))
-  chatMessages.value.push({
-    id: `${Date.now()}-bot`,
-    role: 'system',
-    text: getConsultReply(text),
-    ts: Date.now()
-  })
-  chatSending.value = false
-  await scrollChatToBottom()
+  try {
+    const res = await request.post('/ai/clinic/consult', {
+      patientInfo: buildPatientInfoText(),
+      question: text
+    }, {
+      showDefaultMsg: false
+    })
+    chatMessages.value.push({
+      id: `${Date.now()}-bot`,
+      role: 'system',
+      text: res?.answer || '未获取到有效回复，请稍后重试。',
+      ts: Date.now()
+    })
+  } catch (e) {
+    chatMessages.value.push({
+      id: `${Date.now()}-bot-err`,
+      role: 'system',
+      text: '问诊服务暂时不可用，请稍后重试。',
+      ts: Date.now()
+    })
+  } finally {
+    chatSending.value = false
+    await scrollChatToBottom()
+  }
 }
+
 
 const startInboxPoll = () => {
   if (pollTimer) return
@@ -452,14 +483,29 @@ watch(
   isPatient,
   (ok) => {
     if (ok) {
+      loadChatHistory()
       buildInbox()
       startInboxPoll()
+      nextTick(() => {
+        scrollChatToBottom()
+      })
     } else {
       inboxItems.value = []
+      chatMessages.value = []
       stopInboxPoll()
     }
   },
   { immediate: true }
+)
+
+watch(
+  chatMessages,
+  () => {
+    if (isPatient.value) {
+      saveChatHistory()
+    }
+  },
+  { deep: true }
 )
 
 onUnmounted(() => {
@@ -702,6 +748,8 @@ onUnmounted(() => {
   font-size: 15px;
   line-height: 1.55;
   word-break: break-word;
+  white-space: pre-wrap;
+  text-align: left;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 
   &--user {
@@ -733,6 +781,7 @@ onUnmounted(() => {
   border-top: 1px solid #eee8df;
   background: #fff;
 }
+
 
 .consult-input-bar :deep(.el-textarea__inner) {
   border-radius: 10px;

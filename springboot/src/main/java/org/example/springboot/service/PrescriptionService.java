@@ -10,6 +10,7 @@ import org.example.springboot.mapper.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -224,6 +225,7 @@ public class PrescriptionService {
         }
         
         prescription.setDetails(details);
+        fillPricing(prescription);
         
         return prescription;
     }
@@ -342,6 +344,7 @@ public class PrescriptionService {
             }
             
             prescription.setDetails(details);
+            fillPricing(prescription);
 
             MedicalRecord medicalRecord = medicalRecordMapper.selectById(prescription.getRecordId());
             if (medicalRecord != null && medicalRecord.getAppointmentId() != null) {
@@ -486,6 +489,32 @@ public class PrescriptionService {
             }
             
             prescription.setDetails(details);
+            fillPricing(prescription);
         }
+    }
+
+    private void fillPricing(Prescription prescription) {
+        if (prescription == null || prescription.getDetails() == null || prescription.getDetails().isEmpty()) {
+            if (prescription != null) {
+                prescription.setTotalAmount(BigDecimal.ZERO);
+            }
+            return;
+        }
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        for (PrescriptionDetail detail : prescription.getDetails()) {
+            Medicine medicine = medicineMapper.selectById(detail.getMedicineId());
+            if (medicine != null) {
+                detail.setMedicine(medicine);
+            }
+            BigDecimal salePrice = medicine == null || medicine.getSalePrice() == null
+                    ? BigDecimal.ZERO
+                    : medicine.getSalePrice();
+            int quantity = detail.getQuantity() == null ? 0 : detail.getQuantity();
+            BigDecimal amount = salePrice.multiply(BigDecimal.valueOf(quantity));
+            detail.setSalePrice(salePrice);
+            detail.setAmount(amount);
+            totalAmount = totalAmount.add(amount);
+        }
+        prescription.setTotalAmount(totalAmount);
     }
 } 
